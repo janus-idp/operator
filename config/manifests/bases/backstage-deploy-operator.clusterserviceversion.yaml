@@ -1,0 +1,51 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: backstage-deploy-operator.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Backstage is the Schema for the backstages API
+      displayName: Backstage
+      kind: Backstage
+      name: backstages.backstage.io
+      version: v1alpha1
+  description: Operator to deploy Janus-IDP backstage
+  displayName: Backstage Operator
+  icon:
+  - base64data: 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
+    mediatype: image/png
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - Backstage
+  links:
+  - name: Backstage Deploy Operator
+    url: https://backstage-deploy-operator.domain
+  maintainers:
+  - email: gazarenk@redhat.com
+    name: Gennady Azarenkov
+  - email: asoro@redhat.com
+    name: Armel Soro
+  - email: jianrzha@redhat.com
+    name: Jianrong Zhang
+  maturity: alpha
+  provider:
+    name: Red Hat Inc.
+  version: 0.0.0

@@ -4,7 +4,7 @@
 # More info: https://book.kubebuilder.io/reference/project-config.html
 domain: backstage.io
 layout:
-- go.kubebuilder.io/v4
+- go.kubebuilder.io/v3
 projectName: backstage-deploy-operator
 repo: backstage.io/backstage-deploy-operator
 resources:
@@ -13,7 +13,7 @@ resources:
     namespaced: true
   controller: true
   domain: backstage.io
-  kind: BackstageDeployment
+  kind: Backstage
   path: backstage.io/backstage-deploy-operator/api/v1alpha1
   version: v1alpha1
 version: "3"

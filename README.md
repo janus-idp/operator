@@ -25,6 +25,11 @@ Deployment out of Postgres Secret? Indeed, it is not really a secret.
 You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
 **Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
 
+Beofre you start, set an environment variable for the image registry:
+```sh
+export REGISTRY=quay.io/<your org or user id>
+```
+
 ### Running on the cluster
 1. Install Instances of Custom Resources:
 
@@ -32,16 +37,23 @@ You’ll need a Kubernetes cluster to run against. You can use [KIND](https://si
 kubectl apply -f config/samples/
 ```
 
-2. Build and push your image to the location specified by `IMG`:
+2. Build and push operator image to the registry:
 
 ```sh
-make docker-build docker-push IMG=<some-registry>/backstage-deploy-operator:tag
+make docker-build docker-push
 ```
-
-3. Deploy the controller to the cluster with the image specified by `IMG`:
+Youc can also use a specific image with `IMG` to build and push the operator image:
+```sh
+make docker-build docker-push IMG=<your-registry>/backstage-operator:tag
+```
+3. Deploy the operator controller to the cluster: with the image specified by `IMG`:
 
 ```sh
-make deploy IMG=<some-registry>/backstage-deploy-operator:tag
+make deploy
+```
+Youc can also deploy the operator with a specific image by `IMG`:
+```sh
+make deploy IMG=<your-registry>/backstage-operator:tag
 ```
 
 ### Uninstall CRDs
@@ -56,6 +68,28 @@ UnDeploy the controller from the cluster:
 
 ```sh
 make undeploy
+```
+
+## Build and Deploy with OLM
+1. To build operator, bundle and catalog images:
+```sh
+make release-build
+```
+2. To push operator, bundle and catalog images to the registry:
+```sh
+make release-push
+```
+3. To deploy or update catalog source:
+```sh
+make catalog-update
+```
+4. To deloy the operator with OLM
+```sh
+make deploy-olm
+```
+4. To undeloy the operator with OLM
+```sh
+make undeploy-olm
 ```
 
 ## Contributing

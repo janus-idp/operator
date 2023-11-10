@@ -1,0 +1,4 @@
+resources:
+- bases/backstage-deploy-operator.clusterserviceversion.yaml
+- ../default
+- ../samples

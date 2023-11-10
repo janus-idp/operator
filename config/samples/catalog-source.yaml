@@ -1,0 +1,9 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: backstage-operator
+  namespace: openshift-marketplace
+spec:
+  sourceType: grpc
+  image: quay.io/jianrzha/backstage-operator-catalog:v0.1.0
+  displayName: Backstage Operator

@@ -1,5 +1,5 @@
 apiVersion: backstage.io/v1alpha1
-kind: BackstageDeployment
+kind: Backstage
 metadata:
   labels:
     app.kubernetes.io/name: backstagedeployment
@@ -9,4 +9,5 @@ metadata:
     app.kubernetes.io/created-by: backstage-deploy-operator
   name: backstagedeployment-sample
 spec:
-  # TODO(user): Add fields here
+  dryRun: false
+  skipLocalDb: false 
