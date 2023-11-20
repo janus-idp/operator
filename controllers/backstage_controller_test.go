@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"os"
 	"testing"
 	"time"
@@ -109,6 +110,7 @@ func TestCreateBackstage(t *testing.T) {
 				Eventually(func() error {
 					found := &appsv1.Deployment{}
 					// TODO to get name from default
+					Expect(len(found.Labels) > 0)
 					return k8sClient.Get(ctx, types.NamespacedName{Namespace: namespace.Name, Name: "backstage"}, found)
 				}, time.Minute, time.Second).Should(Succeed())
 
@@ -116,8 +118,13 @@ func TestCreateBackstage(t *testing.T) {
 				Eventually(func() error {
 					//TODO the status is under construction
 					err = k8sClient.Get(ctx, typeNamespaceName, backstage)
-					if backstage.Status.BackstageState != "deployed" {
-						return fmt.Errorf("The status is not 'deployed' '%s'", backstage.Status)
+					found := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alphav1.RuntimeConditionRunning)
+					if found == nil {
+						return fmt.Errorf("running condition not found: '%v'", backstage.Status)
+					}
+					found = meta.FindStatusCondition(backstage.Status.Conditions, bsv1alphav1.RuntimeConditionSynced)
+					if found == nil {
+						return fmt.Errorf("synced condition not found: '%v'", backstage.Status)
 					}
 					return nil
 				}, time.Minute, time.Second).Should(Succeed())

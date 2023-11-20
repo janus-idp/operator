@@ -76,12 +76,12 @@ func (r *BackstageReconciler) applyLocalDbDeployment(ctx context.Context, backst
 	lg := log.FromContext(ctx)
 
 	deployment := &appsv1.Deployment{}
-	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RuntimeConfig.LocalDbConfigName, "deployment", ns, DefaultLocalDbDeployment, deployment)
+	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.LocalDbConfigName, "deployment", ns, DefaultLocalDbDeployment, deployment)
 	if err != nil {
 		return err
 	}
-	deployment.Spec.Template.ObjectMeta.Labels["app"] = fmt.Sprintf("backstage-db-%s", backstage.Name)
-	deployment.Spec.Selector.MatchLabels["app"] = fmt.Sprintf("backstage-db-%s", backstage.Name)
+	deployment.Spec.Template.ObjectMeta.Labels[BackstageAppLabel] = backstageLocalDbId(backstage)
+	deployment.Spec.Selector.MatchLabels[BackstageAppLabel] = backstageLocalDbId(backstage)
 
 	//deployment.Namespace = ns
 	err = r.Get(ctx, types.NamespacedName{Name: deployment.Name, Namespace: ns}, deployment)
@@ -96,11 +96,10 @@ func (r *BackstageReconciler) applyLocalDbDeployment(ctx context.Context, backst
 		return nil
 	}
 
-	if !backstage.Spec.DryRun {
-		err = r.Create(ctx, deployment)
-		if err != nil {
-			return fmt.Errorf("failed to create deplyment, reason: %s", err)
-		}
+	r.labels(&deployment.ObjectMeta, backstage)
+	err = r.Create(ctx, deployment)
+	if err != nil {
+		return fmt.Errorf("failed to create deplyment, reason: %s", err)
 	}
 
 	return nil
@@ -111,11 +110,11 @@ func (r *BackstageReconciler) applyLocalDbService(ctx context.Context, backstage
 	lg := log.FromContext(ctx)
 
 	service := &corev1.Service{}
-	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RuntimeConfig.LocalDbConfigName, "service", ns, DefaultLocalDbService, service)
+	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.LocalDbConfigName, "service", ns, DefaultLocalDbService, service)
 	if err != nil {
 		return err
 	}
-	service.Spec.Selector["app"] = fmt.Sprintf("backstage-db-%s", backstage.Name)
+	service.Spec.Selector[BackstageAppLabel] = backstageLocalDbId(backstage)
 
 	//service.Namespace = ns
 	err = r.Get(ctx, types.NamespacedName{Name: service.Name, Namespace: ns}, service)
@@ -129,11 +128,10 @@ func (r *BackstageReconciler) applyLocalDbService(ctx context.Context, backstage
 		return nil
 	}
 
-	if !backstage.Spec.DryRun {
-		err = r.Create(ctx, service)
-		if err != nil {
-			return fmt.Errorf("failed to create service, reason: %s", err)
-		}
+	r.labels(&service.ObjectMeta, backstage)
+	err = r.Create(ctx, service)
+	if err != nil {
+		return fmt.Errorf("failed to create service, reason: %s", err)
 	}
 
 	return nil
