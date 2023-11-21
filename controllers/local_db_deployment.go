@@ -40,7 +40,7 @@ spec:
   template:
     metadata:
       labels:
-      backstage.io/app:  # placeholder for 'backstage-db-<cr-name>'
+        backstage.io/app:  # placeholder for 'backstage-db-<cr-name>'
     spec:
       containers:
         - name: postgres
