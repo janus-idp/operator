@@ -123,7 +123,7 @@ PLATFORM ?= linux/amd64
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: docker-build
 docker-build: test ## Build docker image with the manager using docker.
-	docker build --platform ${PLATFORM} -t ${IMG} .
+	docker build --platform ${PLATFORM} -t ${IMG} . -f docker/Dockerfile
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager using docker.
@@ -282,6 +282,6 @@ undeploy-olm: ## Un-deploy the operator with OLM
 	-kubectl delete clusterserviceversion backstage-operator.v${VERSION}
 
 .PHONY: catalog-update
-catalog-update: ## Update catalog source in namespace openshift-marketplace 
+catalog-update: ## Update catalog source in namespace openshift-marketplace
 	-kubectl delete catalogsource backstage-operator -n openshift-marketplace
 	sed "s/{{CATALOG_IMG}}/$(subst /,\/,$(CATALOG_IMG))/g" config/samples/catalog-source-template.yaml | oc apply -f -
