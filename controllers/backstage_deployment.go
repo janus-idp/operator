@@ -36,11 +36,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: backstage  # backstage-<cr-name>
+      backstage.io/app:  # placeholder for 'backstage-<cr-name>'
   template:
     metadata:
       labels:
-        app: backstage # backstage-<cr-name>
+        backstage.io/app:  # placeholder for 'backstage-<cr-name>'
     spec:
       containers:
         - name: backstage
@@ -68,14 +68,16 @@ func (r *BackstageReconciler) applyBackstageDeployment(ctx context.Context, back
 	if err != nil {
 		return err
 	}
-	if deployment.Spec.Template.ObjectMeta.Labels == nil {
-		deployment.Spec.Template.ObjectMeta.Labels = map[string]string{}
-	}
-	deployment.Spec.Template.ObjectMeta.Labels[BackstageAppLabel] = backstageAppId(backstage)
-	if deployment.Spec.Selector.MatchLabels == nil {
-		deployment.Spec.Selector.MatchLabels = map[string]string{}
-	}
-	deployment.Spec.Selector.MatchLabels[BackstageAppLabel] = backstageAppId(backstage)
+	setBackstageAppLabel(deployment.Spec.Template.ObjectMeta.Labels, backstage)
+	setBackstageAppLabel(deployment.Spec.Selector.MatchLabels, backstage)
+	//if deployment.Spec.Template.ObjectMeta.Labels == nil {
+	//	deployment.Spec.Template.ObjectMeta.Labels = map[string]string{}
+	//}
+	//deployment.Spec.Template.ObjectMeta.Labels[BackstageAppLabel] = backstageAppId(backstage)
+	//if deployment.Spec.Selector.MatchLabels == nil {
+	//	deployment.Spec.Selector.MatchLabels = map[string]string{}
+	//}
+	//deployment.Spec.Selector.MatchLabels[BackstageAppLabel] = backstageAppId(backstage)
 
 	err = r.Get(ctx, types.NamespacedName{Name: deployment.Name, Namespace: ns}, deployment)
 	if err != nil {

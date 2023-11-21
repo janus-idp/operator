@@ -36,11 +36,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres  # backstage-db-<cr-name>
+      backstage.io/app:  # placeholder for 'backstage-db-<cr-name>'
   template:
     metadata:
       labels:
-        app: postgres # backstage-db-<cr-name>
+      backstage.io/app:  # placeholder for 'backstage-db-<cr-name>'
     spec:
       containers:
         - name: postgres
@@ -65,7 +65,7 @@ metadata:
   name: postgres
 spec:
   selector:
-    app: postgres # backstage-db-<cr-name>
+      backstage.io/app:  # placeholder for 'backstage-db-<cr-name>'
   ports:
     - port: 5432
 `
@@ -80,8 +80,9 @@ func (r *BackstageReconciler) applyLocalDbDeployment(ctx context.Context, backst
 	if err != nil {
 		return err
 	}
-	deployment.Spec.Template.ObjectMeta.Labels[BackstageAppLabel] = backstageLocalDbId(backstage)
-	deployment.Spec.Selector.MatchLabels[BackstageAppLabel] = backstageLocalDbId(backstage)
+
+	setBackstageLocalDbLabel(deployment.Spec.Template.ObjectMeta.Labels, backstage)
+	setBackstageLocalDbLabel(deployment.Spec.Selector.MatchLabels, backstage)
 
 	//deployment.Namespace = ns
 	err = r.Get(ctx, types.NamespacedName{Name: deployment.Name, Namespace: ns}, deployment)
@@ -114,9 +115,9 @@ func (r *BackstageReconciler) applyLocalDbService(ctx context.Context, backstage
 	if err != nil {
 		return err
 	}
-	service.Spec.Selector[BackstageAppLabel] = backstageLocalDbId(backstage)
 
-	//service.Namespace = ns
+	setBackstageLocalDbLabel(service.Spec.Selector, backstage)
+
 	err = r.Get(ctx, types.NamespacedName{Name: service.Name, Namespace: ns}, service)
 	if err != nil {
 		if errors.IsNotFound(err) {

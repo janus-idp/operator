@@ -35,7 +35,7 @@ metadata:
 spec:
   type: NodePort
   selector:
-    app: backstage # backstage-<cr-name>
+    backstage.io/app:  # placeholder for 'backstage-<cr-name>'
   ports:
     - name: http
       port: 80
@@ -54,7 +54,8 @@ func (r *BackstageReconciler) applyBackstageService(ctx context.Context, backsta
 	if err != nil {
 		return err
 	}
-	service.Spec.Selector[BackstageAppLabel] = backstageAppId(backstage)
+
+	setBackstageAppLabel(service.Spec.Selector, backstage)
 
 	err = r.Get(ctx, types.NamespacedName{Name: service.Name, Namespace: ns}, service)
 	if err != nil {

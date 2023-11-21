@@ -188,7 +188,7 @@ func (r *BackstageReconciler) setRunningStatus(ctx context.Context, backstage *b
 		Status:             "Unknown",
 		LastTransitionTime: v1.Time{},
 		Reason:             "Unknown",
-		Message:            "Runtime in in unknown status",
+		Message:            "Runtime in unknown status",
 	})
 }
 
@@ -199,18 +199,24 @@ func (r *BackstageReconciler) setSyncStatus(ctx context.Context, backstage *bs.B
 		Status:             "Unknown",
 		LastTransitionTime: v1.Time{},
 		Reason:             "Unknown",
-		Message:            "Sync in in unknown status",
+		Message:            "Sync in unknown status",
 	})
 }
 
-// generates id for labels and selectors
-func backstageAppId(backstage bs.Backstage) string {
-	return fmt.Sprintf("backstage-%s", backstage.Name)
+// sets backstage-{Id} for labels and selectors
+func setBackstageAppLabel(labels map[string]string, backstage bs.Backstage) {
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	labels[BackstageAppLabel] = fmt.Sprintf("backstage-%s", backstage.Name)
 }
 
-// generates id for labels and selectors
-func backstageLocalDbId(backstage bs.Backstage) string {
-	return fmt.Sprintf("backstage-db-%s", backstage.Name)
+// sets backstage-db-{Id} for labels and selectors
+func setBackstageLocalDbLabel(labels map[string]string, backstage bs.Backstage) {
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	labels[BackstageAppLabel] = fmt.Sprintf("backstage-db-%s", backstage.Name)
 }
 
 // sets labels on Backstage's instance resources
@@ -220,7 +226,7 @@ func (r *BackstageReconciler) labels(meta *v1.ObjectMeta, backstage bs.Backstage
 	}
 	meta.Labels["app.kubernetes.io/name"] = "backstage"
 	meta.Labels["app.kubernetes.io/instance"] = backstage.Name
-	meta.Labels[BackstageAppLabel] = backstageAppId(backstage)
+	//meta.Labels[BackstageAppLabel] = backstageAppId(backstage)
 }
 
 // SetupWithManager sets up the controller with the Manager.
