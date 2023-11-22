@@ -51,7 +51,7 @@ RUN export ARCH="$(uname -m)" && if [[ ${ARCH} == "x86_64" ]]; then export ARCH=
 
 # NOTE: ubi-micro is not be FIPS compliant, if openssl is not installed
 #@follow_tag(registry.redhat.io/ubi9/ubi-micro:9.2)
-FROM ubi9/ubi-micro:9.2-15.1696515526
+FROM registry.access.redhat.com/ubi9/ubi-micro:9.2-15.1696515526
 # Upstream sources
 # Downstream comment
 ENV EXTERNAL_SOURCE=.
