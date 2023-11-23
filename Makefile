@@ -131,7 +131,7 @@ docker-push: ## Push docker image with the manager using docker.
 
 .PHONY: podman-build
 podman-build: test ## Build docker image with the manager using podman.
-	podman build --platform ${PLATFORM} -t ${IMG} .
+	podman build --platform ${PLATFORM} -t ${IMG} . -f docker/Dockerfile
 
 .PHONY: podman-push
 podman-push: ## Push docker image with the manager using podman.
