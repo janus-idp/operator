@@ -2,32 +2,21 @@
 Thank you for opening a PR! Please take the time to fill in the details below.
 -->
 
-**What type of PR is this:**
-
+## Description
 <!--
-Add one of the following kinds. Feel free to use any other kind as you see fit:
-/kind bug
-/kind feature
+Please explain the changes you made here.
 -->
 
-**What does this PR do / why we need it:**
-<!--
-Feel free to provide more context to help reviewers.
--->
+## Which issue(s) does this PR fix or relate to
 
-**Which issue(s) does this PR fix:**
-<!-- 
-Specifying the issue will automatically close it when this PR is merged
--->
+- Fixes #_issue_number_
 
-Fixes #
-
-**PR acceptance criteria:**
+## PR acceptance criteria
 
 - [ ] Tests
 - [ ] Documentation
 
-**How to test changes / Special notes to the reviewer:**
+## How to test changes / Special notes to the reviewer
 <!--
-Detailed instructions help reviewers test this PR quickly.
+Detailed instructions may help reviewers test this PR quickly and provide quicker feedback.
 -->
