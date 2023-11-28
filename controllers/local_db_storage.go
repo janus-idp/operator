@@ -25,46 +25,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-var (
-	DefaultLocalDbPV = `
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: postgres-storage
-  namespace: backstage
-  labels:
-    type: local
-spec:
-  storageClassName: manual
-  capacity:
-    storage: 2G
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  hostPath:
-    path: '/mnt/data'
-`
-	DefaultLocalDbPVC = `
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: postgres-storage-claim
-spec:
-  storageClassName: manual
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 2G
-`
-)
-
 func (r *BackstageReconciler) applyPV(ctx context.Context, backstage bs.Backstage, ns string) error {
 	// Postgre PersistentVolume
 	//lg := log.FromContext(ctx)
 
 	pv := &corev1.PersistentVolume{}
-	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.LocalDbConfigName, "persistentVolume", ns, DefaultLocalDbPV, pv)
+	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.LocalDbConfigName, "db-pv.yaml", ns, pv)
 	if err != nil {
 		return err
 	}
@@ -102,7 +68,7 @@ func (r *BackstageReconciler) applyPVC(ctx context.Context, backstage bs.Backsta
 	//lg := log.FromContext(ctx)
 
 	pvc := &corev1.PersistentVolumeClaim{}
-	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.LocalDbConfigName, "persistentVolumeClaim", ns, DefaultLocalDbPVC, pvc)
+	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.LocalDbConfigName, "db-pvc.yaml", ns, pvc)
 	if err != nil {
 		return err
 	}

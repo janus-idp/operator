@@ -136,7 +136,7 @@ var _ = Describe("Backstage controller", func() {
 						Namespace: ns,
 					},
 					Data: map[string]string{
-						"deploy": `
+						"deployment.yaml": `
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -216,7 +216,7 @@ spec:
 						Namespace: ns,
 					},
 					Data: map[string]string{
-						"deployment": `
+						"db-deployment.yaml": `
 apiVersion: apps/v1
 kind: Deployment
 metadata:

@@ -18,6 +18,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	bs "backstage.io/backstage-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -42,7 +44,7 @@ type BackstageReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 	// If true, Backstage Controller always sync the state of runtime objects created
-	// otherwise, the can be re-configured independently
+	// otherwise, runtime objects can be re-configured independently
 	OwnsRuntime bool
 
 	// Namespace allows to restrict the reconciliation to this particular namespace,
@@ -90,38 +92,32 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if !backstage.Spec.SkipLocalDb {
 		// log Debug
 		if err := r.applyPV(ctx, backstage, req.Namespace); err != nil {
-			//backstage.Status.LocalDb.PersistentVolume.Status = err.Error()
-			return ctrl.Result{}, err
+			return ctrl.Result{}, fmt.Errorf("failed to apply Database PV: %w", err)
 		}
 
 		if err := r.applyPVC(ctx, backstage, req.Namespace); err != nil {
-			//backstage.Status.PostgreState = err.Error()
-			return ctrl.Result{}, err
+			return ctrl.Result{}, fmt.Errorf("failed to apply Database PVC: %w", err)
 		}
 
 		err := r.applyLocalDbDeployment(ctx, backstage, req.Namespace)
 		if err != nil {
-			//backstage.Status.PostgreState = err.Error()
-			return ctrl.Result{}, err
+			return ctrl.Result{}, fmt.Errorf("failed to apply Database Deployment: %w", err)
 		}
 
 		err = r.applyLocalDbService(ctx, backstage, req.Namespace)
 		if err != nil {
-			//backstage.Status.PostgreState = err.Error()
-			return ctrl.Result{}, err
+			return ctrl.Result{}, fmt.Errorf("failed to apply Database Service: %w", err)
 		}
 
 	}
 
 	err := r.applyBackstageDeployment(ctx, backstage, req.Namespace)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("failed to apply Backstage Deployment: %w", err)
 	}
 
 	if err := r.applyBackstageService(ctx, backstage, req.Namespace); err != nil {
-		// TODO BackstageDepState state
-		//backstage.Status.BackstageState = err.Error()
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("failed to apply Backstage Service: %w", err)
 	}
 
 	//TODO: it is just a placeholder for the time
@@ -129,24 +125,22 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	r.setSyncStatus(&backstage)
 	err = r.Status().Update(ctx, &backstage)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("failed to set status: %w", err)
 		//log.FromContext(ctx).Error(err, "unable to update backstage.status")
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *BackstageReconciler) readConfigMapOrDefault(ctx context.Context, name string, key string, ns string, def string, object v1.Object) error {
+func (r *BackstageReconciler) readConfigMapOrDefault(ctx context.Context, name string, key string, ns string, object v1.Object) error {
 
 	// ConfigMap name not set, default
 	//lg := log.FromContext(ctx)
 
-	//lg.V(1).Info("readConfigMapOrDefault CM: ", "name", name)
-
 	if name == "" {
-		err := readYaml(def, object)
+		err := readYamlFile(defFile(key), object)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to read YAML file: %w", err)
 		}
 		object.SetNamespace(ns)
 		return nil
@@ -156,34 +150,48 @@ func (r *BackstageReconciler) readConfigMapOrDefault(ctx context.Context, name s
 	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, &cm); err != nil {
 		return err
 	}
-	//lg.V(1).Info("readConfigMapOrDefault CM name found: ", "ConfigMap:", cm)
+
 	val, ok := cm.Data[key]
 	if !ok {
 		// key not found, default
-		err := readYaml(def, object)
+		err := readYamlFile(defFile(key), object)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to read YAML file: %w", err)
 		}
 	} else {
-		err := readYaml(val, object)
+		err := readYaml([]byte(val), object)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to read YAML: %w", err)
 		}
 	}
 	object.SetNamespace(ns)
 	return nil
 }
 
-func readYaml(manifest string, object interface{}) error {
-	dec := yaml.NewYAMLOrJSONDecoder(bytes.NewReader([]byte(manifest)), 1000)
+func readYaml(manifest []byte, object interface{}) error {
+	dec := yaml.NewYAMLOrJSONDecoder(bytes.NewReader(manifest), 1000)
 	if err := dec.Decode(object); err != nil {
-		return err
+		return fmt.Errorf("failed to decode YAML: %w", err)
 	}
 	return nil
 }
 
+func readYamlFile(path string, object interface{}) error {
+
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to read YAML file: %w", err)
+	}
+	return readYaml(b, object)
+}
+
+func defFile(key string) string {
+	return filepath.Join(os.Getenv("LOCALBIN"), "default-config", key)
+}
+
 // sets the RuntimeRunning condition
 func (r *BackstageReconciler) setRunningStatus(ctx context.Context, backstage *bs.Backstage, ns string) {
+
 	meta.SetStatusCondition(&backstage.Status.Conditions, v1.Condition{
 		Type:               bs.RuntimeConditionRunning,
 		Status:             "Unknown",

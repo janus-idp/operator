@@ -4,5 +4,17 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
 - name: controller
-  newName: quay.io/rhdh/backstage-operator
-  newTag: v0.0.1
+  newName: gazarenkov/backstage
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- files:
+  - default-config/deployment.yaml
+  - default-config/service.yaml
+  - default-config/db-deployment.yaml
+  - default-config/db-service.yaml
+  - default-config/db-pv.yaml
+  - default-config/db-pvc.yaml
+  name: default-config

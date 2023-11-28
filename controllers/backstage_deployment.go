@@ -25,43 +25,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-var (
-	DefaultBackstageDeployment = `
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: backstage
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      backstage.io/app:  # placeholder for 'backstage-<cr-name>'
-  template:
-    metadata:
-      labels:
-        backstage.io/app:  # placeholder for 'backstage-<cr-name>'
-    spec:
-      containers:
-        - name: backstage
-          image: ghcr.io/backstage/backstage
-          imagePullPolicy: IfNotPresent
-          ports:
-            - name: http
-              containerPort: 7007
-          envFrom:
-            - secretRef:
-                name: postgres-secrets
-#            - secretRef:
-#                name: backstage-secrets
-`
-)
-
 func (r *BackstageReconciler) applyBackstageDeployment(ctx context.Context, backstage bs.Backstage, ns string) error {
 
 	//lg := log.FromContext(ctx)
 
 	deployment := &appsv1.Deployment{}
-	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.BackstageConfigName, "deploy", ns, DefaultBackstageDeployment, deployment)
+	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.BackstageConfigName, "deployment.yaml", ns, deployment)
 	if err != nil {
 		return fmt.Errorf("failed to read config: %s", err)
 	}
@@ -88,7 +57,7 @@ func (r *BackstageReconciler) applyBackstageDeployment(ctx context.Context, back
 			}
 
 		} else {
-			return fmt.Errorf("failed to get backstage deployment, reason: %s", err)
+			return fmt.Errorf("failed to get backstage deployment.yaml, reason: %s", err)
 		}
 	} else {
 		//lg.Info("CR update is ignored for the time")

@@ -1,5 +1,3 @@
-./scripts
-
 # Binaries for programs and plugins
 *.exe
 *.exe~
@@ -27,4 +25,5 @@ Dockerfile.cross
 *.swo
 *~
 .vscode/
+.scripts/
 .DS_Store

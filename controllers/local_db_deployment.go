@@ -27,56 +27,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var (
-	DefaultLocalDbDeployment = `apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: postgres
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      backstage.io/app:  # placeholder for 'backstage-db-<cr-name>'
-  template:
-    metadata:
-      labels:
-        backstage.io/app:  # placeholder for 'backstage-db-<cr-name>'
-    spec:
-      containers:
-        - name: postgres
-          image: postgres:13.2-alpine
-          imagePullPolicy: 'IfNotPresent'
-          ports:
-            - containerPort: 5432
-          envFrom:
-            - secretRef:
-                name: postgres-secrets
-          volumeMounts:
-            - mountPath: /var/lib/postgresql/data
-              name: postgresdb
-      volumes:
-        - name: postgresdb
-          persistentVolumeClaim:
-            claimName: postgres-storage-claim
-`
-	DefaultLocalDbService = `apiVersion: v1
-kind: Service
-metadata:
-  name: postgres
-spec:
-  selector:
-      backstage.io/app:  # placeholder for 'backstage-db-<cr-name>'
-  ports:
-    - port: 5432
-`
-)
-
 func (r *BackstageReconciler) applyLocalDbDeployment(ctx context.Context, backstage bs.Backstage, ns string) error {
 
 	//lg := log.FromContext(ctx)
 
 	deployment := &appsv1.Deployment{}
-	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.LocalDbConfigName, "deployment", ns, DefaultLocalDbDeployment, deployment)
+	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.LocalDbConfigName, "db-deployment.yaml", ns, deployment)
 	if err != nil {
 		return err
 	}
@@ -118,7 +74,7 @@ func (r *BackstageReconciler) applyLocalDbService(ctx context.Context, backstage
 	//lg := log.FromContext(ctx)
 
 	service := &corev1.Service{}
-	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.LocalDbConfigName, "service", ns, DefaultLocalDbService, service)
+	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.LocalDbConfigName, "db-service.yaml", ns, service)
 	if err != nil {
 		return err
 	}
