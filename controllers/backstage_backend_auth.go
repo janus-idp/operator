@@ -28,16 +28,11 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-var (
+const (
 	_defaultBackendAuthSecretValue = "pl4s3Ch4ng3M3"
-	//	defaultBackstageBackendAuthSecret = `
-	//apiVersion: v1
-	//kind: Secret
-	//metadata:
-	//  name: # placeholder for '<cr-name>-auth'
-	//data:
-	//  # A random value will be generated for the backend-secret key
-	//`
+	envPostGresHost                = "POSTGRES_HOST"
+	envBackendSecret               = "BACKEND_SECRET"
+	env                            = "APP_CONFIG_backend_auth_keys"
 )
 
 func (r *BackstageReconciler) handleBackendAuthSecret(ctx context.Context, backstage bs.Backstage, ns string) (secretName string, err error) {
@@ -112,9 +107,10 @@ func (r *BackstageReconciler) addBackendAuthEnvVar(ctx context.Context, backstag
 				//TODO(rm3l): why kubebuilder default values do not work
 				k = "backend-secret"
 			}
+
 			deployment.Spec.Template.Spec.Containers[i].Env = append(deployment.Spec.Template.Spec.Containers[i].Env,
 				v1.EnvVar{
-					Name: "BACKEND_SECRET",
+					Name: envBackendSecret,
 					ValueFrom: &v1.EnvVarSource{
 						SecretKeyRef: &v1.SecretKeySelector{
 							LocalObjectReference: v1.LocalObjectReference{
@@ -129,6 +125,14 @@ func (r *BackstageReconciler) addBackendAuthEnvVar(ctx context.Context, backstag
 					Name:  "APP_CONFIG_backend_auth_keys",
 					Value: `[{"secret": "$(BACKEND_SECRET)"}]`,
 				})
+			// If a local PostGres DB is used, set POSTGRES_HOST env variable to the local PostGres DB service.
+			if !backstage.Spec.SkipLocalDb {
+				deployment.Spec.Template.Spec.Containers[i].Env = append(deployment.Spec.Template.Spec.Containers[i].Env,
+					v1.EnvVar{
+						Name:  envPostGresHost,
+						Value: fmt.Sprintf("backstage-psql-%s", backstage.Name),
+					})
+			}
 			break
 		}
 	}

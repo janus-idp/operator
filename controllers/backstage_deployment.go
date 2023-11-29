@@ -139,7 +139,9 @@ func (r *BackstageReconciler) applyBackstageDeployment(ctx context.Context, back
 	}
 
 	foundDeployment := &appsv1.Deployment{}
-	err = r.Get(ctx, types.NamespacedName{Name: deployment.Name, Namespace: ns}, foundDeployment)
+	name := fmt.Sprintf("backstage-%s", backstage.Name)
+	deployment.Name = name
+	err = r.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, foundDeployment)
 	if err != nil {
 		if errors.IsNotFound(err) {
 
