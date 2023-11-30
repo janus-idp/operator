@@ -134,8 +134,7 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 func (r *BackstageReconciler) readConfigMapOrDefault(ctx context.Context, name string, key string, ns string, object v1.Object) error {
 
-	// ConfigMap name not set, default
-	//lg := log.FromContext(ctx)
+	lg := log.FromContext(ctx)
 
 	if name == "" {
 		err := readYamlFile(defFile(key), object)
@@ -154,11 +153,13 @@ func (r *BackstageReconciler) readConfigMapOrDefault(ctx context.Context, name s
 	val, ok := cm.Data[key]
 	if !ok {
 		// key not found, default
+		lg.V(1).Info("custom configuration configMap and data exists, trying to apply it", "configMap", cm.Name, "key", key)
 		err := readYamlFile(defFile(key), object)
 		if err != nil {
 			return fmt.Errorf("failed to read YAML file: %w", err)
 		}
 	} else {
+		lg.V(1).Info("custom configuration configMap exists but no such key, applying default config", "configMap", cm.Name, "key", key)
 		err := readYaml([]byte(val), object)
 		if err != nil {
 			return fmt.Errorf("failed to read YAML: %w", err)
