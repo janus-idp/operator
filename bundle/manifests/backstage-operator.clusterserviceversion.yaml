@@ -251,7 +251,7 @@ spec:
           - create
           - patch
         serviceAccountName: backstage-operator-controller-manager
-    strategy: deployment.yaml
+    strategy: deployment
   installModes:
   - supported: false
     type: OwnNamespace
