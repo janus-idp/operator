@@ -190,13 +190,14 @@ func (r *BackstageReconciler) applyLocalDbStatefulSet(ctx context.Context, backs
 }
 
 func (r *BackstageReconciler) applyLocalDbServices(ctx context.Context, backstage bs.Backstage, ns string) error {
-	name := fmt.Sprintf("backstage-psql-%s", backstage.Name)
-	err := r.applyPsqlService(ctx, backstage, name, name, ns, "db-service.yaml")
+	// TODO static for the time and bound to Secret: postgres-secret
+	label := fmt.Sprintf("backstage-psql-%s", backstage.Name)
+	err := r.applyPsqlService(ctx, backstage, "backstage-psql", label, ns, "db-service.yaml")
 	if err != nil {
 		return err
 	}
 	nameHL := fmt.Sprintf("backstage-psql-%s-hl", backstage.Name)
-	return r.applyPsqlService(ctx, backstage, nameHL, name, ns, "db-service-hl.yaml")
+	return r.applyPsqlService(ctx, backstage, nameHL, label, ns, "db-service-hl.yaml")
 
 }
 
