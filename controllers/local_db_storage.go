@@ -14,6 +14,7 @@
 
 package controller
 
+/*
 import (
 	"context"
 	"fmt"
@@ -56,47 +57,9 @@ func (r *BackstageReconciler) applyPV(ctx context.Context, backstage bs.Backstag
 
 	err = r.Create(ctx, pv)
 	if err != nil {
-		//status = fmt.Sprintf("failed to create postgre persistent volume, reason:%s", err)
 		return fmt.Errorf("failed to create postgre persistent volume, reason:%s", err)
 	}
 
 	return nil
 }
-
-func (r *BackstageReconciler) applyPVC(ctx context.Context, backstage bs.Backstage, ns string) error {
-	// Postgre PersistentVolumeClaim
-	//lg := log.FromContext(ctx)
-
-	pvc := &corev1.PersistentVolumeClaim{}
-	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.LocalDbConfigName, "db-pvc.yaml", ns, pvc)
-	if err != nil {
-		return err
-	}
-
-	err = r.Get(ctx, types.NamespacedName{Name: pvc.Name, Namespace: ns}, pvc)
-
-	if err != nil {
-		if errors.IsNotFound(err) {
-		} else {
-			return fmt.Errorf("failed to get PVC, reason: %s", err)
-		}
-	} else {
-		//lg.Info("CR update is ignored for the time")
-		return nil
-	}
-
-	r.labels(&pvc.ObjectMeta, backstage)
-	if r.OwnsRuntime {
-		if err := controllerutil.SetControllerReference(&backstage, pvc, r.Scheme); err != nil {
-			return fmt.Errorf("failed to set owner reference: %s", err)
-		}
-	}
-
-	err = r.Create(ctx, pvc)
-	if err != nil {
-		//status = fmt.Sprintf("failed to create postgre persistent volume, reason:%s", err)
-		return fmt.Errorf("failed to create postgre persistent volume claim, reason:%s", err)
-	}
-
-	return nil
-}
+*/

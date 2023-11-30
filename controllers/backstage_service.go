@@ -38,7 +38,7 @@ func (r *BackstageReconciler) applyBackstageService(ctx context.Context, backsta
 		return err
 	}
 
-	setBackstageAppLabel(service.Spec.Selector, backstage)
+	setBackstageAppLabel(&service.Spec.Selector, backstage)
 
 	err = r.Get(ctx, types.NamespacedName{Name: service.Name, Namespace: ns}, service)
 	if err != nil {
