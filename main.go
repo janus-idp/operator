@@ -31,9 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	backstageiov1alpha1 "backstage.io/backstage-operator/api/v1alpha1"
-	controller "backstage.io/backstage-operator/controllers"
 	openshift "github.com/openshift/api/route/v1"
+	backstageiov1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
+	controller "janus-idp.io/backstage-operator/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -61,7 +61,7 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.BoolVar(&ownRuntime, "own-runtime", false, "Making Backstage Controller own runtime objects. "+
+	flag.BoolVar(&ownRuntime, "own-runtime", true, "Making Backstage Controller own runtime objects. "+
 		"If 'true' - all runtime objects created by Controller will be syncing with desired state configured by Controller")
 
 	opts := zap.Options{
@@ -78,7 +78,7 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "06bdbdd5.backstage.io",
+		LeaderElectionID:       "06bdbdd5.janus-idp.io",
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
 		// when the Manager ends. This requires the binary to immediately end when the
 		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
