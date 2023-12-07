@@ -1,99 +1,52 @@
-# backstage-operator
-Operator for deploying Backstage for Janus-IDP.
+# Backstage Operator
 
-## Description
-Implementing https://janus-idp.io/docs/deployment/k8s/ procedure
-At first stage CR update does not affect Backstage Objects, just installation (same as Helm)
-TODO: Do we need to continuosly sync the states? Which way if so: from CR to Objects or back or (somehow) back and forth?
+## Context
+[Backstage](https://backstage.io) is an open platform for building developer portals. Powered by a centralized software catalog, Backstage restores order to your microservices and infrastructure and enables your product teams to ship high-quality code quickly — without compromising autonomy.
+
+Backstage unifies all your infrastructure tooling, services, and documentation to create a streamlined development environment from end to end.
+
+[Janus-IDP](https://janus-idp.io/) is a Red Hat sponsored community for building developer portals, built on Backstage. The set of Backstage plugins hand picked or created by the Janus IDP team include (but not limited to) ArgoCD, GitHub Issues, Keycloak, Kubernetes, OCM, Tekton, and Topology plugins. 
+
+The purpose of [Janus Showcase](https://github.com/janus-idp/backstage-showcase) is to showcase the value of the plugins created is a part of Janus-IDP initiative and to demonstrate the power of an internal developer portal using Backstage as the solution.
+
+## The Goal
+The Goal of Backstage Operator project is creating Kubernetes Operator for configuring, installing and synchronizing Backstage instance on Kubernetes/OpenShift simple and flexible. 
+
+The Operator should be flexible enough to install any correct Backstage instance (specific Kubernetes deployment with accompanying resources, see [Configuration](#)) but primary target is Janus-IDP Showcase on OpenShift, specifically supporting [dynamic-plugins](), so this kind of configuration may contain some specific objects (such as InitContainer(s) and dedicated ConfigMaps) to make this feature work.  
+
+The Operator should provide clear and flexible configuration options to satisfy wide range of expectations: from "default (no)configuration for quick start" to "higly customized configuration for production".
 
 Make sure namespace is created.
 
 Local Database (PostgreSQL) is created by default, to disable
-spec: 
-  skipLocalDb: true
-This way third party DB can theorethically be configured. TODO: It just requires some changes in Backstage appConfig (I think), 
-because it only expects either in-container SQLite or MySQL.
-TODO: should we consider using in-container SQLite for K8s deployment as well (single container deployment)?
 
-TODO: POSTGRES_HOST = <name-of the service> , POSTGRES_PORT = <port>[5432] can be delivered to the Backstage 
-Deployment out of Postgres Secret? Indeed, it is not really a secret.
 
 ## Getting Started
-You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
+You’ll need a Kubernetes cluster to run against. You can use [Minikube](https://minikube.sigs.k8s.io/docs/) or [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
 **Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
 
-### Running on the cluster
-1. Install Instances of Custom Resources:
-```sh
-kubectl apply -f config/samples/
-```
-2. Build and push your image to the location specified by `IMG`:
-```sh
-make docker-build docker-push IMG=<some-registry>/backstage-operator:tag
-```
-3. Deploy the controller to the cluster with the image specified by `IMG`:
-```sh
-make deploy IMG=<some-registry>/backstage-operator:tag
-```
-### Uninstall CRDs
-To delete the CRDs from the cluster:
-```sh
-make uninstall
-```
-### Undeploy controller
-UnDeploy the controller from the cluster:
-```sh
-make undeploy
-```
-## Build and Deploy with OLM
-1. To build operator, bundle and catalog images:
-```sh
-make release-build
-```
-2. To push operator, bundle and catalog images to the registry:
-```sh
-make release-push
-```
-3. To deploy or update catalog source:
-```sh
-make catalog-update
-```
-4. To deloy the operator with OLM
-```sh
-make deploy-olm
-```
-4. To undeloy the operator with OLM
-```sh
-make undeploy-olm
-```
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
+To test how it works locally on minikube:
 
-### How it works
-This project aims to follow the Kubernetes [Operator pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/).
-
-It uses [Controllers](https://kubernetes.io/docs/concepts/architecture/controller/) 
-which provides a reconcile function responsible for synchronizing resources until the desired state is reached on the cluster.
-
-### Test It Out
-1. Install the CRDs into the cluster:
+0. Make sure your minikube instance is up and running and get your copy of Operator from GitHub: 
 ```sh
-make install
+git clone https://github.com/janus-idp/operator
 ```
-2. Run your controller (this will run in the foreground, so switch to a new terminal if you want to leave it running):
+1. Deploy Operator on the cluster:
 ```sh
-make run
+make deploy
 ```
-**NOTE:** You can also run this in one step by running: `make install run`
-
-### Modifying the API definitions
-If you are editing the API definitions, generate the manifests such as CRs or CRDs using:
+Check if the Operator is up and running - TODO
+2. Create Backstage Custom resource on some namespace
 ```sh
-make manifests
+kubectl -n <your-namespace> apply -f examples/bs1.yaml
 ```
-**NOTE:** Run `make --help` for more information on all potential `make` targets
-
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
+3. Tunnel Backstage Service and get URL for access Backstage
+```sh
+minikube service -n <your-namespace> backstage --url
+Output:
+>http://127.0.0.1:<port>
+```
+4. Access your Backstage instance using this URL.   
 
 ## License
 
