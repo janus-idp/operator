@@ -90,26 +90,35 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, fmt.Errorf("failed to load backstage deployment from the cluster: %w", err)
 	}
 
-	if !backstage.Spec.SkipLocalDb {
-
-		/* We use default strogeclass currently, and no PV is needed in that case.
-		If we decide later on to support user provided storageclass we can enable pv creation.
-		if err := r.applyPV(ctx, backstage, req.Namespace); err != nil {
-			return ctrl.Result{}, err
+	var defaultConf map[string]string
+	if backstage.Spec.RawRuntimeConfig != "" {
+		cm := corev1.ConfigMap{}
+		if err := r.Get(ctx, types.NamespacedName{Name: backstage.Spec.RawRuntimeConfig, Namespace: ns}, &cm); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to load rRuntimeConfig from ConfigMap: %w", err)
 		}
-		*/
-
-		err := r.applyLocalDbStatefulSet(ctx, backstage, req.Namespace)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to apply Database StatefulSet: %w", err)
-		}
-
-		err = r.applyLocalDbServices(ctx, backstage, req.Namespace)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to apply Database Service: %w", err)
-		}
-
+		defaultConf = cm.Data
 	}
+
+	//if !backstage.Spec.SkipLocalDb {
+	//
+	//	/* We use default strogeclass currently, and no PV is needed in that case.
+	//	If we decide later on to support user provided storageclass we can enable pv creation.
+	//	if err := r.applyPV(ctx, backstage, req.Namespace); err != nil {
+	//		return ctrl.Result{}, err
+	//	}
+	//	*/
+	//
+	//	err := r.applyLocalDbStatefulSet(ctx, backstage, req.Namespace)
+	//	if err != nil {
+	//		return ctrl.Result{}, fmt.Errorf("failed to apply Database StatefulSet: %w", err)
+	//	}
+	//
+	//	err = r.applyLocalDbServices(ctx, backstage, req.Namespace)
+	//	if err != nil {
+	//		return ctrl.Result{}, fmt.Errorf("failed to apply Database Service: %w", err)
+	//	}
+	//
+	//}
 
 	err := r.applyBackstageDeployment(ctx, backstage, req.Namespace)
 	if err != nil {
@@ -132,11 +141,11 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return ctrl.Result{}, nil
 }
 
-func (r *BackstageReconciler) readConfigMapOrDefault(ctx context.Context, name string, key string, ns string, object v1.Object) error {
+func (r *BackstageReconciler) readConfigMapOrDefault(ctx context.Context, val map[string]string, key string, ns string, object v1.Object) error {
 
 	lg := log.FromContext(ctx)
 
-	if name == "" {
+	if val == nil {
 		err := readYamlFile(defFile(key), object)
 		if err != nil {
 			return fmt.Errorf("failed to read YAML file: %w", err)
@@ -145,12 +154,13 @@ func (r *BackstageReconciler) readConfigMapOrDefault(ctx context.Context, name s
 		return nil
 	}
 
-	cm := corev1.ConfigMap{}
-	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, &cm); err != nil {
-		return err
-	}
+	//cm := corev1.ConfigMap{}
+	//if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, &cm); err != nil {
+	//	return err
+	//}
+	//
+	//val, ok := cm.Data[key]
 
-	val, ok := cm.Data[key]
 	if !ok {
 		// key not found, default
 		lg.V(1).Info("custom configuration configMap and data exists, trying to apply it", "configMap", cm.Name, "key", key)

@@ -48,7 +48,7 @@ type BackstageSpec struct {
 	DynamicPluginsConfig *DynamicPluginsConfigRef `json:"dynamicPluginsConfig,omitempty"`
 
 	// Raw Runtime Objects configuration
-	RawRuntimeConfig RuntimeConfig `json:"rawRuntimeConfig,omitempty"`
+	RawRuntimeConfig string `json:"rawRuntimeConfig,omitempty"`
 
 	//+kubebuilder:default=false
 	SkipLocalDb bool `json:"skipLocalDb,omitempty"`
@@ -86,12 +86,12 @@ type BackendAuthSecretRef struct {
 	Key string `json:"key,omitempty"`
 }
 
-type RuntimeConfig struct {
-	// Name of ConfigMap containing Backstage runtime objects configuration
-	BackstageConfigName string `json:"backstageConfig,omitempty"`
-	// Name of ConfigMap containing LocalDb (P|ostgreSQL) runtime objects configuration
-	LocalDbConfigName string `json:"localDbConfig,omitempty"`
-}
+//type RuntimeConfig struct {
+//	// Name of ConfigMap containing Backstage runtime objects configuration
+//	BackstageConfigName string `json:"backstageConfig,omitempty"`
+//	// Name of ConfigMap containing LocalDb (P|ostgreSQL) runtime objects configuration
+//	LocalDbConfigName string `json:"localDbConfig,omitempty"`
+//}
 
 // BackstageStatus defines the observed state of Backstage
 type BackstageStatus struct {
