@@ -133,7 +133,7 @@ func (r *BackstageReconciler) applyBackstageDeployment(ctx context.Context, back
 	//lg := log.FromContext(ctx)
 
 	deployment := &appsv1.Deployment{}
-	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.BackstageConfigName, "deployment.yaml", ns, deployment)
+	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig, "deployment.yaml", ns, deployment)
 	if err != nil {
 		return fmt.Errorf("failed to read config: %s", err)
 	}

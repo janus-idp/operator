@@ -105,18 +105,9 @@ spec:
                 type: object
               rawRuntimeConfig:
                 description: Raw Runtime Objects configuration
-                properties:
-                  backstageConfig:
-                    description: Name of ConfigMap containing Backstage runtime objects
-                      configuration
-                    type: string
-                  localDbConfig:
-                    description: Name of ConfigMap containing LocalDb (P|ostgreSQL)
-                      runtime objects configuration
-                    type: string
-                type: object
+                type: string
               skipLocalDb:
-                default: false
+                default: true
                 type: boolean
             type: object
           status:

@@ -21,6 +21,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"janus-idp.io/backstage-operator/pkg/model"
+
+	"k8s.io/apimachinery/pkg/types"
+
 	bs "janus-idp.io/backstage-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -28,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -90,13 +93,17 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, fmt.Errorf("failed to load backstage deployment from the cluster: %w", err)
 	}
 
-	var defaultConf map[string]string
-	if backstage.Spec.RawRuntimeConfig != "" {
-		cm := corev1.ConfigMap{}
-		if err := r.Get(ctx, types.NamespacedName{Name: backstage.Spec.RawRuntimeConfig, Namespace: ns}, &cm); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to load rRuntimeConfig from ConfigMap: %w", err)
-		}
-		defaultConf = cm.Data
+	spec, err := r.preprocessSpec(ctx, backstage.Spec)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to preprocess backstage spec: %w", err)
+	}
+	objects, err := model.InitObjects(ctx, backstage, spec, r.OwnsRuntime)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to initialize backstage model: %w", err)
+	}
+	err = r.applyObjects(ctx, objects)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to apply backstage objects: %w", err)
 	}
 
 	//if !backstage.Spec.SkipLocalDb {
@@ -120,14 +127,14 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	//
 	//}
 
-	err := r.applyBackstageDeployment(ctx, backstage, req.Namespace)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to apply Backstage Deployment: %w", err)
-	}
-
-	if err := r.applyBackstageService(ctx, backstage, req.Namespace); err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to apply Backstage Service: %w", err)
-	}
+	//err = r.applyBackstageDeployment(ctx, backstage, req.Namespace)
+	//if err != nil {
+	//	return ctrl.Result{}, fmt.Errorf("failed to apply Backstage Deployment: %w", err)
+	//}
+	//
+	//if err := r.applyBackstageService(ctx, backstage, req.Namespace); err != nil {
+	//	return ctrl.Result{}, fmt.Errorf("failed to apply Backstage Service: %w", err)
+	//}
 
 	//TODO: it is just a placeholder for the time
 	r.setRunningStatus(ctx, &backstage, req.Namespace)
@@ -141,11 +148,57 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return ctrl.Result{}, nil
 }
 
-func (r *BackstageReconciler) readConfigMapOrDefault(ctx context.Context, val map[string]string, key string, ns string, object v1.Object) error {
+func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.BackstageSpec) (*model.DetailedBackstageSpec, error) {
+	result := &model.DetailedBackstageSpec{
+		BackstageSpec: bsSpec,
+	}
+
+	// TODO
+	//mountPath := bsSpec.AppConfigs.mountPath
+	for _, ac := range bsSpec.AppConfigs {
+		cm := corev1.ConfigMap{}
+		if err := r.Get(ctx, types.NamespacedName{Name: ac.Name, Namespace: r.Namespace}, &cm); err != nil {
+			return nil, fmt.Errorf("failed to load configMap %s: %w", ac.Name, err)
+		}
+
+		for key, _ := range cm.Data {
+			// first key added
+			result.Details.AppConfigs = append(result.Details.AppConfigs, model.AppConfigDetails{
+				ConfigMapName: cm.Name,
+				FilePath:      filepath.Join("mountPath", key),
+			})
+		}
+	}
+
+	return result, nil
+}
+
+func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.BackstageObject) error {
+
+	for _, obj := range objects {
+		if err := r.Get(ctx, types.NamespacedName{Name: obj.Object().GetName(), Namespace: obj.Object().GetNamespace()},
+			obj.Object()); err != nil {
+			if !errors.IsNotFound(err) {
+				return fmt.Errorf("failed to get object: %w", err)
+			}
+			// create
+			if err := r.Create(ctx, obj.Object()); err != nil {
+				return fmt.Errorf("failed to create object: %w", err)
+			}
+		}
+		// update
+		if err := r.Update(ctx, obj.Object()); err != nil {
+			return fmt.Errorf("failed to update object: %w", err)
+		}
+	}
+	return nil
+}
+
+func (r *BackstageReconciler) readConfigMapOrDefault(ctx context.Context, name string, key string, ns string, object v1.Object) error {
 
 	lg := log.FromContext(ctx)
 
-	if val == nil {
+	if name == "" {
 		err := readYamlFile(defFile(key), object)
 		if err != nil {
 			return fmt.Errorf("failed to read YAML file: %w", err)
@@ -154,12 +207,12 @@ func (r *BackstageReconciler) readConfigMapOrDefault(ctx context.Context, val ma
 		return nil
 	}
 
-	//cm := corev1.ConfigMap{}
-	//if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, &cm); err != nil {
-	//	return err
-	//}
-	//
-	//val, ok := cm.Data[key]
+	cm := corev1.ConfigMap{}
+	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, &cm); err != nil {
+		return err
+	}
+
+	val, ok := cm.Data[key]
 
 	if !ok {
 		// key not found, default
@@ -271,8 +324,7 @@ func (r *BackstageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if r.OwnsRuntime {
 		builder.Owns(&appsv1.Deployment{}).
 			Owns(&corev1.Service{}).
-			Owns(&corev1.PersistentVolume{}).
-			Owns(&corev1.PersistentVolumeClaim{})
+			Owns(&appsv1.StatefulSet{})
 	}
 
 	return builder.Complete(r)

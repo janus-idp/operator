@@ -48,7 +48,7 @@ func (r *BackstageReconciler) handleBackendAuthSecret(ctx context.Context, backs
 	//Create default Secret for backend auth
 	var sec v1.Secret
 	//var isDefault bool
-	err = r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.BackstageConfigName, "backend-auth-secret.yaml", ns, &sec)
+	err = r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig, "backend-auth-secret.yaml", ns, &sec)
 	if err != nil {
 		return "", fmt.Errorf("failed to read config: %s", err)
 	}

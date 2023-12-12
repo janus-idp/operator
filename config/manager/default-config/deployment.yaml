@@ -49,7 +49,7 @@ spec:
           workingDir: /opt/app-root/src
 
       containers:
-        - name: backstage-backend
+        - name: backstage-backend    # placeholder for 'backstage-backend'
           image: quay.io/janus-idp/backstage-showcase:next
           imagePullPolicy: IfNotPresent
           args:
