@@ -1,52 +1,63 @@
 # Backstage Operator
 
-## Context
-[Backstage](https://backstage.io) is an open platform for building developer portals. Powered by a centralized software catalog, Backstage restores order to your microservices and infrastructure and enables your product teams to ship high-quality code quickly — without compromising autonomy.
-
-Backstage unifies all your infrastructure tooling, services, and documentation to create a streamlined development environment from end to end.
-
-[Janus-IDP](https://janus-idp.io/) is a Red Hat sponsored community for building developer portals, built on Backstage. The set of Backstage plugins hand picked or created by the Janus IDP team include (but not limited to) ArgoCD, GitHub Issues, Keycloak, Kubernetes, OCM, Tekton, and Topology plugins. 
-
-The purpose of [Janus Showcase](https://github.com/janus-idp/backstage-showcase) is to showcase the value of the plugins created is a part of Janus-IDP initiative and to demonstrate the power of an internal developer portal using Backstage as the solution.
-
 ## The Goal
-The Goal of Backstage Operator project is creating Kubernetes Operator for configuring, installing and synchronizing Backstage instance on Kubernetes/OpenShift simple and flexible. 
-
-The Operator should be flexible enough to install any correct Backstage instance (specific Kubernetes deployment with accompanying resources, see [Configuration](#)) but primary target is Janus-IDP Showcase on OpenShift, specifically supporting [dynamic-plugins](), so this kind of configuration may contain some specific objects (such as InitContainer(s) and dedicated ConfigMaps) to make this feature work.  
-
+The Goal of [Backstage](https://backstage.io) Operator project is creating Kubernetes Operator for configuring, installing and synchronizing Backstage instance on Kubernetes/OpenShift. 
+Primary target is supporting Red Hat's assemblies of Backstage (specifically supporting [dynamic-plugins]()) on OpenShift, such as [Janus-IDP](https://janus-idp.io/) and RHDH but is flexible enough to install any correct Backstage instance (specific Kubernetes deployment with accompanying resources, see [Configuration](#))
 The Operator should provide clear and flexible configuration options to satisfy wide range of expectations: from "default (no)configuration for quick start" to "higly customized configuration for production".
-
-Make sure namespace is created.
-
-Local Database (PostgreSQL) is created by default, to disable
-
+[More documentation...](#More documentation)
 
 ## Getting Started
 You’ll need a Kubernetes cluster to run against. You can use [Minikube](https://minikube.sigs.k8s.io/docs/) or [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
 **Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
 
-To test how it works locally on minikube:
+To test it on minikube from the source code:
 
-0. Make sure your minikube instance is up and running and get your copy of Operator from GitHub: 
+You need ready to use **kubectl** and **minikube** [tools](https://kubernetes.io/docs/tasks/tools/) as a prerequisite.
+
+1.  Get your copy of Operator from GitHub: 
 ```sh
 git clone https://github.com/janus-idp/operator
 ```
-1. Deploy Operator on the cluster:
+2. Deploy Operator on the minikube cluster:
 ```sh
+cd <your-janus-idp-operator-project-dir>
 make deploy
 ```
-Check if the Operator is up and running - TODO
-2. Create Backstage Custom resource on some namespace
+you can check if the Operator pod is up by running 
+```sh
+kubectl get pods -n backstage-system
+It should be something like:
+NAME                                           READY   STATUS    RESTARTS   AGE
+backstage-controller-manager-cfc44bdfd-xzk8g   2/2     Running   0          32s
+```
+3. Create Backstage Custom resource on some namespace (make sure this namespace exists)
 ```sh
 kubectl -n <your-namespace> apply -f examples/bs1.yaml
 ```
-3. Tunnel Backstage Service and get URL for access Backstage
+you can check if the Operator pod is up by running
+```sh
+kubectl get pods -n <your-namespace>
+It should be something like:
+NAME                         READY   STATUS    RESTARTS   AGE
+backstage-85fc4657b5-lqk6r   1/1     Running   0          78s
+backstage-psql-bs1-0         1/1     Running   0          79s
+
+```
+4. Tunnel Backstage Service and get URL for access Backstage
 ```sh
 minikube service -n <your-namespace> backstage --url
 Output:
->http://127.0.0.1:<port>
+>http://127.0.0.1:53245
 ```
-4. Access your Backstage instance using this URL.   
+5. Access your Backstage instance in your browser using this URL. 
+
+## More documentation
+
+[Openshift deployment](docs/openshift.md)
+[Configuration](docs/configuration.md)
+[Developer Guide](docs/developer.md)
+[Operator Design](docs/developer.md)
+
 
 ## License
 
