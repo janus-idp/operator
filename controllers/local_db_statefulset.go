@@ -162,13 +162,14 @@ func (r *BackstageReconciler) applyLocalDbStatefulSet(ctx context.Context, backs
 	lg := log.FromContext(ctx)
 
 	statefulSet := &appsv1.StatefulSet{}
-	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig, "db-statefulset.yaml", ns, statefulSet)
+	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.LocalDbConfigName, "db-statefulset.yaml", ns, statefulSet)
 	if err != nil {
 		return err
 	}
 
 	// need to patch the Name before get for correct search
 	statefulSet.Name = fmt.Sprintf("backstage-psql-%s", backstage.Name)
+
 	err = r.Get(ctx, types.NamespacedName{Name: statefulSet.Name, Namespace: ns}, statefulSet)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -179,6 +180,10 @@ func (r *BackstageReconciler) applyLocalDbStatefulSet(ctx context.Context, backs
 	} else {
 		lg.Info("CR update is ignored for the time")
 		return nil
+	}
+
+	if err = r.patchLocalDbStatefulSetObj(statefulSet, backstage); err != nil {
+		return err
 	}
 
 	if r.OwnsRuntime {
@@ -213,14 +218,13 @@ func (r *BackstageReconciler) applyLocalDbStatefulSet(ctx context.Context, backs
 }
 
 func (r *BackstageReconciler) applyLocalDbServices(ctx context.Context, backstage bs.Backstage, ns string) error {
-	// TODO static for the time and bound to Secret: postgres-secret
-	label := fmt.Sprintf("backstage-psql-%s", backstage.Name)
-	err := r.applyPsqlService(ctx, backstage, "backstage-psql", label, ns, "db-service.yaml")
+	name := fmt.Sprintf("backstage-psql-%s", backstage.Name)
+	err := r.applyPsqlService(ctx, backstage, name, name, ns, "db-service.yaml")
 	if err != nil {
 		return err
 	}
 	nameHL := fmt.Sprintf("backstage-psql-%s-hl", backstage.Name)
-	return r.applyPsqlService(ctx, backstage, nameHL, label, ns, "db-service-hl.yaml")
+	return r.applyPsqlService(ctx, backstage, nameHL, name, ns, "db-service-hl.yaml")
 
 }
 
@@ -229,7 +233,7 @@ func (r *BackstageReconciler) applyPsqlService(ctx context.Context, backstage bs
 	lg := log.FromContext(ctx)
 
 	service := &corev1.Service{}
-	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig, key, ns, service)
+	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.LocalDbConfigName, key, ns, service)
 	if err != nil {
 		return err
 	}

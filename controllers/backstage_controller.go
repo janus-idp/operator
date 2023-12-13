@@ -35,6 +35,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -56,6 +57,8 @@ type BackstageReconciler struct {
 	// and ignore requests from other namespaces.
 	// This is mostly useful for our tests, to overcome a limitation of EnvTest about namespace deletion.
 	Namespace string
+
+	IsOpenShift bool
 }
 
 //+kubebuilder:rbac:groups=janus-idp.io,resources=backstages,verbs=get;list;watch;create;update;patch;delete
@@ -64,6 +67,7 @@ type BackstageReconciler struct {
 //+kubebuilder:rbac:groups="",resources=configmaps;secrets;persistentvolumes;persistentvolumeclaims;services,verbs=get;watch;create;update;list;delete
 //+kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;watch;create;update;list;delete
 //+kubebuilder:rbac:groups="apps",resources=statefulsets,verbs=get;watch;create;update;list;delete
+//+kubebuilder:rbac:groups="route.openshift.io",resources=routes,verbs=get;watch;create;update;list;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -147,6 +151,12 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	//if err := r.applyBackstageService(ctx, backstage, req.Namespace); err != nil {
 	//	return ctrl.Result{}, fmt.Errorf("failed to apply Backstage Service: %w", err)
 	//}
+
+	if r.IsOpenShift {
+		if err := r.applyBackstageRoute(ctx, backstage, req.Namespace); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
 	//TODO: it is just a placeholder for the time
 	r.setRunningStatus(ctx, &backstage, req.Namespace)
