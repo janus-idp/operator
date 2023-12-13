@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"time"
 
-	"janus-idp.io/backstage-operator/pkg/model"
+	"janus-idp.io/backstage-operator/pkg/utils"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -165,7 +165,7 @@ var _ = Describe("Backstage controller", func() {
 			found := &appsv1.Deployment{}
 			Eventually(func() error {
 				// TODO to get name from default
-				return k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.GenerateRuntimeObjectName(backstageName, "deployment")}, found)
+				return k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: utils.GenerateRuntimeObjectName(backstageName, "deployment")}, found)
 			}, time.Minute, time.Second).Should(Succeed())
 
 			//By("Checking that the Deployment is configured with a random backend auth secret")

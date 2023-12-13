@@ -29,7 +29,7 @@ type BackstageSpec struct {
 	Application *Application `json:"application,omitempty"`
 
 	// Raw Runtime Objects configuration. For Advanced scenarios.
-	RawRuntimeConfig RuntimeConfig `json:"rawRuntimeConfig,omitempty"`
+	RawRuntimeConfig string `json:"rawRuntimeConfig,omitempty"`
 
 	// Control the creation of a local PostgreSQL DB. Set to false if using for example an external Database for Backstage.
 	// To use an external Database, you can provide your own app-config file (see the AppConfig field in the Application structure)
@@ -158,12 +158,12 @@ type Env struct {
 	Value string `json:"value"`
 }
 
-type RuntimeConfig struct {
-	// Name of ConfigMap containing Backstage runtime objects configuration
-	BackstageConfigName string `json:"backstageConfig,omitempty"`
-	// Name of ConfigMap containing LocalDb (P|ostgreSQL) runtime objects configuration
-	LocalDbConfigName string `json:"localDbConfig,omitempty"`
-}
+//type RuntimeConfig struct {
+//	// Name of ConfigMap containing Backstage runtime objects configuration
+//	BackstageConfigName string `json:"backstageConfig,omitempty"`
+//	// Name of ConfigMap containing LocalDb (P|ostgreSQL) runtime objects configuration
+//	LocalDbConfigName string `json:"localDbConfig,omitempty"`
+//}
 
 // BackstageStatus defines the observed state of Backstage
 type BackstageStatus struct {

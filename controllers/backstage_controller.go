@@ -31,11 +31,9 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -103,12 +101,12 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to preprocess backstage spec: %w", err)
 	}
-	objects, err := model.InitObjects(ctx, backstage, spec, r.OwnsRuntime)
+	objects, err := model.InitObjects(ctx, backstage, spec, r.OwnsRuntime, r.IsOpenShift)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to initialize backstage model: %w", err)
 	}
 
-	//TODO, do it on model (need sending Scheme to InitObjects just for this)?
+	//TODO, do it on model? (need sending Scheme to InitObjects just for this)
 	if r.OwnsRuntime {
 		for _, obj := range objects {
 			if err = controllerutil.SetControllerReference(&backstage, obj.Object(), r.Scheme); err != nil {
@@ -152,11 +150,11 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	//	return ctrl.Result{}, fmt.Errorf("failed to apply Backstage Service: %w", err)
 	//}
 
-	if r.IsOpenShift {
-		if err := r.applyBackstageRoute(ctx, backstage, req.Namespace); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
+	//if r.IsOpenShift {
+	//	if err := r.applyBackstageRoute(ctx, backstage, req.Namespace); err != nil {
+	//		return ctrl.Result{}, err
+	//	}
+	//}
 
 	//TODO: it is just a placeholder for the time
 	r.setRunningStatus(ctx, &backstage, req.Namespace)
@@ -168,31 +166,6 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	return ctrl.Result{}, nil
-}
-
-func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.BackstageSpec) (*model.DetailedBackstageSpec, error) {
-	result := &model.DetailedBackstageSpec{
-		BackstageSpec: bsSpec,
-	}
-
-	// TODO
-	//mountPath := bsSpec.AppConfigs.mountPath
-	for _, ac := range bsSpec.AppConfigs {
-		cm := corev1.ConfigMap{}
-		if err := r.Get(ctx, types.NamespacedName{Name: ac.Name, Namespace: r.Namespace}, &cm); err != nil {
-			return nil, fmt.Errorf("failed to load configMap %s: %w", ac.Name, err)
-		}
-
-		for key, _ := range cm.Data {
-			// first key added
-			result.Details.AppConfigs = append(result.Details.AppConfigs, model.AppConfigDetails{
-				ConfigMapName: cm.Name,
-				FilePath:      filepath.Join("mountPath", key),
-			})
-		}
-	}
-
-	return result, nil
 }
 
 func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.BackstageObject) error {
@@ -273,39 +246,6 @@ func readYamlFile(path string, object interface{}) error {
 
 func defFile(key string) string {
 	return filepath.Join(os.Getenv("LOCALBIN"), "default-config", key)
-}
-
-// sets the RuntimeRunning condition
-func (r *BackstageReconciler) setRunningStatus(ctx context.Context, backstage *bs.Backstage, ns string) {
-
-	meta.SetStatusCondition(&backstage.Status.Conditions, v1.Condition{
-		Type:               bs.RuntimeConditionRunning,
-		Status:             "Unknown",
-		LastTransitionTime: v1.Time{},
-		Reason:             "Unknown",
-		Message:            "Runtime in unknown status",
-	})
-}
-
-// sets the RuntimeSyncedWithConfig condition
-func (r *BackstageReconciler) setSyncStatus(backstage *bs.Backstage) {
-
-	status := v1.ConditionUnknown
-	reason := "Unknown"
-	message := "Sync in unknown status"
-	if r.OwnsRuntime {
-		status = v1.ConditionTrue
-		reason = "Synced"
-		message = "Backstage syncs runtime"
-	}
-
-	meta.SetStatusCondition(&backstage.Status.Conditions, v1.Condition{
-		Type:               bs.RuntimeConditionSynced,
-		Status:             status,
-		LastTransitionTime: v1.Time{},
-		Reason:             reason,
-		Message:            message,
-	})
 }
 
 // sets backstage-{Id} for labels and selectors

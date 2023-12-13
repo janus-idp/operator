@@ -18,6 +18,7 @@ const (
 	Mandatory        needType = "Mandatory"
 	NotMandatory     needType = "Optional"
 	ForLocalDatabase needType = "ForLocalDatabase"
+	ForOpenshift     needType = "ForOpenshift"
 )
 
 var runtimeConfig = []ObjectConfig{
@@ -30,6 +31,7 @@ var runtimeConfig = []ObjectConfig{
 	{Key: "secret-files.yaml", BackstageObject: newBackstageDeployment(), need: NotMandatory},
 	{Key: "configmap-envs.yaml", BackstageObject: newBackstageDeployment(), need: NotMandatory},
 	{Key: "secret-envs.yaml", BackstageObject: newBackstageDeployment(), need: NotMandatory},
+	{Key: "route.yaml", BackstageObject: newRoute(), need: ForOpenshift},
 }
 
 type needType string
@@ -71,7 +73,7 @@ func (c *ObjectConfig) isEmpty() bool {
 //	NetworkingIngress networkingv1.Ingress
 //}
 
-func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backstageSpec *DetailedBackstageSpec, ownsRuntime bool) ([]BackstageObject, error) {
+func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backstageSpec *DetailedBackstageSpec, ownsRuntime bool, isOpenshift bool) ([]BackstageObject, error) {
 
 	// 3 phases of Backstage configuration:
 	// 1- load from Operator defaults, modify metadata (labels, selectors..) and namespace as needed
@@ -88,13 +90,28 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 	for _, conf := range runtimeConfig {
 		backstageObject := conf.BackstageObject
 		if err := utils.ReadYamlFile(utils.DefFile(conf.Key), backstageObject.Object()); err != nil {
-			if conf.need == Mandatory || (conf.need == ForLocalDatabase && !backstageSpec.SkipLocalDb) {
+			if conf.need == Mandatory || (conf.need == ForLocalDatabase && *backstageSpec.EnableLocalDb) {
 				return nil, err
 			} else {
-				lg.Info("failed to read default value for optional key %s, reason: %s. Ignored \n", conf.Key, err)
+				lg.Info("failed to read default value for optional key. Ignored \n", conf.Key, err)
 				continue
 			}
 		}
+
+		// Phase 2: overlay with rawConfig if any
+		overlay, ok := backstageSpec.Details.RawConfig[conf.Key]
+		if ok {
+			if err := utils.ReadYaml([]byte(overlay), backstageObject.Object()); err != nil {
+				// consider all values set intentionally, "need" ignored, always throw error
+				return nil, fmt.Errorf("failed to read overlay value for the key %s, reason: %s", conf.Key, err)
+			}
+		}
+
+		// do not add if not openshift
+		if !isOpenshift && conf.need == ForOpenshift {
+			continue
+		}
+
 		backstageObject.initMetainfo(backstageMeta, ownsRuntime)
 
 		if conf.Key == deploymentKey {
@@ -118,9 +135,6 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 			bs.updateBackstagePod(backstagePod)
 		}
 	}
-
-	// Phase 2:
-	// TODO should be fairly simple here
 
 	// Phase 3: process Backstage.spec
 	// TODO API

@@ -8,6 +8,7 @@ type DetailedBackstageSpec struct {
 }
 
 type SpecDetails struct {
+	RawConfig              map[string]string
 	AppConfigs             []AppConfigDetails
 	ExtraSecretsToFiles    []ExtraSecretToFilesDetails
 	ExtraSecretsToEnvs     []ExtraSecretToEnvsDetails

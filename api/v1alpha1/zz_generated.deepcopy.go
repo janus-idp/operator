@@ -158,7 +158,6 @@ func (in *BackstageSpec) DeepCopyInto(out *BackstageSpec) {
 		*out = new(Application)
 		(*in).DeepCopyInto(*out)
 	}
-	out.RawRuntimeConfig = in.RawRuntimeConfig
 	if in.EnableLocalDb != nil {
 		in, out := &in.EnableLocalDb, &out.EnableLocalDb
 		*out = new(bool)

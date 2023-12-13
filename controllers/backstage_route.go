@@ -28,7 +28,7 @@ import (
 
 func (r *BackstageReconciler) applyBackstageRoute(ctx context.Context, backstage bs.Backstage, ns string) error {
 	route := &openshift.Route{}
-	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.BackstageConfigName, "route.yaml", ns, route)
+	err := r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig, "route.yaml", ns, route)
 	if err != nil {
 		return err
 	}
