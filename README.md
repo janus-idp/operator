@@ -56,7 +56,7 @@ Output:
 [Openshift deployment](docs/openshift.md)
 [Configuration](docs/configuration.md)
 [Developer Guide](docs/developer.md)
-[Operator Design](docs/developer.md)
+- [Operator Design](docs/developer.md)
 
 
 ## License
