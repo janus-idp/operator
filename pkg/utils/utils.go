@@ -28,6 +28,10 @@ func GenerateLabel(labels *map[string]string, name string, value string) {
 	(*labels)[name] = value
 }
 
+func GenerateRuntimeObjectName(backstageObjectName string, suffix string) string {
+	return fmt.Sprintf("%s-%s", backstageObjectName, suffix)
+}
+
 func ReadYaml(manifest []byte, object interface{}) error {
 	dec := yaml.NewYAMLOrJSONDecoder(bytes.NewReader(manifest), 1000)
 	if err := dec.Decode(object); err != nil {

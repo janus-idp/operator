@@ -23,7 +23,7 @@ func (b *DbStatefulSet) Object() client.Object {
 
 func (b *DbStatefulSet) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(b, backstageMeta, ownsRuntime)
-	b.statefulSet.SetName(GenerateRuntimeObjectName(backstageMeta.Name, "deployment"))
+	b.statefulSet.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "db-statefulset"))
 	utils.GenerateLabel(&b.statefulSet.Spec.Template.ObjectMeta.Labels, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
 	utils.GenerateLabel(&b.statefulSet.Spec.Selector.MatchLabels, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
 }

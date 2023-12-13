@@ -107,7 +107,7 @@ spec:
                 description: Raw Runtime Objects configuration
                 type: string
               skipLocalDb:
-                default: true
+                default: false
                 type: boolean
             type: object
           status:

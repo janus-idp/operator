@@ -21,6 +21,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	"janus-idp.io/backstage-operator/pkg/model"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -101,6 +103,16 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to initialize backstage model: %w", err)
 	}
+
+	//TODO, do it on model (need sending Scheme to InitObjects just for this)?
+	if r.OwnsRuntime {
+		for _, obj := range objects {
+			if err = controllerutil.SetControllerReference(&backstage, obj.Object(), r.Scheme); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to set owner reference: %s", err)
+			}
+		}
+	}
+
 	err = r.applyObjects(ctx, objects)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to apply backstage objects: %w", err)

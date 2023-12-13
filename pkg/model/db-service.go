@@ -23,6 +23,6 @@ func (s *DbService) Object() client.Object {
 
 func (s *DbService) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(s, backstageMeta, ownsRuntime)
-	s.service.SetName(fmt.Sprintf("%s-db-service", backstageMeta.Name))
+	s.service.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "db-service"))
 	utils.GenerateLabel(&s.service.Spec.Selector, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
 }

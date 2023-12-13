@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"janus-idp.io/backstage-operator/pkg/utils"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,10 +48,6 @@ type BackstageObject interface {
 type BackstageConfObject interface {
 	BackstageObject
 	updateBackstagePod(pod *backstagePod)
-}
-
-func GenerateRuntimeObjectName(backstageObjectName string, suffix string) string {
-	return fmt.Sprintf("%s-%s", backstageObjectName, suffix)
 }
 
 func (c *ObjectConfig) isEmpty() bool {
@@ -147,14 +142,8 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 func initMetainfo(modelObject BackstageObject, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	modelObject.Object().SetNamespace(backstageMeta.Namespace)
 	modelObject.Object().SetLabels(utils.SetKubeLabels(modelObject.Object().GetLabels(), backstageMeta.Name))
-	if ownsRuntime {
-		ownerRef := metav1.OwnerReference{
-			APIVersion: backstageMeta.APIVersion,
-			Kind:       backstageMeta.Kind,
-			UID:        backstageMeta.GetUID(),
-			Name:       backstageMeta.GetName(),
-		}
-		owners := []metav1.OwnerReference{ownerRef}
-		modelObject.Object().SetOwnerReferences(owners)
-	}
+	//if ownsRuntime {
+	//if err = controllerutil.SetControllerReference(&backstageMeta, modelObject.Object(), r.Scheme); err != nil {
+	//	//return fmt.Errorf("failed to set owner reference: %s", err)
+	//}
 }

@@ -25,7 +25,7 @@ func (b *BackstageDeployment) Object() client.Object {
 
 func (b *BackstageDeployment) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(b, backstageMeta, ownsRuntime)
-	b.deployment.SetName(GenerateRuntimeObjectName(backstageMeta.Name, "deployment"))
+	b.deployment.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "deployment"))
 	utils.GenerateLabel(&b.deployment.Spec.Template.ObjectMeta.Labels, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageMeta.Name))
 	utils.GenerateLabel(&b.deployment.Spec.Selector.MatchLabels, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageMeta.Name))
 }

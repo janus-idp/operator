@@ -15,6 +15,10 @@ import (
 func TestInitDefaultDeploy(t *testing.T) {
 
 	bs := v1alpha1.Backstage{
+		//TypeMeta: metav1.TypeMeta{
+		//	APIVersion: "v1alpha1",
+		//	Kind:       "Backstage",
+		//},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "bs",
 			Namespace: "ns123",
@@ -28,12 +32,14 @@ func TestInitDefaultDeploy(t *testing.T) {
 	assert.Equal(t, "bs-deployment", model[0].Object().GetName())
 	assert.Equal(t, "ns123", model[0].Object().GetNamespace())
 	assert.Equal(t, 2, len(model[0].Object().GetLabels()))
-	assert.Equal(t, 1, len(model[0].Object().GetOwnerReferences()))
+	//	assert.Equal(t, 1, len(model[0].Object().GetOwnerReferences()))
 
 	bsDeployment := model[0].(*BackstageDeployment)
 	assert.NotNil(t, bsDeployment.pod.container)
 	assert.Equal(t, backstageContainerName, bsDeployment.pod.container.Name)
 	assert.NotNil(t, bsDeployment.pod.volumes)
+
+	//	assert.Equal(t, "Backstage", bsDeployment.deployment.OwnerReferences[0].Kind)
 
 	bsService := model[1].(*BackstageService)
 	assert.Equal(t, "bs-service", bsService.service.Name)

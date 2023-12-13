@@ -146,9 +146,6 @@ var _ = Describe("Backstage controller", func() {
 			backstage = buildBackstageCR(bsv1alpha1.BackstageSpec{})
 			err := k8sClient.Create(ctx, backstage)
 			Expect(err).To(Not(HaveOccurred()))
-
-			fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>> DBSKIP >>>> %v", backstage.Spec.SkipLocalDb)
-
 		})
 
 		It("should successfully reconcile a custom resource for default Backstage", func() {
