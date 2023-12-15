@@ -27,3 +27,7 @@ func (s *BackstageService) initMetainfo(backstageMeta bsv1alpha1.Backstage, owns
 	s.service.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "service"))
 	utils.GenerateLabel(&s.service.Spec.Selector, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageMeta.Name))
 }
+
+func (b *BackstageService) addToModel(model *runtimeModel) {
+	model.backstageService = b
+}

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"k8s.io/utils/pointer"
+
 	"janus-idp.io/backstage-operator/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -15,17 +17,16 @@ import (
 func TestInitDefaultDeploy(t *testing.T) {
 
 	bs := v1alpha1.Backstage{
-		//TypeMeta: metav1.TypeMeta{
-		//	APIVersion: "v1alpha1",
-		//	Kind:       "Backstage",
-		//},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "bs",
 			Namespace: "ns123",
 		},
+		Spec: v1alpha1.BackstageSpec{
+			EnableLocalDb: pointer.Bool(true),
+		},
 	}
 
-	model, err := InitObjects(context.TODO(), bs, &DetailedBackstageSpec{}, true, false)
+	model, err := InitObjects(context.TODO(), bs, &DetailedBackstageSpec{BackstageSpec: bs.Spec}, true, false)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model) > 0)

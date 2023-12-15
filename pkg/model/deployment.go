@@ -19,6 +19,15 @@ func newBackstageDeployment() *BackstageDeployment {
 	return &BackstageDeployment{deployment: &appsv1.Deployment{}}
 }
 
+func getBackstageDeployment(bsobjects []BackstageObject) *BackstageDeployment {
+	for _, obj := range bsobjects {
+		if bs, ok := obj.(*BackstageDeployment); ok {
+			return bs
+		}
+	}
+	return nil
+}
+
 func (b *BackstageDeployment) Object() client.Object {
 	return b.deployment
 }
@@ -28,6 +37,10 @@ func (b *BackstageDeployment) initMetainfo(backstageMeta bsv1alpha1.Backstage, o
 	b.deployment.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "deployment"))
 	utils.GenerateLabel(&b.deployment.Spec.Template.ObjectMeta.Labels, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageMeta.Name))
 	utils.GenerateLabel(&b.deployment.Spec.Selector.MatchLabels, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageMeta.Name))
+}
+
+func (b *BackstageDeployment) addToModel(model *runtimeModel) {
+	model.backstageDeployment = b
 }
 
 func (b *BackstageDeployment) setReplicas(replicas *int32) {

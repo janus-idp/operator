@@ -26,3 +26,7 @@ func (s *DbService) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime
 	s.service.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "db-service"))
 	utils.GenerateLabel(&s.service.Spec.Selector, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
 }
+
+func (b *DbService) addToModel(model *runtimeModel) {
+	model.localDbService = b
+}

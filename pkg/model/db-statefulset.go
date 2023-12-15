@@ -27,3 +27,7 @@ func (b *DbStatefulSet) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRun
 	utils.GenerateLabel(&b.statefulSet.Spec.Template.ObjectMeta.Labels, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
 	utils.GenerateLabel(&b.statefulSet.Spec.Selector.MatchLabels, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
 }
+
+func (b *DbStatefulSet) addToModel(model *runtimeModel) {
+	model.localDbStatefulSet = b
+}

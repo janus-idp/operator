@@ -7,20 +7,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type Route struct {
+type BackstageRoute struct {
 	route *openshift.Route
 }
 
-func newRoute() *Route {
-	return &Route{route: &openshift.Route{}}
+func newRoute() *BackstageRoute {
+	return &BackstageRoute{route: &openshift.Route{}}
 }
 
-func (b *Route) Object() client.Object {
+func (b *BackstageRoute) Object() client.Object {
 	return b.route
 }
 
-func (b *Route) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
+func (b *BackstageRoute) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(b, backstageMeta, ownsRuntime)
 	b.route.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "route"))
 	b.route.Spec.To.Name = b.route.Name
+}
+
+func (b *BackstageRoute) addToModel(model *runtimeModel) {
+	// nothing to add
 }
