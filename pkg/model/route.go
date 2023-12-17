@@ -21,16 +21,26 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type BackstageRouteFactory struct{}
+
+func (f BackstageRouteFactory) newBackstageObject() BackstageObject {
+	return &BackstageRoute{route: &openshift.Route{}}
+}
+
 type BackstageRoute struct {
 	route *openshift.Route
 }
 
-func newRoute() *BackstageRoute {
-	return &BackstageRoute{route: &openshift.Route{}}
-}
+//func newRoute() *BackstageRoute {
+//	return &BackstageRoute{route: &openshift.Route{}}
+//}
 
 func (b *BackstageRoute) Object() client.Object {
 	return b.route
+}
+
+func (b *BackstageRoute) EmptyObject() client.Object {
+	return &openshift.Route{}
 }
 
 func (b *BackstageRoute) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {

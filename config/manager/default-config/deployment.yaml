@@ -81,9 +81,9 @@ spec:
           env:
             - name: APP_CONFIG_backend_listen_port
               value: "7007"
-          envFrom:
-            - secretRef:
-                name: postgres-secrets
+#          envFrom:
+#            - secretRef:
+#                name: postgres-secrets
           #            - secretRef:
           #                name: backstage-secrets
           volumeMounts:

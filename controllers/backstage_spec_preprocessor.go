@@ -25,11 +25,16 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+// Add additional details to the Backstage Spec helping in making Bakstage Objects Model
+// Validates Backstage Spec and fails fast if something not correct
 func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.BackstageSpec) (*model.DetailedBackstageSpec, error) {
+	//lg := log.FromContext(ctx)
+
 	result := &model.DetailedBackstageSpec{
 		BackstageSpec: bsSpec,
 	}
 
+	// Process RawRuntimeConfig
 	if bsSpec.RawRuntimeConfig != "" {
 		cm := corev1.ConfigMap{}
 		if err := r.Get(ctx, types.NamespacedName{Name: bsSpec.RawRuntimeConfig, Namespace: r.Namespace}, &cm); err != nil {
@@ -42,6 +47,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.Back
 		result.Details.RawConfig = map[string]string{}
 	}
 
+	// Process AppConfigs
 	if bsSpec.Application != nil && bsSpec.Application.AppConfig != nil {
 		mountPath := bsSpec.Application.AppConfig.MountPath
 		for _, ac := range bsSpec.Application.AppConfig.ConfigMaps {
@@ -59,6 +65,8 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.Back
 			}
 		}
 	}
+
+	// TODO extra objects
 
 	return result, nil
 }

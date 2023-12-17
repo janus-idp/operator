@@ -97,10 +97,15 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, fmt.Errorf("failed to load backstage deployment from the cluster: %w", err)
 	}
 
+	// This helps to:
+	// 1. Preliminary read and prepare some config objects from the specs (configMaps, Secrets...)
+	// 2. Make some validation to fail fast
 	spec, err := r.preprocessSpec(ctx, backstage.Spec)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to preprocess backstage spec: %w", err)
 	}
+
+	// This creates array of model objects to be reconsiled
 	objects, err := model.InitObjects(ctx, backstage, spec, r.OwnsRuntime, r.IsOpenShift)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to initialize backstage model: %w", err)
@@ -170,21 +175,37 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.BackstageObject) error {
 
+	lg := log.FromContext(ctx)
+
 	for _, obj := range objects {
-		if err := r.Get(ctx, types.NamespacedName{Name: obj.Object().GetName(), Namespace: obj.Object().GetNamespace()},
-			obj.Object()); err != nil {
+
+		if err := r.Get(ctx, types.NamespacedName{Name: obj.Object().GetName(), Namespace: r.Namespace}, obj.EmptyObject()); err != nil {
 			if !errors.IsNotFound(err) {
 				return fmt.Errorf("failed to get object: %w", err)
 			}
-			// create
-			if err := r.Create(ctx, obj.Object()); err != nil {
-				return fmt.Errorf("failed to create object: %w", err)
+
+			if pcObj, ok := obj.(model.PreCreateHandledObject); ok {
+				lg.V(1).Info("Call OnCreate for ", "", obj.Object().GetName())
+				if err := pcObj.OnCreate(); err != nil {
+					return fmt.Errorf("failed to pre-create object: %w", err)
+				}
 			}
+			if err := r.Create(ctx, obj.Object()); err != nil {
+				if errors.IsAlreadyExists(err) {
+					lg.V(1).Info("Already created by other reconcilation", "", obj.Object().GetName())
+					continue
+				}
+				return fmt.Errorf("failed to create object %s: %w", obj.Object().GetName(), err)
+			}
+
+			lg.V(1).Info("Create object ", "obj", obj.Object())
+			continue
 		}
-		// update
-		if err := r.Update(ctx, obj.Object()); err != nil {
-			return fmt.Errorf("failed to update object: %w", err)
-		}
+
+		// TODO
+		//if err := r.Update(ctx, obj.Object()); err != nil {
+		//	return fmt.Errorf("failed to update object: %w", err)
+		//}
 	}
 	return nil
 }

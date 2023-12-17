@@ -7,8 +7,8 @@ data:
     backend:
       database:
         connection:
-          password: ${POSTGRESQL_PASSWORD}
-          user: ${POSTGRESQL_USER}
+          password: ${POSTGRES_PASSWORD}
+          user: ${POSTGRES_USER}
       auth:
         keys:
           # This is a default value, which you should change by providing your own app-config

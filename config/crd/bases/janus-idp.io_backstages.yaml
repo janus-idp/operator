@@ -215,13 +215,17 @@ spec:
                 type: object
               enableLocalDb:
                 default: true
-                description: Control the creation of a local PostgreSQL DB. Set to
+                description: 'Control the creation of a local PostgreSQL DB. Set to
                   false if using for example an external Database for Backstage. To
                   use an external Database, you can provide your own app-config file
                   (see the AppConfig field in the Application structure) containing
                   references to the Database connection information, which might be
                   supplied as environment variables (see the ExtraEnvs field) or extra-configuration
-                  files (see the ExtraFiles field in the Application structure).
+                  files (see the ExtraFiles field in the Application structure). Note:
+                  since not setting Backstage.spec is optional, default value is not
+                  working in case if spec.<something> is not specified use BackstageSpec.localDbEnabled()
+                  function to not catch nil pointer dereference panic in a case of
+                  non-existent spec'
                 type: boolean
               rawRuntimeConfig:
                 description: Raw Runtime Objects configuration. For Advanced scenarios.

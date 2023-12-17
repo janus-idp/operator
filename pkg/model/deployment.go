@@ -24,13 +24,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type BackstageDeploymentFactory struct{}
+
+func (f BackstageDeploymentFactory) newBackstageObject() BackstageObject {
+	return &BackstageDeployment{deployment: &appsv1.Deployment{}}
+}
+
 type BackstageDeployment struct {
 	deployment *appsv1.Deployment
 	pod        *backstagePod
-}
-
-func newBackstageDeployment() *BackstageDeployment {
-	return &BackstageDeployment{deployment: &appsv1.Deployment{}}
 }
 
 func getBackstageDeployment(bsobjects []BackstageObject) *BackstageDeployment {
@@ -44,6 +46,11 @@ func getBackstageDeployment(bsobjects []BackstageObject) *BackstageDeployment {
 
 func (b *BackstageDeployment) Object() client.Object {
 	return b.deployment
+}
+
+func (b *BackstageDeployment) EmptyObject() client.Object {
+
+	return &appsv1.Deployment{}
 }
 
 func (b *BackstageDeployment) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {

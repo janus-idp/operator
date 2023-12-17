@@ -23,13 +23,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type DbServiceFactory struct{}
+
+func (f DbServiceFactory) newBackstageObject() BackstageObject {
+	return &DbService{service: &corev1.Service{}}
+}
+
 type DbService struct {
 	service *corev1.Service
 }
 
-func newDbService() *DbService {
-	return &DbService{service: &corev1.Service{}}
-}
+//func newDbService() *DbService {
+//	return &DbService{service: &corev1.Service{}}
+//}
 
 func (s *DbService) Object() client.Object {
 	return s.service
@@ -43,4 +49,8 @@ func (s *DbService) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime
 
 func (b *DbService) addToModel(model *runtimeModel) {
 	model.localDbService = b
+}
+
+func (b *DbService) EmptyObject() client.Object {
+	return &corev1.Service{}
 }

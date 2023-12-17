@@ -74,7 +74,7 @@ func (p backstagePod) addExtraEnvVarFromSecrets(secretNames []string) {
 		}
 
 		p.appendContainerEnvFrom(corev1.EnvFromSource{
-			Prefix:    "secret-",
+			//Prefix:    "secret-",
 			SecretRef: envSource,
 		})
 	}
@@ -87,7 +87,7 @@ func (p backstagePod) addExtraEnvVarFromConfigMaps(configMapNames []string) {
 		}
 
 		p.appendContainerEnvFrom(corev1.EnvFromSource{
-			Prefix:       "cm-",
+			//Prefix:       "cm-",
 			ConfigMapRef: envSource,
 		})
 	}
@@ -107,6 +107,7 @@ func (p backstagePod) addExtraEnvVars(envVars map[string]string) {
 func (p backstagePod) addAppConfig(configMapName string, filePath string) {
 
 	volName := fmt.Sprintf("app-config-%s", configMapName)
+
 	volSource := corev1.VolumeSource{
 		ConfigMap: &corev1.ConfigMapVolumeSource{
 			DefaultMode:          pointer.Int32(420),
@@ -152,12 +153,15 @@ func (p backstagePod) appendContainerEnvVar(env corev1.EnvVar) {
 	p.parent.Spec.Template.Spec.Containers[0].Env = p.container.Env
 }
 
-func (p backstagePod) appendImagePullSecrets(pullSecrets []corev1.LocalObjectReference) {
-	p.parent.Spec.Template.Spec.ImagePullSecrets = append(p.parent.Spec.Template.Spec.ImagePullSecrets, pullSecrets...)
+func (p backstagePod) appendImagePullSecrets(pullSecrets []string) {
+	for _, ps := range pullSecrets {
+		p.parent.Spec.Template.Spec.ImagePullSecrets = append(p.parent.Spec.Template.Spec.ImagePullSecrets,
+			corev1.LocalObjectReference{Name: ps})
+	}
 }
 
-func (p backstagePod) setImage(image string) {
-	if image != "" {
-		p.container.Image = image
+func (p backstagePod) setImage(image *string) {
+	if image != nil {
+		p.container.Image = *image
 	}
 }

@@ -25,13 +25,14 @@ import (
 
 const defaultDir = "/test/dir"
 
-type AppConfig struct {
-	//path      string
-	configMap *corev1.ConfigMap
+type AppConfigFactory struct{}
+
+func (f AppConfigFactory) newBackstageObject() BackstageObject {
+	return &AppConfig{configMap: &corev1.ConfigMap{}}
 }
 
-func newAppConfig() *AppConfig {
-	return &AppConfig{configMap: &corev1.ConfigMap{}}
+type AppConfig struct {
+	configMap *corev1.ConfigMap
 }
 
 func (b *AppConfig) Object() client.Object {
@@ -49,6 +50,10 @@ func (b *AppConfig) updateBackstagePod(pod *backstagePod) {
 		path = filepath.Join(path, k)
 	}
 	pod.addAppConfig(b.configMap.Name, path)
+}
+
+func (b *AppConfig) EmptyObject() client.Object {
+	return &corev1.ConfigMap{}
 }
 
 func (b *AppConfig) addToModel(model *runtimeModel) {

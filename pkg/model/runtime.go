@@ -16,60 +16,80 @@ package model
 
 import (
 	"context"
+	"errors"
 	"fmt"
+
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 
 	"janus-idp.io/backstage-operator/pkg/utils"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
-
-//const (
-//	deploymentKey = "deployment.yaml"
-//	dbDeploymentKey = "db-statefulset.yaml"
-//)
 
 const backstageAppLabel = "backstage.io/app"
 
 const (
 	Mandatory        needType = "Mandatory"
-	NotMandatory     needType = "Optional"
+	Optional         needType = "Optional"
 	ForLocalDatabase needType = "ForLocalDatabase"
 	ForOpenshift     needType = "ForOpenshift"
 )
 
-var runtimeConfig = []ObjectConfig{
-	{Key: "deployment.yaml", BackstageObject: newBackstageDeployment(), need: Mandatory},
-	{Key: "service.yaml", BackstageObject: newBackstageService(), need: Mandatory},
-	{Key: "db-statefulset.yaml", BackstageObject: newDbStatefulSet(), need: ForLocalDatabase},
-	{Key: "db-service.yaml", BackstageObject: newDbService(), need: ForLocalDatabase},
-	{Key: "db-secret.yaml", BackstageObject: newDbSecret(), need: ForLocalDatabase},
-	{Key: "app-config.yaml", BackstageObject: newAppConfig(), need: NotMandatory},
-	{Key: "configmap-files.yaml", BackstageObject: newBackstageDeployment(), need: NotMandatory},
-	{Key: "secret-files.yaml", BackstageObject: newBackstageDeployment(), need: NotMandatory},
-	{Key: "configmap-envs.yaml", BackstageObject: newBackstageDeployment(), need: NotMandatory},
-	{Key: "secret-envs.yaml", BackstageObject: newBackstageDeployment(), need: NotMandatory},
-	{Key: "route.yaml", BackstageObject: newRoute(), need: ForOpenshift},
-}
-
 type needType string
 
 type ObjectConfig struct {
-	BackstageObject BackstageObject
-	Key             string
-	need            needType
+	ObjectFactory ObjectFacory
+	Key           string
+	need          needType
+}
+
+type ObjectFacory interface {
+	newBackstageObject() BackstageObject
 }
 
 type BackstageObject interface {
 	Object() client.Object
 	initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool)
+	// needed only for check if Object exists to call KubeClient.Get() and it should be garbage collected right away
+	// TODO: is there more elegance way?
+	EmptyObject() client.Object
 	addToModel(model *runtimeModel)
 }
 
 type BackstageConfObject interface {
 	BackstageObject
 	updateBackstagePod(pod *backstagePod)
+}
+
+type LocalDbConfObject interface {
+	BackstageObject
+	updateLocalDbPod(model *runtimeModel)
+}
+
+type PreCreateHandledObject interface {
+	BackstageObject
+	OnCreate() error
+}
+
+// Backstage configuration scaffolding with empty BackstageObjects.
+// Here're all possible objects for configuration, can be:
+// Mandatory - Backstage Deployment (Pod), Service
+// Optional - mostly (but not only) Bckstage Pod configuration objects (AppConfig, ExtraConfig)
+// ForLocalDatabase - mandatory if EnabledLocalDb, ignored otherwise
+// ForOpenshift - if configured, used for Openshift deployment, ignored otherwise
+var runtimeConfig = []ObjectConfig{
+	{Key: "deployment.yaml", ObjectFactory: BackstageDeploymentFactory{}, need: Mandatory},
+	{Key: "service.yaml", ObjectFactory: BackstageServiceFactory{}, need: Mandatory},
+	{Key: "db-statefulset.yaml", ObjectFactory: DbStatefulSetFactory{}, need: ForLocalDatabase},
+	{Key: "db-service.yaml", ObjectFactory: DbServiceFactory{}, need: ForLocalDatabase},
+	{Key: "db-secret.yaml", ObjectFactory: DbSecretFactory{}, need: ForLocalDatabase},
+	{Key: "app-config.yaml", ObjectFactory: AppConfigFactory{}, need: Optional},
+	//{Key: "configmap-files.yaml", ObjectFactory: newBackstageDeployment(), need: Optional},
+	//{Key: "secret-files.yaml", BackstageObject: newBackstageDeployment(), need: Optional},
+	//{Key: "configmap-envs.yaml", BackstageObject: newBackstageDeployment(), need: Optional},
+	//{Key: "secret-envs.yaml", BackstageObject: newBackstageDeployment(), need: Optional},
+	{Key: "route.yaml", ObjectFactory: BackstageRouteFactory{}, need: ForOpenshift},
 }
 
 // internal object model to simplify management dealing with structured objects
@@ -82,6 +102,7 @@ type runtimeModel struct {
 	localDbSecret      *DbSecret
 }
 
+// Main loop for configuring and making the array of objects to reconsile
 func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backstageSpec *DetailedBackstageSpec, ownsRuntime bool, isOpenshift bool) ([]BackstageObject, error) {
 
 	// 3 phases of Backstage configuration:
@@ -95,31 +116,37 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 	objectList := make([]BackstageObject, 0)
 	runtimeModel := &runtimeModel{}
 
-	//var backstageDeployment *BackstageDeployment
-	//var localDbDeployment *DbStatefulSet
-	// Phase 1:
 	for _, conf := range runtimeConfig {
-		backstageObject := conf.BackstageObject
+
+		backstageObject := conf.ObjectFactory.newBackstageObject()
+		var defaultErr error
+		var overlayErr error
+
+		// read default configuration
 		if err := utils.ReadYamlFile(utils.DefFile(conf.Key), backstageObject.Object()); err != nil {
+			defaultErr = fmt.Errorf("failed to read default value for the key %s, reason: %s", conf.Key, err)
+			//lg.V(1).Info("failed reading default config", "error", err.Error())
+		}
+
+		// overlay with or add rawConfig
+		overlay, overlayExist := backstageSpec.Details.RawConfig[conf.Key]
+		if overlayExist {
+			if err := utils.ReadYaml([]byte(overlay), backstageObject.Object()); err != nil {
+				overlayErr = fmt.Errorf("failed to read overlay value for the key %s, reason: %s", conf.Key, err)
+			}
+		}
+
+		if overlayErr != nil || (!overlayExist && defaultErr != nil) {
 			if conf.need == Mandatory || (conf.need == ForLocalDatabase && *backstageSpec.EnableLocalDb) {
-				return nil, fmt.Errorf("failed to read default value for the key %s, reason: %s", conf.Key, err)
+				return nil, errors.Join(defaultErr, overlayErr)
 			} else {
-				lg.Info("failed to read default value for optional key. Ignored \n", conf.Key, err)
+				lg.V(1).Info("failed to read default value for optional key. Ignored \n", conf.Key, errors.Join(defaultErr, overlayErr))
 				continue
 			}
 		}
 
-		// Phase 2: overlay with rawConfig if any
-		overlay, ok := backstageSpec.Details.RawConfig[conf.Key]
-		if ok {
-			if err := utils.ReadYaml([]byte(overlay), backstageObject.Object()); err != nil {
-				// consider all values set intentionally, "need" ignored, always throw error
-				return nil, fmt.Errorf("failed to read overlay value for the key %s, reason: %s", conf.Key, err)
-			}
-		}
-
-		// do not add if not for local db
-		if !*backstageSpec.EnableLocalDb && conf.need == ForLocalDatabase {
+		// do not add if local db is disabled
+		if !backstageSpec.LocalDbEnabled() && conf.need == ForLocalDatabase {
 			continue
 		}
 
@@ -128,11 +155,21 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 			continue
 		}
 
+		// populate BackstageObject metainfo (names, labels, selsctors etc) for consistency
 		backstageObject.initMetainfo(backstageMeta, ownsRuntime)
 
 		// finally add the object to the model and list
 		backstageObject.addToModel(runtimeModel)
 		objectList = append(objectList, backstageObject)
+	}
+
+	// update local-db conf objects
+	if backstageSpec.LocalDbEnabled() {
+		for _, bso := range objectList {
+			if ldco, ok := bso.(LocalDbConfObject); ok {
+				ldco.updateLocalDbPod(runtimeModel)
+			}
+		}
 	}
 
 	// create Backstage Pod object
@@ -144,15 +181,6 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 		return nil, fmt.Errorf("failed to create Backstage Pod: %s", err)
 	}
 
-	// update local-db-secret
-	if *backstageSpec.EnableLocalDb {
-		err := runtimeModel.localDbSecret.updateSecret(runtimeModel.backstageDeployment, runtimeModel.localDbStatefulSet,
-			runtimeModel.localDbService)
-		if err != nil {
-			return nil, fmt.Errorf("failed to update LocalDb Secret: %s", err)
-		}
-	}
-
 	// update Backstage Pod with parts (volumes, container)
 	// according to default configuration
 	for _, bso := range objectList {
@@ -162,17 +190,17 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 	}
 
 	// Phase 3: process Backstage.spec
+	if backstageSpec.Application != nil {
+		runtimeModel.backstageDeployment.setReplicas(backstageSpec.Application.Replicas)
+		backstagePod.appendImagePullSecrets(backstageSpec.Application.ImagePullSecrets)
+		backstagePod.setImage(backstageSpec.Application.Image)
+	}
 	// TODO API
-	//backstageDeployment.setReplicas(backstageSpec.replicas)
-	//backstagePod.addImagePullSecrets(backstageSpec.imagePullSecrets)
-	//backstagePod.container.setImage(backstageSpec.image)
-
-	// TODO API
-	//if backstageSpec.AppConfigs != nil {
-	//	for _, ac := range backstageSpec.AppConfigs {
-	//		backstagePod.addAppConfig(ac.Name, ac.FilePath)
-	//	}
-	//}
+	if backstageSpec.Details.AppConfigs != nil {
+		for _, ac := range backstageSpec.Details.AppConfigs {
+			backstagePod.addAppConfig(ac.ConfigMapName, ac.FilePath)
+		}
+	}
 
 	return objectList, nil
 }
