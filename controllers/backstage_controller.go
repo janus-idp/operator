@@ -184,12 +184,12 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 				return fmt.Errorf("failed to get object: %w", err)
 			}
 
-			if pcObj, ok := obj.(model.PreCreateHandledObject); ok {
-				lg.V(1).Info("Call OnCreate for ", "", obj.Object().GetName())
-				if err := pcObj.OnCreate(); err != nil {
-					return fmt.Errorf("failed to pre-create object: %w", err)
-				}
-			}
+			//if pcObj, ok := obj.(model.PreCreateHandledObject); ok {
+			//	lg.V(1).Info("Call OnCreate for ", "", obj.Object().GetName())
+			//	if err := pcObj.OnCreate(); err != nil {
+			//		return fmt.Errorf("failed to pre-create object: %w", err)
+			//	}
+			//}
 			if err := r.Create(ctx, obj.Object()); err != nil {
 				if errors.IsAlreadyExists(err) {
 					lg.V(1).Info("Already created by other reconcilation", "", obj.Object().GetName())

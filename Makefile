@@ -103,7 +103,7 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 .PHONY: fmt
-fmt: goimports ## Format the code using goimports
+fmt: goimports fmt_license ## Format the code using goimports
 	find . -not -path '*/\.*' -name '*.go' -exec $(GOIMPORTS) -w {} \;
 
 fmt_license: addlicense ## Ensure the license header is set on all files

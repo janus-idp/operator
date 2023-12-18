@@ -34,10 +34,6 @@ type BackstageService struct {
 	service *corev1.Service
 }
 
-//func newBackstageService() *BackstageService {
-//	return &BackstageService{service: &corev1.Service{}}
-//}
-
 func (s *BackstageService) Object() client.Object {
 	return s.service
 }

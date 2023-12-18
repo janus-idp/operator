@@ -24,53 +24,9 @@ import (
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 
 	"janus-idp.io/backstage-operator/pkg/utils"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const backstageAppLabel = "backstage.io/app"
-
-const (
-	Mandatory        needType = "Mandatory"
-	Optional         needType = "Optional"
-	ForLocalDatabase needType = "ForLocalDatabase"
-	ForOpenshift     needType = "ForOpenshift"
-)
-
-type needType string
-
-type ObjectConfig struct {
-	ObjectFactory ObjectFacory
-	Key           string
-	need          needType
-}
-
-type ObjectFacory interface {
-	newBackstageObject() BackstageObject
-}
-
-type BackstageObject interface {
-	Object() client.Object
-	initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool)
-	// needed only for check if Object exists to call KubeClient.Get() and it should be garbage collected right away
-	// TODO: is there more elegance way?
-	EmptyObject() client.Object
-	addToModel(model *runtimeModel)
-}
-
-type BackstageConfObject interface {
-	BackstageObject
-	updateBackstagePod(pod *backstagePod)
-}
-
-type LocalDbConfObject interface {
-	BackstageObject
-	updateLocalDbPod(model *runtimeModel)
-}
-
-type PreCreateHandledObject interface {
-	BackstageObject
-	OnCreate() error
-}
 
 // Backstage configuration scaffolding with empty BackstageObjects.
 // Here're all possible objects for configuration, can be:

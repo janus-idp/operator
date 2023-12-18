@@ -37,10 +37,6 @@ type DbSecret struct {
 	secret *corev1.Secret
 }
 
-//func newDbSecret() *DbSecret {
-//	return &DbSecret{secret: &corev1.Secret{}}
-//}
-
 func (b *DbSecret) Object() client.Object {
 	return b.secret
 }
@@ -60,6 +56,12 @@ func (b *DbSecret) EmptyObject() client.Object {
 
 func (b *DbSecret) updateLocalDbPod(model *runtimeModel) {
 	dbservice := model.localDbService.service
+
+	if b.secret.StringData["POSTGRES_PASSWORD"] == "" {
+		pswd := rand.String(8)
+		b.secret.StringData["POSTGRES_PASSWORD"] = pswd
+		b.secret.StringData["POSTGRESQL_ADMIN_PASSWORD"] = pswd
+	}
 
 	// fill the host with localDb service name
 	b.secret.StringData["POSTGRES_HOST"] = dbservice.Name
@@ -83,13 +85,13 @@ func (b *DbSecret) updateBackstagePod(pod *backstagePod) {
 	})
 }
 
-func (b *DbSecret) OnCreate() error {
-
-	if b.secret.StringData["POSTGRES_PASSWORD"] == "" {
-		pswd := rand.String(8)
-		b.secret.StringData["POSTGRES_PASSWORD"] = pswd
-		b.secret.StringData["POSTGRESQL_ADMIN_PASSWORD"] = pswd
-	}
-
-	return nil
-}
+//func (b *DbSecret) OnCreate() error {
+//
+//	if b.secret.StringData["POSTGRES_PASSWORD"] == "" {
+//		pswd := rand.String(8)
+//		b.secret.StringData["POSTGRES_PASSWORD"] = pswd
+//		b.secret.StringData["POSTGRESQL_ADMIN_PASSWORD"] = pswd
+//	}
+//
+//	return nil
+//}

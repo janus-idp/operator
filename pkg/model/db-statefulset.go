@@ -35,10 +35,6 @@ type DbStatefulSet struct {
 	statefulSet *appsv1.StatefulSet
 }
 
-//func newDbStatefulSet() *DbStatefulSet {
-//	return &DbStatefulSet{statefulSet: &appsv1.StatefulSet{}}
-//}
-
 func (b *DbStatefulSet) Object() client.Object {
 	return b.statefulSet
 }

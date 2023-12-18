@@ -31,10 +31,6 @@ type BackstageRoute struct {
 	route *openshift.Route
 }
 
-//func newRoute() *BackstageRoute {
-//	return &BackstageRoute{route: &openshift.Route{}}
-//}
-
 func (b *BackstageRoute) Object() client.Object {
 	return b.route
 }

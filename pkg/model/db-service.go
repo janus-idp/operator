@@ -33,10 +33,6 @@ type DbService struct {
 	service *corev1.Service
 }
 
-//func newDbService() *DbService {
-//	return &DbService{service: &corev1.Service{}}
-//}
-
 func (s *DbService) Object() client.Object {
 	return s.service
 }
