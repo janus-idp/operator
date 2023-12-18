@@ -37,7 +37,7 @@ func (r *BackstageReconciler) getBackendAuthAppConfig(
 	}
 
 	var cm v1.ConfigMap
-	err = r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig.BackstageConfigName, "backend-auth-configmap.yaml", ns, &cm)
+	err = r.readConfigMapOrDefault(ctx, backstage.Spec.RawRuntimeConfig, "backend-auth-configmap.yaml", ns, &cm)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config: %s", err)
 	}

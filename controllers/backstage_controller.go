@@ -21,16 +21,19 @@ import (
 	"os"
 	"path/filepath"
 
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	"janus-idp.io/backstage-operator/pkg/model"
+
+	"k8s.io/apimachinery/pkg/types"
+
 	bs "janus-idp.io/backstage-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -94,41 +97,69 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, fmt.Errorf("failed to load backstage deployment from the cluster: %w", err)
 	}
 
-	if pointer.BoolDeref(backstage.Spec.EnableLocalDb, true) {
-
-		/* We use default strogeclass currently, and no PV is needed in that case.
-		If we decide later on to support user provided storageclass we can enable pv creation.
-		if err := r.applyPV(ctx, backstage, req.Namespace); err != nil {
-			return ctrl.Result{}, err
-		}
-		*/
-
-		err := r.applyLocalDbStatefulSet(ctx, backstage, req.Namespace)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to apply Database StatefulSet: %w", err)
-		}
-
-		err = r.applyLocalDbServices(ctx, backstage, req.Namespace)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to apply Database Service: %w", err)
-		}
-
-	}
-
-	err := r.applyBackstageDeployment(ctx, backstage, req.Namespace)
+	// This helps to:
+	// 1. Preliminary read and prepare some config objects from the specs (configMaps, Secrets...)
+	// 2. Make some validation to fail fast
+	spec, err := r.preprocessSpec(ctx, backstage.Spec)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to apply Backstage Deployment: %w", err)
+		return ctrl.Result{}, fmt.Errorf("failed to preprocess backstage spec: %w", err)
 	}
 
-	if err := r.applyBackstageService(ctx, backstage, req.Namespace); err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to apply Backstage Service: %w", err)
+	// This creates array of model objects to be reconsiled
+	objects, err := model.InitObjects(ctx, backstage, spec, r.OwnsRuntime, r.IsOpenShift)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to initialize backstage model: %w", err)
 	}
 
-	if r.IsOpenShift {
-		if err := r.applyBackstageRoute(ctx, backstage, req.Namespace); err != nil {
-			return ctrl.Result{}, err
+	//TODO, do it on model? (need sending Scheme to InitObjects just for this)
+	if r.OwnsRuntime {
+		for _, obj := range objects {
+			if err = controllerutil.SetControllerReference(&backstage, obj.Object(), r.Scheme); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to set owner reference: %s", err)
+			}
 		}
 	}
+
+	err = r.applyObjects(ctx, objects)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to apply backstage objects: %w", err)
+	}
+
+	//if !backstage.Spec.SkipLocalDb {
+	//
+	//	/* We use default strogeclass currently, and no PV is needed in that case.
+	//	If we decide later on to support user provided storageclass we can enable pv creation.
+	//	if err := r.applyPV(ctx, backstage, req.Namespace); err != nil {
+	//		return ctrl.Result{}, err
+	//	}
+	//	*/
+	//
+	//	err := r.applyLocalDbStatefulSet(ctx, backstage, req.Namespace)
+	//	if err != nil {
+	//		return ctrl.Result{}, fmt.Errorf("failed to apply Database StatefulSet: %w", err)
+	//	}
+	//
+	//	err = r.applyLocalDbServices(ctx, backstage, req.Namespace)
+	//	if err != nil {
+	//		return ctrl.Result{}, fmt.Errorf("failed to apply Database Service: %w", err)
+	//	}
+	//
+	//}
+
+	//err = r.applyBackstageDeployment(ctx, backstage, req.Namespace)
+	//if err != nil {
+	//	return ctrl.Result{}, fmt.Errorf("failed to apply Backstage Deployment: %w", err)
+	//}
+	//
+	//if err := r.applyBackstageService(ctx, backstage, req.Namespace); err != nil {
+	//	return ctrl.Result{}, fmt.Errorf("failed to apply Backstage Service: %w", err)
+	//}
+
+	//if r.IsOpenShift {
+	//	if err := r.applyBackstageRoute(ctx, backstage, req.Namespace); err != nil {
+	//		return ctrl.Result{}, err
+	//	}
+	//}
 
 	//TODO: it is just a placeholder for the time
 	r.setRunningStatus(ctx, &backstage, req.Namespace)
@@ -140,6 +171,43 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.BackstageObject) error {
+
+	lg := log.FromContext(ctx)
+
+	for _, obj := range objects {
+
+		if err := r.Get(ctx, types.NamespacedName{Name: obj.Object().GetName(), Namespace: r.Namespace}, obj.EmptyObject()); err != nil {
+			if !errors.IsNotFound(err) {
+				return fmt.Errorf("failed to get object: %w", err)
+			}
+
+			//if pcObj, ok := obj.(model.PreCreateHandledObject); ok {
+			//	lg.V(1).Info("Call OnCreate for ", "", obj.Object().GetName())
+			//	if err := pcObj.OnCreate(); err != nil {
+			//		return fmt.Errorf("failed to pre-create object: %w", err)
+			//	}
+			//}
+			if err := r.Create(ctx, obj.Object()); err != nil {
+				if errors.IsAlreadyExists(err) {
+					lg.V(1).Info("Already created by other reconcilation", "", obj.Object().GetName())
+					continue
+				}
+				return fmt.Errorf("failed to create object %s: %w", obj.Object().GetName(), err)
+			}
+
+			lg.V(1).Info("Create object ", "obj", obj.Object())
+			continue
+		}
+
+		// TODO
+		//if err := r.Update(ctx, obj.Object()); err != nil {
+		//	return fmt.Errorf("failed to update object: %w", err)
+		//}
+	}
+	return nil
 }
 
 func (r *BackstageReconciler) readConfigMapOrDefault(ctx context.Context, name string, key string, ns string, object v1.Object) error {
@@ -161,6 +229,7 @@ func (r *BackstageReconciler) readConfigMapOrDefault(ctx context.Context, name s
 	}
 
 	val, ok := cm.Data[key]
+
 	if !ok {
 		// key not found, default
 		lg.V(1).Info("custom configuration configMap and data exists, trying to apply it", "configMap", cm.Name, "key", key)
@@ -198,39 +267,6 @@ func readYamlFile(path string, object interface{}) error {
 
 func defFile(key string) string {
 	return filepath.Join(os.Getenv("LOCALBIN"), "default-config", key)
-}
-
-// sets the RuntimeRunning condition
-func (r *BackstageReconciler) setRunningStatus(ctx context.Context, backstage *bs.Backstage, ns string) {
-
-	meta.SetStatusCondition(&backstage.Status.Conditions, v1.Condition{
-		Type:               bs.RuntimeConditionRunning,
-		Status:             "Unknown",
-		LastTransitionTime: v1.Time{},
-		Reason:             "Unknown",
-		Message:            "Runtime in unknown status",
-	})
-}
-
-// sets the RuntimeSyncedWithConfig condition
-func (r *BackstageReconciler) setSyncStatus(backstage *bs.Backstage) {
-
-	status := v1.ConditionUnknown
-	reason := "Unknown"
-	message := "Sync in unknown status"
-	if r.OwnsRuntime {
-		status = v1.ConditionTrue
-		reason = "Synced"
-		message = "Backstage syncs runtime"
-	}
-
-	meta.SetStatusCondition(&backstage.Status.Conditions, v1.Condition{
-		Type:               bs.RuntimeConditionSynced,
-		Status:             status,
-		LastTransitionTime: v1.Time{},
-		Reason:             reason,
-		Message:            message,
-	})
 }
 
 // sets backstage-{Id} for labels and selectors
@@ -271,8 +307,7 @@ func (r *BackstageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if r.OwnsRuntime {
 		builder.Owns(&appsv1.Deployment{}).
 			Owns(&corev1.Service{}).
-			Owns(&corev1.PersistentVolume{}).
-			Owns(&corev1.PersistentVolumeClaim{})
+			Owns(&appsv1.StatefulSet{})
 	}
 
 	return builder.Complete(r)

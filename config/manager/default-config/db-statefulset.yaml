@@ -26,9 +26,9 @@ spec:
               value: /var/lib/pgsql/data
             - name: PGDATA
               value: /var/lib/pgsql/data/userdata
-          envFrom:
-            - secretRef:
-                name: postgres-secrets
+#          envFrom:
+#            - secretRef:
+#                name: postgres-secrets
           image: quay.io/fedora/postgresql-15:latest
           imagePullPolicy: IfNotPresent
           securityContext:

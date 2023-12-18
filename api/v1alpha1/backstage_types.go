@@ -29,16 +29,18 @@ type BackstageSpec struct {
 	Application *Application `json:"application,omitempty"`
 
 	// Raw Runtime Objects configuration. For Advanced scenarios.
-	RawRuntimeConfig RuntimeConfig `json:"rawRuntimeConfig,omitempty"`
+	RawRuntimeConfig string `json:"rawRuntimeConfig,omitempty"`
 
 	// Control the creation of a local PostgreSQL DB. Set to false if using for example an external Database for Backstage.
 	// To use an external Database, you can provide your own app-config file (see the AppConfig field in the Application structure)
 	// containing references to the Database connection information,
 	// which might be supplied as environment variables (see the ExtraEnvs field) or extra-configuration files
 	// (see the ExtraFiles field in the Application structure).
-	// +optional
+	// Note: since not setting Backstage.spec is optional, default value is not working in case if spec.<something> is not specified
+	// use BackstageSpec.localDbEnabled() function to not catch nil pointer dereference panic in a case of non-existent spec
+	//+optional
 	//+kubebuilder:default=true
-	EnableLocalDb *bool `json:"enableLocalDb,omitempty"`
+	EnableLocalDb *bool `json:"enableLocalDb"`
 }
 
 type Application struct {
@@ -158,13 +160,6 @@ type Env struct {
 	Value string `json:"value"`
 }
 
-type RuntimeConfig struct {
-	// Name of ConfigMap containing Backstage runtime objects configuration
-	BackstageConfigName string `json:"backstageConfig,omitempty"`
-	// Name of ConfigMap containing LocalDb (P|ostgreSQL) runtime objects configuration
-	LocalDbConfigName string `json:"localDbConfig,omitempty"`
-}
-
 // BackstageStatus defines the observed state of Backstage
 type BackstageStatus struct {
 	// Conditions is the list of conditions describing the state of the runtime
@@ -195,4 +190,11 @@ type BackstageList struct {
 
 func init() {
 	SchemeBuilder.Register(&Backstage{}, &BackstageList{})
+}
+
+func (s BackstageSpec) LocalDbEnabled() bool {
+	if s.EnableLocalDb == nil {
+		return true
+	}
+	return *s.EnableLocalDb
 }
