@@ -58,6 +58,6 @@ func TestSpecifiedAppConfig(t *testing.T) {
 
 	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts))
 	assert.Equal(t, 4, len(deployment.deployment.Spec.Template.Spec.Containers[0].Args))
-	assert.Equal(t, 3, len(deployment.deployment.Spec.Template.Spec.Volumes))
+	assert.Equal(t, 4, len(deployment.deployment.Spec.Template.Spec.Volumes))
 
 }

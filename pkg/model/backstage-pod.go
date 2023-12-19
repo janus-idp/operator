@@ -24,11 +24,12 @@ import (
 )
 
 const backstageContainerName = "backstage-backend"
+const defaultDir = "/opt/app-root/src"
 
 // Pod containing Backstage business logic runtime objects (container, volumes)
 type backstagePod struct {
 	container *corev1.Container
-	volumes   []corev1.Volume
+	volumes   *[]corev1.Volume
 	parent    *appsv1.Deployment
 }
 
@@ -40,7 +41,7 @@ type backstagePod struct {
 // a name of Backstage Container can be writen as predefined Pod's annotation, etc)
 func newBackstagePod(bsdeployment *BackstageDeployment) (*backstagePod, error) {
 
-	podSpec := &bsdeployment.deployment.Spec.Template.Spec
+	podSpec := bsdeployment.deployment.Spec.Template.Spec
 	if len(podSpec.Containers) != 1 {
 		return nil, fmt.Errorf("failed to create Backstage Pod. For the time only one Container,"+
 			"treated as Backstage Container expected, but found %v", len(podSpec.Containers))
@@ -49,7 +50,7 @@ func newBackstagePod(bsdeployment *BackstageDeployment) (*backstagePod, error) {
 	bspod := &backstagePod{
 		parent:    bsdeployment.deployment,
 		container: &podSpec.Containers[0],
-		volumes:   podSpec.Volumes,
+		volumes:   &podSpec.Volumes,
 	}
 
 	bsdeployment.pod = bspod
@@ -62,9 +63,29 @@ func (p backstagePod) addExtraFileFromSecrets(secrets []string) {
 	panic("TODO")
 }
 
-func (p backstagePod) addExtraFileFromConfigMaps(configMaps []string) {
+func (p backstagePod) addExtraFilesFromConfigMap(configMapName string, paths []string) {
 
-	panic("TODO")
+	volName := fmt.Sprintf("vol-%s", configMapName)
+
+	volSource := corev1.VolumeSource{
+		ConfigMap: &corev1.ConfigMapVolumeSource{
+			DefaultMode:          pointer.Int32(420),
+			LocalObjectReference: corev1.LocalObjectReference{Name: configMapName},
+		},
+	}
+	p.appendVolume(corev1.Volume{
+		Name:         volName,
+		VolumeSource: volSource,
+	})
+
+	for _, filePath := range paths {
+		p.appendContainerVolumeMount(corev1.VolumeMount{
+			Name:      volName,
+			MountPath: filePath,
+			SubPath:   filepath.Base(filePath),
+		})
+	}
+
 }
 
 func (p backstagePod) addExtraEnvVarFromSecrets(secretNames []string) {
@@ -106,7 +127,7 @@ func (p backstagePod) addExtraEnvVars(envVars map[string]string) {
 // Add x.y.z.app-config.yaml file to the Backstage configuration
 func (p backstagePod) addAppConfig(configMapName string, filePath string) {
 
-	volName := fmt.Sprintf("app-config-%s", configMapName)
+	volName := fmt.Sprintf("vol-%s", configMapName)
 
 	volSource := corev1.VolumeSource{
 		ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -129,8 +150,8 @@ func (p backstagePod) addAppConfig(configMapName string, filePath string) {
 }
 
 func (p backstagePod) appendVolume(volume corev1.Volume) {
-	p.volumes = append(p.volumes, volume)
-	p.parent.Spec.Template.Spec.Volumes = p.volumes
+	*p.volumes = append(*p.volumes, volume)
+	p.parent.Spec.Template.Spec.Volumes = *p.volumes
 }
 
 func (p backstagePod) appendContainerArgs(args []string) {

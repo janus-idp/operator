@@ -41,10 +41,11 @@ var runtimeConfig = []ObjectConfig{
 	{Key: "db-service.yaml", ObjectFactory: DbServiceFactory{}, need: ForLocalDatabase},
 	{Key: "db-secret.yaml", ObjectFactory: DbSecretFactory{}, need: ForLocalDatabase},
 	{Key: "app-config.yaml", ObjectFactory: AppConfigFactory{}, need: Optional},
-	//{Key: "configmap-files.yaml", ObjectFactory: newBackstageDeployment(), need: Optional},
+	{Key: "configmap-files.yaml", ObjectFactory: ConfigMapFilesFactory{}, need: Optional},
 	//{Key: "secret-files.yaml", BackstageObject: newBackstageDeployment(), need: Optional},
 	//{Key: "configmap-envs.yaml", BackstageObject: newBackstageDeployment(), need: Optional},
 	//{Key: "secret-envs.yaml", BackstageObject: newBackstageDeployment(), need: Optional},
+	{Key: "dynamic-plugins.yaml", ObjectFactory: DynamicPluginsFactory{}, need: Optional},
 	{Key: "route.yaml", ObjectFactory: BackstageRouteFactory{}, need: ForOpenshift},
 }
 

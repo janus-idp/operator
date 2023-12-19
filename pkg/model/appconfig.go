@@ -23,8 +23,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const defaultDir = "/test/dir"
-
 type AppConfigFactory struct{}
 
 func (f AppConfigFactory) newBackstageObject() BackstageObject {

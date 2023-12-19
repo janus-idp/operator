@@ -54,6 +54,22 @@ func TestInitDefaultDeploy(t *testing.T) {
 	assert.Equal(t, backstageContainerName, bsDeployment.pod.container.Name)
 	assert.NotNil(t, bsDeployment.pod.volumes)
 
+	for _, vol := range bsDeployment.deployment.Spec.Template.Spec.Volumes {
+		fmt.Printf("vol %v \n", vol)
+	}
+
+	for _, vm := range bsDeployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts {
+		fmt.Printf("vol Mount %v \n", vm)
+	}
+
+	for _, vol1 := range *bsDeployment.pod.volumes {
+		fmt.Printf("vol %v \n", vol1)
+	}
+
+	for _, vm1 := range bsDeployment.pod.container.VolumeMounts {
+		fmt.Printf("vol Mount %v \n", vm1)
+	}
+
 	//	assert.Equal(t, "Backstage", bsDeployment.deployment.OwnerReferences[0].Kind)
 
 	bsService := model[1].(*BackstageService)
