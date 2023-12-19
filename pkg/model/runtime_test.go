@@ -30,13 +30,15 @@ import (
 // NOTE: to make it work locally env var LOCALBIN should point to the directory where default-config folder located
 func TestInitDefaultDeploy(t *testing.T) {
 
+	setTestEnv()
+
 	bs := v1alpha1.Backstage{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "bs",
 			Namespace: "ns123",
 		},
 		Spec: v1alpha1.BackstageSpec{
-			EnableLocalDb: pointer.Bool(true),
+			EnableLocalDb: pointer.Bool(false),
 		},
 	}
 
