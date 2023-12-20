@@ -66,7 +66,7 @@ kubectl get -n backstage-system configmap default-config > my-config.yaml
 
 - modify any part of it (yes, it could be fairly big file)
 
-- apply it back
+- apply the updated configuration to your cluster
 
 ``
   kubectl apply -n backstage-system -f my-config.yaml
