@@ -58,7 +58,7 @@ make deploy
 
 You can change default configuration by directly changing the default-config ConfigMap with kubectl like:
 
- - if you need to get existed default-config
+ - retrieve the current `default-config` from the cluster
 
 ``
 kubectl get -n backstage-system configmap default-config > my-config.yaml
