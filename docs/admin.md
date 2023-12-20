@@ -6,7 +6,7 @@
 
 As it is described in Design doc (TODO), Backstage CR's desired state is defined using layered configuration approach, which means:
 - By default each newly created Backstage CR uses Operator scope Default Configuration
-- Which can be fully or partially overriden for particular CR instance using ConfigMap with witn name pointed in BackstageCR.spec.RawConfig 
+- Which can be fully or partially overriden for particular CR instance using ConfigMap with the name pointed in BackstageCR.spec.RawConfig 
 - Which in turn can be customized by other BackstageCR.spec fields (see Backstage API doc)
 
 Cluster Administrator may want to customize Default Configuration due to internal preferences/limitations, for example:
