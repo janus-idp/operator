@@ -52,6 +52,8 @@ type BackstageReconciler struct {
 	// and ignore requests from other namespaces.
 	// This is mostly useful for our tests, to overcome a limitation of EnvTest about namespace deletion.
 	Namespace string
+
+	IsOpenShift bool
 }
 
 //+kubebuilder:rbac:groups=janus-idp.io,resources=backstages,verbs=get;list;watch;create;update;patch;delete
@@ -60,6 +62,7 @@ type BackstageReconciler struct {
 //+kubebuilder:rbac:groups="",resources=configmaps;secrets;persistentvolumes;persistentvolumeclaims;services,verbs=get;watch;create;update;list;delete
 //+kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;watch;create;update;list;delete
 //+kubebuilder:rbac:groups="apps",resources=statefulsets,verbs=get;watch;create;update;list;delete
+//+kubebuilder:rbac:groups="route.openshift.io",resources=routes;routes/custom-host,verbs=get;watch;create;update;list;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -91,7 +94,7 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, fmt.Errorf("failed to load backstage deployment from the cluster: %w", err)
 	}
 
-	if pointer.BoolDeref(backstage.Spec.EnableLocalDb, true) {
+	if pointer.BoolDeref(backstage.Spec.Database.EnableLocalDb, true) {
 
 		/* We use default strogeclass currently, and no PV is needed in that case.
 		If we decide later on to support user provided storageclass we can enable pv creation.
@@ -119,6 +122,12 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if err := r.applyBackstageService(ctx, backstage, req.Namespace); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to apply Backstage Service: %w", err)
+	}
+
+	if r.IsOpenShift {
+		if err := r.applyBackstageRoute(ctx, backstage, req.Namespace); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	//TODO: it is just a placeholder for the time

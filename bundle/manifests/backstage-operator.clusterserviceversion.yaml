@@ -21,7 +21,7 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2023-12-20T10:08:12Z"
+    createdAt: "2023-12-18T21:01:24Z"
     operators.operatorframework.io/builder: operator-sdk-v1.32.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
   name: backstage-operator.v0.0.1
@@ -108,6 +108,18 @@ spec:
           - patch
           - update
         - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes
+          - routes/custom-host
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - update
+          - watch
+        - apiGroups:
           - authentication.k8s.io
           resources:
           - tokenreviews
@@ -152,9 +164,6 @@ spec:
                         operator: In
                         values:
                         - amd64
-                        - arm64
-                        - ppc64le
-                        - s390x
                       - key: kubernetes.io/os
                         operator: In
                         values:

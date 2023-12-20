@@ -38,6 +38,7 @@ func (r *BackstageReconciler) applyBackstageService(ctx context.Context, backsta
 		return err
 	}
 
+	service.Name = fmt.Sprintf("backstage-%s", backstage.Name)
 	setBackstageAppLabel(&service.Spec.Selector, backstage)
 
 	err = r.Get(ctx, types.NamespacedName{Name: service.Name, Namespace: ns}, service)

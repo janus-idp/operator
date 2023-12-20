@@ -158,7 +158,8 @@ podman-push: ## Push docker image with the manager using podman.
 # - have enable BuildKit, More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 # - be able to push the image for your registry (i.e. if you do not inform a valid value via IMG=<myregistry/image:<tag>> than the export will fail)
 # To properly provided solutions that supports more than one platform you should use this option.
-PLATFORMS ?= linux/arm64,linux/amd64
+# If more arches are needed, use comma-separated list: linux/amd64,linux/arm64,linux390x,linux/ppc64le
+PLATFORMS ?= linux/amd64
 .PHONY: docker-buildx
 docker-buildx: test ## Build and push docker image for the manager for cross-platform support
 	# copy existing docker/Dockerfile and insert --platform=${BUILDPLATFORM} into docker/Dockerfile.cross, and preserve the original Dockerfile
@@ -210,7 +211,7 @@ ADDLICENSE ?= $(LOCALBIN)/addlicense
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v3.8.7
 CONTROLLER_TOOLS_VERSION ?= v0.11.3
-GOLANGCI_LINT_VERSION ?= v1.49.0
+GOLANGCI_LINT_VERSION ?= v1.55.2
 GOIMPORTS_VERSION ?= v0.15.0
 ADDLICENSE_VERSION ?= v1.1.1
 
@@ -251,10 +252,11 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle $(BUNDLE_GEN_FLAGS)
 	operator-sdk bundle validate ./bundle
+	cat docker/license_header.txt bundle.Dockerfile > docker/bundle.Dockerfile; rm -f bundle.Dockerfile
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
-	$(CONTAINER_ENGINE) build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+	$(CONTAINER_ENGINE) build -f docker/bundle.Dockerfile -t $(BUNDLE_IMG) .
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
@@ -269,7 +271,7 @@ ifeq (,$(shell which opm 2>/dev/null))
 	set -e ;\
 	mkdir -p $(dir $(OPM)) ;\
 	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
-	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.23.0/$${OS}-$${ARCH}-opm ;\
+	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.33.0/$${OS}-$${ARCH}-opm ;\
 	chmod +x $(OPM) ;\
 	}
 else
