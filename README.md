@@ -34,7 +34,7 @@ backstage-controller-manager-cfc44bdfd-xzk8g   2/2     Running   0          32s
 ```sh
 kubectl -n <your-namespace> apply -f examples/bs1.yaml
 ```
-you can check if the Operator pod is up by running
+you can check if the Operand pods are up by running
 ```sh
 kubectl get pods -n <your-namespace>
 It should be something like:
