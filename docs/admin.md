@@ -85,4 +85,4 @@ Creating Backtage CR, the Operator will try to create Backstage Pod, deploying:
 - 
 Also, if Backstage CR configured as EnabledLocalDb it will create Database (PGSQL) Container, configured in *(db-deployment.yaml).spec.template.spec.Containers[].image*
 
-By default Backstage Operator is configured to use publicly availabe images, which is not acceptable for Airgapped environment.
+By default Backstage Operator is configured to use publicly available images, which is not acceptable for Airgapped environment.
