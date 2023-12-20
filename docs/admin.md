@@ -64,7 +64,7 @@ You can change default configuration by directly changing the default-config Con
 kubectl get -n backstage-system configmap default-config > my-config.yaml
 ``
 
-- modify any part of it (yes, it could be fairly big file)
+- modify the file in your editor of choice
 
 - apply the updated configuration to your cluster
 
