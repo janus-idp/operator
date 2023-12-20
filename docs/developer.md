@@ -34,7 +34,7 @@ UnDeploy the controller from the cluster:
 ```sh
 make undeploy
 ```
-## Build and Deploy with OLM
+### Build and Deploy with OLM
 1. To build operator, bundle and catalog images:
 ```sh
 make release-build
