@@ -31,7 +31,8 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 # janus-idp.io/backstage-operator-bundle:$VERSION and janus-idp.io/backstage-operator-catalog:$VERSION.
-IMAGE_TAG_BASE ?= quay.io/rhdh/backstage-operator
+# TODO use janus-idp/operator* images instead of janus/operator*
+IMAGE_TAG_BASE ?= quay.io/janus/operator
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
@@ -108,6 +109,7 @@ fmt: goimports ## Format the code using goimports
 
 fmt_license: addlicense ## Ensure the license header is set on all files
 	$(ADDLICENSE) -v -f license_header.txt $$(find . -not -path '*/\.*' -name '*.go')
+	$(ADDLICENSE) -v -f license_header.txt $$(find . -name '*ockerfile')
 
 .PHONY: lint
 lint: golangci-lint ## Run the linter on the codebase
@@ -252,8 +254,13 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle $(BUNDLE_GEN_FLAGS)
 	operator-sdk bundle validate ./bundle
-	cat docker/license_header.txt bundle.Dockerfile > docker/bundle.Dockerfile; rm -f bundle.Dockerfile
+	mv -f bundle.Dockerfile docker/bundle.Dockerfile
+	$(MAKE) fmt_license
 
+## to update the CSV with a new tagged version of the operator:
+## yq '.spec.install.spec.deployments[0].spec.template.spec.containers[1].image|="quay.io/janus/backstage-operator:some-other-tag"' bundle/manifests/backstage-operator.clusterserviceversion.yaml
+## or 
+## sed -r -e "s#(image: +)quay.io/.+operator.+#\1quay.io/janus/backstage-operator:some-other-tag#g" -i bundle/manifests/backstage-operator.clusterserviceversion.yaml
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
 	$(CONTAINER_ENGINE) build -f docker/bundle.Dockerfile -t $(BUNDLE_IMG) .
