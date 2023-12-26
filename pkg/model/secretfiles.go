@@ -26,50 +26,61 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type ConfigMapFilesFactory struct{}
+type SecretFilesFactory struct{}
 
-func (f ConfigMapFilesFactory) newBackstageObject() BackstageObject {
-	return &ConfigMapFiles{ConfigMap: &corev1.ConfigMap{}, MountPath: defaultDir}
+func (f SecretFilesFactory) newBackstageObject() BackstageObject {
+	return &SecretFiles{Secret: &corev1.Secret{}, MountPath: defaultDir}
 }
 
-type ConfigMapFiles struct {
-	ConfigMap *corev1.ConfigMap
+type SecretFiles struct {
+	Secret    *corev1.Secret
 	MountPath string
 }
 
-func (p *ConfigMapFiles) Object() client.Object {
-	return p.ConfigMap
+func (p *SecretFiles) Object() client.Object {
+	return p.Secret
 }
 
-func (p *ConfigMapFiles) initMetainfo(backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
+func (p *SecretFiles) initMetainfo(backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(p, backstageMeta, ownsRuntime)
-	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-configmapfiles"))
+	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretfiles"))
 }
 
-func (p *ConfigMapFiles) EmptyObject() client.Object {
-	return &corev1.ConfigMap{}
+func (p *SecretFiles) EmptyObject() client.Object {
+	return &corev1.Secret{}
 }
 
-func (p *ConfigMapFiles) addToModel(model *runtimeModel) {
+func (p *SecretFiles) addToModel(model *runtimeModel) {
 	// nothing
 }
 
-func (p *ConfigMapFiles) updateBackstagePod(pod *backstagePod) {
+func (p *SecretFiles) updateBackstagePod(pod *backstagePod) {
 
-	volName := fmt.Sprintf("vol-%s", p.ConfigMap.Name)
+	volName := fmt.Sprintf("vol-%s", p.Secret.Name)
 
 	volSource := corev1.VolumeSource{
-		ConfigMap: &corev1.ConfigMapVolumeSource{
-			DefaultMode:          pointer.Int32(420),
-			LocalObjectReference: corev1.LocalObjectReference{Name: p.ConfigMap.Name},
+		Secret: &corev1.SecretVolumeSource{
+			DefaultMode: pointer.Int32(420),
+			SecretName:  p.Secret.Name,
 		},
 	}
+
 	pod.appendVolume(corev1.Volume{
 		Name:         volName,
 		VolumeSource: volSource,
 	})
 
-	for file := range p.ConfigMap.Data {
+	for file := range p.Secret.Data {
+
+		pod.appendContainerVolumeMount(corev1.VolumeMount{
+			Name:      volName,
+			MountPath: filepath.Join(p.MountPath, file),
+			SubPath:   file,
+		})
+
+	}
+
+	for file := range p.Secret.StringData {
 
 		pod.appendContainerVolumeMount(corev1.VolumeMount{
 			Name:      volName,

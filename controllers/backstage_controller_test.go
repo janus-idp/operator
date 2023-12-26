@@ -177,7 +177,7 @@ var _ = Describe("Backstage controller", func() {
 			//	Equal("backend-secret"), "Unexpected secret key ref for backend secret")
 			//Expect(backendSecretEnvVar.ValueFrom.SecretKeyRef.Optional).To(HaveValue(BeFalse()),
 			//	"'optional' for backend auth secret ref should be 'false'")
-			//
+
 			//backendAuthAppConfigEnvVar, ok := findEnvVar(found.Spec.Template.Spec.Containers[0].Env, "APP_CONFIG_backend_auth_keys")
 			//Expect(ok).To(BeTrue(), "env var APP_CONFIG_backend_auth_keys not found in main container")
 			//Expect(backendAuthAppConfigEnvVar.Value).To(Equal(`[{"secret": "$(BACKEND_SECRET)"}]`))

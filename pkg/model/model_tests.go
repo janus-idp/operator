@@ -18,21 +18,53 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
+
+	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 )
 
-func setTestEnv(useDefMandatoryObjects ...bool) {
+type testBackstageObject struct {
+	backstage    bsv1alpha1.Backstage
+	detailedSpec *DetailedBackstageSpec
+}
 
-	useDef := true
-	if len(useDefMandatoryObjects) > 0 {
-		useDef = useDefMandatoryObjects[0]
-	}
+var simpleTestBackstage = bsv1alpha1.Backstage{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "bs",
+		Namespace: "ns123",
+	},
+	Spec: bsv1alpha1.BackstageSpec{
+		EnableLocalDb: pointer.Bool(false),
+	},
+}
 
+func createBackstageTest(bs bsv1alpha1.Backstage) *testBackstageObject {
+	b := &testBackstageObject{backstage: bs, detailedSpec: &DetailedBackstageSpec{BackstageSpec: bs.Spec}}
+	b.detailedSpec.Details.RawConfig = map[string]string{}
+	return b
+}
+
+func (b *testBackstageObject) withDefaultConfig(useDef bool) *testBackstageObject {
 	if useDef {
+		// here we have default-config folder
 		_ = os.Setenv("LOCALBIN", "./testdata")
 	} else {
 		_ = os.Setenv("LOCALBIN", ".")
 	}
+	return b
+}
 
+func (b *testBackstageObject) addToDefaultConfig(key string, fileName string) *testBackstageObject {
+
+	yaml, err := readTestYamlFile(fileName)
+	if err != nil {
+		panic(err)
+	}
+	b.detailedSpec.Details.RawConfig[key] = string(yaml)
+
+	return b
 }
 
 func readTestYamlFile(name string) ([]byte, error) {

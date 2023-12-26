@@ -17,7 +17,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	bs "janus-idp.io/backstage-operator/api/v1alpha1"
 	"janus-idp.io/backstage-operator/pkg/model"
@@ -27,7 +26,7 @@ import (
 
 // Add additional details to the Backstage Spec helping in making Bakstage Objects Model
 // Validates Backstage Spec and fails fast if something not correct
-func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.BackstageSpec) (*model.DetailedBackstageSpec, error) {
+func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.BackstageSpec, ns string) (*model.DetailedBackstageSpec, error) {
 	//lg := log.FromContext(ctx)
 
 	result := &model.DetailedBackstageSpec{
@@ -37,7 +36,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.Back
 	// Process RawRuntimeConfig
 	if bsSpec.RawRuntimeConfig != "" {
 		cm := corev1.ConfigMap{}
-		if err := r.Get(ctx, types.NamespacedName{Name: bsSpec.RawRuntimeConfig, Namespace: r.Namespace}, &cm); err != nil {
+		if err := r.Get(ctx, types.NamespacedName{Name: bsSpec.RawRuntimeConfig, Namespace: ns}, &cm); err != nil {
 			return nil, fmt.Errorf("failed to load rawConfig %s: %w", bsSpec.RawRuntimeConfig, err)
 		}
 		for key, value := range cm.Data {
@@ -52,21 +51,46 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.Back
 		mountPath := bsSpec.Application.AppConfig.MountPath
 		for _, ac := range bsSpec.Application.AppConfig.ConfigMaps {
 			cm := corev1.ConfigMap{}
-			if err := r.Get(ctx, types.NamespacedName{Name: ac.Name, Namespace: r.Namespace}, &cm); err != nil {
-				return nil, fmt.Errorf("failed to load configMap %s: %w", ac.Name, err)
+			if err := r.Get(ctx, types.NamespacedName{Name: ac.Name, Namespace: ns}, &cm); err != nil {
+				return nil, fmt.Errorf("failed to get configMap %s: %w", ac.Name, err)
 			}
-
-			for key := range cm.Data {
-				// first key added
-				result.Details.AppConfigs = append(result.Details.AppConfigs, model.AppConfigDetails{
-					ConfigMapName: cm.Name,
-					FilePath:      filepath.Join(mountPath, key),
-				})
-			}
+			result.Details.AddConfigObject(&model.AppConfig{ConfigMap: &cm, MountPath: mountPath})
 		}
 	}
 
-	// TODO extra objects
+	// Process ConfigMapFiles
+	if bsSpec.Application != nil && bsSpec.Application.ExtraFiles != nil && bsSpec.Application.ExtraFiles.ConfigMaps != nil {
+		mountPath := bsSpec.Application.ExtraFiles.MountPath
+		for _, ef := range bsSpec.Application.ExtraFiles.ConfigMaps {
+			cm := corev1.ConfigMap{}
+			if err := r.Get(ctx, types.NamespacedName{Name: ef.Name, Namespace: ns}, &cm); err != nil {
+				return nil, fmt.Errorf("failed to get configMap %s: %w", ef.Name, err)
+			}
+			result.Details.AddConfigObject(&model.ConfigMapFiles{ConfigMap: &cm, MountPath: mountPath})
+		}
+	}
+
+	// Process ConfigMapEnvs
+	if bsSpec.Application != nil && bsSpec.Application.ExtraEnvs != nil && bsSpec.Application.ExtraEnvs.ConfigMaps != nil {
+		for _, ee := range bsSpec.Application.ExtraEnvs.ConfigMaps {
+			cm := corev1.ConfigMap{}
+			if err := r.Get(ctx, types.NamespacedName{Name: ee.Name, Namespace: ns}, &cm); err != nil {
+				return nil, fmt.Errorf("failed to get configMap %s: %w", ee.Name, err)
+			}
+			result.Details.AddConfigObject(&model.ConfigMapEnvs{ConfigMap: &cm})
+		}
+	}
+
+	// Process SecretEnvs
+	if bsSpec.Application != nil && bsSpec.Application.ExtraEnvs != nil && bsSpec.Application.ExtraEnvs.Secrets != nil {
+		for _, ee := range bsSpec.Application.ExtraEnvs.Secrets {
+			sec := corev1.Secret{}
+			if err := r.Get(ctx, types.NamespacedName{Name: ee.Name, Namespace: ns}, &sec); err != nil {
+				return nil, fmt.Errorf("failed to get Secret %s: %w", ee.Name, err)
+			}
+			result.Details.AddConfigObject(&model.SecretEnvs{Secret: &sec})
+		}
+	}
 
 	return result, nil
 }

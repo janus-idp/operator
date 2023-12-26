@@ -30,7 +30,7 @@ import (
 // NOTE: to make it work locally env var LOCALBIN should point to the directory where default-config folder located
 func TestInitDefaultDeploy(t *testing.T) {
 
-	setTestEnv()
+	//setTestEnv()
 
 	bs := v1alpha1.Backstage{
 		ObjectMeta: metav1.ObjectMeta{
@@ -42,7 +42,9 @@ func TestInitDefaultDeploy(t *testing.T) {
 		},
 	}
 
-	model, err := InitObjects(context.TODO(), bs, &DetailedBackstageSpec{BackstageSpec: bs.Spec}, true, false)
+	testObj := createBackstageTest(bs).withDefaultConfig(true)
+
+	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model) > 0)
@@ -55,22 +57,6 @@ func TestInitDefaultDeploy(t *testing.T) {
 	assert.NotNil(t, bsDeployment.pod.container)
 	assert.Equal(t, backstageContainerName, bsDeployment.pod.container.Name)
 	assert.NotNil(t, bsDeployment.pod.volumes)
-
-	for _, vol := range bsDeployment.deployment.Spec.Template.Spec.Volumes {
-		fmt.Printf("vol %v \n", vol)
-	}
-
-	for _, vm := range bsDeployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts {
-		fmt.Printf("vol Mount %v \n", vm)
-	}
-
-	for _, vol1 := range *bsDeployment.pod.volumes {
-		fmt.Printf("vol %v \n", vol1)
-	}
-
-	for _, vm1 := range bsDeployment.pod.container.VolumeMounts {
-		fmt.Printf("vol Mount %v \n", vm1)
-	}
 
 	//	assert.Equal(t, "Backstage", bsDeployment.deployment.OwnerReferences[0].Kind)
 

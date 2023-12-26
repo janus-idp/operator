@@ -18,34 +18,36 @@ import (
 	"context"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	//corev1 "k8s.io/api/core/v1"
+
+	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestDefaultAppConfig(t *testing.T) {
+func TestDefaultConfigMapFiles(t *testing.T) {
 
 	bs := simpleTestBackstage
 
-	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("app-config.yaml", "app-config1.yaml")
+	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("configmap-files.yaml", "cm-files.yaml")
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
 	assert.NoError(t, err)
-	assert.True(t, len(model) > 0)
 
 	deployment := model[0].(*BackstageDeployment)
 	assert.NotNil(t, deployment)
 
 	assert.Equal(t, 1, len(deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts))
-	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Containers[0].Args))
 	assert.Equal(t, 1, len(deployment.deployment.Spec.Template.Spec.Volumes))
 
 }
 
-func TestSpecifiedAppConfig(t *testing.T) {
+func TestSpecifiedConfigMapFiles(t *testing.T) {
 
 	bs := simpleTestBackstage
 
@@ -67,8 +69,8 @@ func TestSpecifiedAppConfig(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
 
-	testObj.detailedSpec.Details.AddConfigObject(&AppConfig{ConfigMap: &cm, MountPath: "/my/path"})
-	testObj.detailedSpec.Details.AddConfigObject(&AppConfig{ConfigMap: &cm2, MountPath: "/my/path"})
+	testObj.detailedSpec.Details.AddConfigObject(&ConfigMapFiles{ConfigMap: &cm, MountPath: "/my/path"})
+	testObj.detailedSpec.Details.AddConfigObject(&ConfigMapFiles{ConfigMap: &cm2, MountPath: "/my/path"})
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
@@ -79,16 +81,16 @@ func TestSpecifiedAppConfig(t *testing.T) {
 	assert.NotNil(t, deployment)
 
 	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts))
-	assert.Equal(t, 4, len(deployment.deployment.Spec.Template.Spec.Containers[0].Args))
+	assert.Equal(t, 0, len(deployment.deployment.Spec.Template.Spec.Containers[0].Args))
 	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Volumes))
 
 }
 
-func TestDefaultAndSpecifiedAppConfig(t *testing.T) {
+func TestDefaultAndSpecifiedConfigMapFiles(t *testing.T) {
 
 	bs := simpleTestBackstage
 
-	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("app-config.yaml", "app-config1.yaml")
+	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("configmap-files.yaml", "cm-files.yaml")
 
 	cm := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -99,7 +101,7 @@ func TestDefaultAndSpecifiedAppConfig(t *testing.T) {
 	}
 
 	//testObj.detailedSpec.Details.AddAppConfig(cm, "/my/path")
-	testObj.detailedSpec.Details.AddConfigObject(&AppConfig{ConfigMap: &cm, MountPath: "/my/path"})
+	testObj.detailedSpec.Details.AddConfigObject(&ConfigMapFiles{ConfigMap: &cm, MountPath: "/my/path"})
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
@@ -110,7 +112,7 @@ func TestDefaultAndSpecifiedAppConfig(t *testing.T) {
 	assert.NotNil(t, deployment)
 
 	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts))
-	assert.Equal(t, 4, len(deployment.deployment.Spec.Template.Spec.Containers[0].Args))
+	assert.Equal(t, 0, len(deployment.deployment.Spec.Template.Spec.Containers[0].Args))
 	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Volumes))
 
 }

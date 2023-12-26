@@ -42,9 +42,9 @@ var runtimeConfig = []ObjectConfig{
 	{Key: "db-secret.yaml", ObjectFactory: DbSecretFactory{}, need: ForLocalDatabase},
 	{Key: "app-config.yaml", ObjectFactory: AppConfigFactory{}, need: Optional},
 	{Key: "configmap-files.yaml", ObjectFactory: ConfigMapFilesFactory{}, need: Optional},
-	//{Key: "secret-files.yaml", BackstageObject: newBackstageDeployment(), need: Optional},
-	//{Key: "configmap-envs.yaml", BackstageObject: newBackstageDeployment(), need: Optional},
-	//{Key: "secret-envs.yaml", BackstageObject: newBackstageDeployment(), need: Optional},
+	{Key: "secret-files.yaml", ObjectFactory: SecretFilesFactory{}, need: Optional},
+	{Key: "configmap-envs.yaml", ObjectFactory: ConfigMapEnvsFactory{}, need: Optional},
+	{Key: "secret-envs.yaml", ObjectFactory: SecretEnvsFactory{}, need: Optional},
 	{Key: "dynamic-plugins.yaml", ObjectFactory: DynamicPluginsFactory{}, need: Optional},
 	{Key: "route.yaml", ObjectFactory: BackstageRouteFactory{}, need: ForOpenshift},
 }
@@ -153,10 +153,17 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 		backstagePod.setImage(backstageSpec.Application.Image)
 	}
 	// TODO API
-	if backstageSpec.Details.AppConfigs != nil {
-		for _, ac := range backstageSpec.Details.AppConfigs {
-			backstagePod.addAppConfig(ac.ConfigMapName, ac.FilePath)
-		}
+	//if backstageSpec.Details.appConfigs != nil {
+	//	for _, ac := range backstageSpec.Details.appConfigs {
+	//		ac.updateBackstagePod(backstagePod)
+	//	}
+	//}
+	//for _, cmf := range backstageSpec.Details.configMapsFiles {
+	//	cmf.updateBackstagePod(backstagePod)
+	//}
+
+	for _, v := range backstageSpec.Details.ConfigObjects {
+		v.updateBackstagePod(backstagePod)
 	}
 
 	return objectList, nil

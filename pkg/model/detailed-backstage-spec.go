@@ -14,7 +14,9 @@
 
 package model
 
-import bs "janus-idp.io/backstage-operator/api/v1alpha1"
+import (
+	bs "janus-idp.io/backstage-operator/api/v1alpha1"
+)
 
 type DetailedBackstageSpec struct {
 	bs.BackstageSpec
@@ -22,35 +24,36 @@ type DetailedBackstageSpec struct {
 }
 
 type SpecDetails struct {
-	RawConfig              map[string]string
-	AppConfigs             []AppConfigDetails
-	ExtraSecretsToFiles    []ExtraSecretToFilesDetails
-	ExtraSecretsToEnvs     []ExtraSecretToEnvsDetails
-	ExtraConfigMapsToFiles []ExtraConfigMapToFilesDetails
-	ExtraConfigMapsToEnvs  []ExtraConfigMapToEnvsDetails
+	ConfigObjects backstageConfSlice
+	RawConfig     map[string]string
+	//appConfigs          []AppConfig
+	//configMapsFiles     []ConfigMapFiles
+	//ExtraSecretsToFiles []ExtraSecretToFilesDetails
+	//ExtraSecretsToEnvs  []ExtraSecretToEnvsDetails
+	//ExtraConfigMapsToFiles []ExtraConfigMapToFilesDetails
+	//ExtraConfigMapsToEnvs []ExtraConfigMapToEnvsDetails
 }
 
-type AppConfigDetails struct {
-	ConfigMapName string
-	FilePath      string
+type backstageConfSlice []interface {
+	BackstageObject
+	updateBackstagePod(pod *backstagePod)
 }
 
-type ExtraSecretToFilesDetails struct {
-	SecretName string
-	FilePaths  []string
+func (a *SpecDetails) AddConfigObject(obj BackstageConfObject) {
+	a.ConfigObjects = append(a.ConfigObjects, obj)
 }
 
-type ExtraSecretToEnvsDetails struct {
-	SecretName string
-	Envs       []string
-}
-
-type ExtraConfigMapToFilesDetails struct {
-	ConfigMapName string
-	FilePaths     []string
-}
-
-type ExtraConfigMapToEnvsDetails struct {
-	ConfigMapName string
-	Envs          []string
-}
+//type ExtraSecretToFilesDetails struct {
+//	SecretName string
+//	FilePaths  []string
+//}
+//
+//type ExtraSecretToEnvsDetails struct {
+//	SecretName string
+//	Envs       []string
+//}
+//
+//type ExtraConfigMapToEnvsDetails struct {
+//	ConfigMapName string
+//	Envs          []string
+//}

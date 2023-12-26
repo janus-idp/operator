@@ -16,11 +16,9 @@ package model
 
 import (
 	"fmt"
-	"path/filepath"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
 )
 
 const backstageContainerName = "backstage-backend"
@@ -63,30 +61,30 @@ func (p backstagePod) addExtraFileFromSecrets(secrets []string) {
 	panic("TODO")
 }
 
-func (p backstagePod) addExtraFilesFromConfigMap(configMapName string, paths []string) {
-
-	volName := fmt.Sprintf("vol-%s", configMapName)
-
-	volSource := corev1.VolumeSource{
-		ConfigMap: &corev1.ConfigMapVolumeSource{
-			DefaultMode:          pointer.Int32(420),
-			LocalObjectReference: corev1.LocalObjectReference{Name: configMapName},
-		},
-	}
-	p.appendVolume(corev1.Volume{
-		Name:         volName,
-		VolumeSource: volSource,
-	})
-
-	for _, filePath := range paths {
-		p.appendContainerVolumeMount(corev1.VolumeMount{
-			Name:      volName,
-			MountPath: filePath,
-			SubPath:   filepath.Base(filePath),
-		})
-	}
-
-}
+//func (p backstagePod) addExtraFilesFromConfigMap(configMapName string, paths []string) {
+//
+//	volName := fmt.Sprintf("vol-%s", configMapName)
+//
+//	volSource := corev1.VolumeSource{
+//		ConfigMap: &corev1.ConfigMapVolumeSource{
+//			DefaultMode:          pointer.Int32(420),
+//			LocalObjectReference: corev1.LocalObjectReference{Name: configMapName},
+//		},
+//	}
+//	p.appendVolume(corev1.Volume{
+//		Name:         volName,
+//		VolumeSource: volSource,
+//	})
+//
+//	for _, filePath := range paths {
+//		p.appendContainerVolumeMount(corev1.VolumeMount{
+//			Name:      volName,
+//			MountPath: filePath,
+//			SubPath:   filepath.Base(filePath),
+//		})
+//	}
+//
+//}
 
 func (p backstagePod) addExtraEnvVarFromSecrets(secretNames []string) {
 	for _, secretName := range secretNames {
@@ -101,18 +99,18 @@ func (p backstagePod) addExtraEnvVarFromSecrets(secretNames []string) {
 	}
 }
 
-func (p backstagePod) addExtraEnvVarFromConfigMaps(configMapNames []string) {
-	for _, cmName := range configMapNames {
-		envSource := &corev1.ConfigMapEnvSource{
-			LocalObjectReference: corev1.LocalObjectReference{Name: cmName},
-		}
-
-		p.appendContainerEnvFrom(corev1.EnvFromSource{
-			//Prefix:       "cm-",
-			ConfigMapRef: envSource,
-		})
-	}
-}
+//func (p backstagePod) addExtraEnvVarFromConfigMaps(configMapNames []string) {
+//	for _, cmName := range configMapNames {
+//		envSource := &corev1.ConfigMapEnvSource{
+//			LocalObjectReference: corev1.LocalObjectReference{Name: cmName},
+//		}
+//
+//		p.appendContainerEnvFrom(corev1.EnvFromSource{
+//			//Prefix:       "cm-",
+//			ConfigMapRef: envSource,
+//		})
+//	}
+//}
 
 func (p backstagePod) addExtraEnvVars(envVars map[string]string) {
 	for name, value := range envVars {
@@ -125,29 +123,29 @@ func (p backstagePod) addExtraEnvVars(envVars map[string]string) {
 }
 
 // Add x.y.z.app-config.yaml file to the Backstage configuration
-func (p backstagePod) addAppConfig(configMapName string, filePath string) {
-
-	volName := fmt.Sprintf("vol-%s", configMapName)
-
-	volSource := corev1.VolumeSource{
-		ConfigMap: &corev1.ConfigMapVolumeSource{
-			DefaultMode:          pointer.Int32(420),
-			LocalObjectReference: corev1.LocalObjectReference{Name: configMapName},
-		},
-	}
-	p.appendVolume(corev1.Volume{
-		Name:         volName,
-		VolumeSource: volSource,
-	})
-
-	p.appendContainerVolumeMount(corev1.VolumeMount{
-		Name:      volName,
-		MountPath: filePath,
-		SubPath:   filepath.Base(filePath),
-	})
-	p.appendContainerArgs([]string{"--config", filePath})
-
-}
+//func (p backstagePod) addAppConfig(configMapName string, filePath string) {
+//
+//	volName := fmt.Sprintf("vol-%s", configMapName)
+//
+//	volSource := corev1.VolumeSource{
+//		ConfigMap: &corev1.ConfigMapVolumeSource{
+//			DefaultMode:          pointer.Int32(420),
+//			LocalObjectReference: corev1.LocalObjectReference{Name: configMapName},
+//		},
+//	}
+//	p.appendVolume(corev1.Volume{
+//		Name:         volName,
+//		VolumeSource: volSource,
+//	})
+//
+//	p.appendContainerVolumeMount(corev1.VolumeMount{
+//		Name:      volName,
+//		MountPath: filePath,
+//		SubPath:   filepath.Base(filePath),
+//	})
+//	p.appendContainerArgs([]string{"--config", filePath})
+//
+//}
 
 func (p backstagePod) appendVolume(volume corev1.Volume) {
 	*p.volumes = append(*p.volumes, volume)

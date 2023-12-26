@@ -15,39 +15,62 @@
 package model
 
 import (
+	"fmt"
 	"path/filepath"
 
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 	"janus-idp.io/backstage-operator/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type AppConfigFactory struct{}
 
 func (f AppConfigFactory) newBackstageObject() BackstageObject {
-	return &AppConfig{configMap: &corev1.ConfigMap{}}
+	return &AppConfig{ConfigMap: &corev1.ConfigMap{}, MountPath: defaultDir}
 }
 
 type AppConfig struct {
-	configMap *corev1.ConfigMap
+	ConfigMap *corev1.ConfigMap
+	MountPath string
 }
 
 func (b *AppConfig) Object() client.Object {
-	return b.configMap
+	return b.ConfigMap
 }
 
 func (b *AppConfig) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(b, backstageMeta, ownsRuntime)
-	b.configMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-appconfig"))
+	b.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-appconfig"))
 }
 
 func (b *AppConfig) updateBackstagePod(pod *backstagePod) {
-	path := defaultDir
-	for k := range b.configMap.Data {
-		path = filepath.Join(path, k)
+
+	volName := fmt.Sprintf("vol-%s", b.ConfigMap.Name)
+
+	volSource := corev1.VolumeSource{
+		ConfigMap: &corev1.ConfigMapVolumeSource{
+			DefaultMode:          pointer.Int32(420),
+			LocalObjectReference: corev1.LocalObjectReference{Name: b.ConfigMap.Name},
+		},
 	}
-	pod.addAppConfig(b.configMap.Name, path)
+	pod.appendVolume(corev1.Volume{
+		Name:         volName,
+		VolumeSource: volSource,
+	})
+
+	for file := range b.ConfigMap.Data {
+
+		pod.appendContainerVolumeMount(corev1.VolumeMount{
+			Name:      volName,
+			MountPath: filepath.Join(b.MountPath, file), //b.MountPath,
+			SubPath:   file,                             //filepath.Base(filePath),
+		})
+
+		pod.appendContainerArgs([]string{"--config", filepath.Join(b.MountPath, file)})
+	}
+
 }
 
 func (b *AppConfig) EmptyObject() client.Object {

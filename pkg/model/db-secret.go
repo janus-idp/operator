@@ -84,14 +84,3 @@ func (b *DbSecret) updateBackstagePod(pod *backstagePod) {
 		},
 	})
 }
-
-//func (b *DbSecret) OnCreate() error {
-//
-//	if b.secret.StringData["POSTGRES_PASSWORD"] == "" {
-//		pswd := rand.String(8)
-//		b.secret.StringData["POSTGRES_PASSWORD"] = pswd
-//		b.secret.StringData["POSTGRESQL_ADMIN_PASSWORD"] = pswd
-//	}
-//
-//	return nil
-//}

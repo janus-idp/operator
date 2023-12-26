@@ -100,7 +100,7 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// This helps to:
 	// 1. Preliminary read and prepare some config objects from the specs (configMaps, Secrets...)
 	// 2. Make some validation to fail fast
-	spec, err := r.preprocessSpec(ctx, backstage.Spec)
+	spec, err := r.preprocessSpec(ctx, backstage.Spec, req.Namespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to preprocess backstage spec: %w", err)
 	}
@@ -184,12 +184,6 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 				return fmt.Errorf("failed to get object: %w", err)
 			}
 
-			//if pcObj, ok := obj.(model.PreCreateHandledObject); ok {
-			//	lg.V(1).Info("Call OnCreate for ", "", obj.Object().GetName())
-			//	if err := pcObj.OnCreate(); err != nil {
-			//		return fmt.Errorf("failed to pre-create object: %w", err)
-			//	}
-			//}
 			if err := r.Create(ctx, obj.Object()); err != nil {
 				if errors.IsAlreadyExists(err) {
 					lg.V(1).Info("Already created by other reconcilation", "", obj.Object().GetName())
@@ -202,10 +196,9 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 			continue
 		}
 
-		// TODO
-		//if err := r.Update(ctx, obj.Object()); err != nil {
-		//	return fmt.Errorf("failed to update object: %w", err)
-		//}
+		if err := r.Update(ctx, obj.Object()); err != nil {
+			return fmt.Errorf("failed to update object %s: %w", obj.Object().GetName(), err)
+		}
 	}
 	return nil
 }

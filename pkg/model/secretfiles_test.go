@@ -16,59 +16,60 @@ package model
 
 import (
 	"context"
-
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	//corev1 "k8s.io/api/core/v1"
+
+	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestDefaultAppConfig(t *testing.T) {
+func TestDefaultSecretFiles(t *testing.T) {
 
 	bs := simpleTestBackstage
 
-	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("app-config.yaml", "app-config1.yaml")
+	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("secret-files.yaml", "s-files.yaml")
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
 	assert.NoError(t, err)
-	assert.True(t, len(model) > 0)
 
 	deployment := model[0].(*BackstageDeployment)
 	assert.NotNil(t, deployment)
 
 	assert.Equal(t, 1, len(deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts))
-	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Containers[0].Args))
 	assert.Equal(t, 1, len(deployment.deployment.Spec.Template.Spec.Volumes))
 
 }
 
-func TestSpecifiedAppConfig(t *testing.T) {
+func TestSpecifiedSecretFiles(t *testing.T) {
 
 	bs := simpleTestBackstage
 
-	cm := corev1.ConfigMap{
+	sec1 := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "app-config1",
+			Name:      "secret1",
 			Namespace: "ns123",
 		},
-		Data: map[string]string{"conf.yaml": ""},
+		StringData: map[string]string{"conf.yaml": ""},
 	}
 
-	cm2 := corev1.ConfigMap{
+	sec2 := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "app-config2",
+			Name:      "secret2",
 			Namespace: "ns123",
 		},
-		Data: map[string]string{"conf2.yaml": ""},
+		Data: map[string][]byte{"conf2.yaml": []byte{}},
 	}
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
 
-	testObj.detailedSpec.Details.AddConfigObject(&AppConfig{ConfigMap: &cm, MountPath: "/my/path"})
-	testObj.detailedSpec.Details.AddConfigObject(&AppConfig{ConfigMap: &cm2, MountPath: "/my/path"})
+	testObj.detailedSpec.Details.AddConfigObject(&SecretFiles{Secret: &sec1, MountPath: "/my/path"})
+	testObj.detailedSpec.Details.AddConfigObject(&SecretFiles{Secret: &sec2, MountPath: "/my/path"})
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
@@ -79,27 +80,27 @@ func TestSpecifiedAppConfig(t *testing.T) {
 	assert.NotNil(t, deployment)
 
 	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts))
-	assert.Equal(t, 4, len(deployment.deployment.Spec.Template.Spec.Containers[0].Args))
+	assert.Equal(t, 0, len(deployment.deployment.Spec.Template.Spec.Containers[0].Args))
 	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Volumes))
 
 }
 
-func TestDefaultAndSpecifiedAppConfig(t *testing.T) {
+func TestDefaultAndSpecifiedSecretFiles(t *testing.T) {
 
 	bs := simpleTestBackstage
 
-	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("app-config.yaml", "app-config1.yaml")
+	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("secret-files.yaml", "s-files.yaml")
 
-	cm := corev1.ConfigMap{
+	sec := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "app-config1",
+			Name:      "secret1",
 			Namespace: "ns123",
 		},
-		Data: map[string]string{"conf.yaml": ""},
+		StringData: map[string]string{"conf.yaml": ""},
 	}
 
 	//testObj.detailedSpec.Details.AddAppConfig(cm, "/my/path")
-	testObj.detailedSpec.Details.AddConfigObject(&AppConfig{ConfigMap: &cm, MountPath: "/my/path"})
+	testObj.detailedSpec.Details.AddConfigObject(&SecretFiles{Secret: &sec, MountPath: "/my/path"})
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
@@ -110,7 +111,7 @@ func TestDefaultAndSpecifiedAppConfig(t *testing.T) {
 	assert.NotNil(t, deployment)
 
 	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts))
-	assert.Equal(t, 4, len(deployment.deployment.Spec.Template.Spec.Containers[0].Args))
+	assert.Equal(t, 0, len(deployment.deployment.Spec.Template.Spec.Containers[0].Args))
 	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Volumes))
 
 }
