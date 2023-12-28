@@ -35,15 +35,6 @@ type BackstageDeployment struct {
 	pod        *backstagePod
 }
 
-func getBackstageDeployment(bsobjects []BackstageObject) *BackstageDeployment {
-	for _, obj := range bsobjects {
-		if bs, ok := obj.(*BackstageDeployment); ok {
-			return bs
-		}
-	}
-	return nil
-}
-
 func (b *BackstageDeployment) Object() client.Object {
 	return b.deployment
 }

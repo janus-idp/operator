@@ -21,5 +21,8 @@ configMapGenerator:
   - default-config/backend-auth-configmap.yaml
   - default-config/dynamic-plugins.yaml
   - default-config/app-config.yaml
-  - default-config/configmap-files.yaml
+  - default-config/secret-envs.yaml
+  #- default-config/configmap-files.yaml
+  #- default-config/configmap-envs.yaml
+  #- default-config/seret-files.yaml
   name: default-config

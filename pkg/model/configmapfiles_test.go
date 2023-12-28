@@ -69,8 +69,8 @@ func TestSpecifiedConfigMapFiles(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
 
-	testObj.detailedSpec.Details.AddConfigObject(&ConfigMapFiles{ConfigMap: &cm, MountPath: "/my/path"})
-	testObj.detailedSpec.Details.AddConfigObject(&ConfigMapFiles{ConfigMap: &cm2, MountPath: "/my/path"})
+	testObj.detailedSpec.AddConfigObject(&ConfigMapFiles{ConfigMap: &cm, MountPath: "/my/path"})
+	testObj.detailedSpec.AddConfigObject(&ConfigMapFiles{ConfigMap: &cm2, MountPath: "/my/path"})
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
@@ -101,7 +101,7 @@ func TestDefaultAndSpecifiedConfigMapFiles(t *testing.T) {
 	}
 
 	//testObj.detailedSpec.Details.AddAppConfig(cm, "/my/path")
-	testObj.detailedSpec.Details.AddConfigObject(&ConfigMapFiles{ConfigMap: &cm, MountPath: "/my/path"})
+	testObj.detailedSpec.AddConfigObject(&ConfigMapFiles{ConfigMap: &cm, MountPath: "/my/path"})
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 

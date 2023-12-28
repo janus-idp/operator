@@ -18,42 +18,19 @@ import (
 	bs "janus-idp.io/backstage-operator/api/v1alpha1"
 )
 
+// extension of Backstage.Spec to make it possible to work on model package level
 type DetailedBackstageSpec struct {
 	bs.BackstageSpec
-	Details SpecDetails
+	ConfigObjects    backstageConfSlice
+	RawConfigContent map[string]string
 }
 
-type SpecDetails struct {
-	ConfigObjects backstageConfSlice
-	RawConfig     map[string]string
-	//appConfigs          []AppConfig
-	//configMapsFiles     []ConfigMapFiles
-	//ExtraSecretsToFiles []ExtraSecretToFilesDetails
-	//ExtraSecretsToEnvs  []ExtraSecretToEnvsDetails
-	//ExtraConfigMapsToFiles []ExtraConfigMapToFilesDetails
-	//ExtraConfigMapsToEnvs []ExtraConfigMapToEnvsDetails
-}
-
+// array of BackstagePodContributor interfaces
 type backstageConfSlice []interface {
 	BackstageObject
 	updateBackstagePod(pod *backstagePod)
 }
 
-func (a *SpecDetails) AddConfigObject(obj BackstageConfObject) {
+func (a *DetailedBackstageSpec) AddConfigObject(obj BackstagePodContributor) {
 	a.ConfigObjects = append(a.ConfigObjects, obj)
 }
-
-//type ExtraSecretToFilesDetails struct {
-//	SecretName string
-//	FilePaths  []string
-//}
-//
-//type ExtraSecretToEnvsDetails struct {
-//	SecretName string
-//	Envs       []string
-//}
-//
-//type ExtraConfigMapToEnvsDetails struct {
-//	ConfigMapName string
-//	Envs          []string
-//}

@@ -68,3 +68,30 @@ func TestInitDefaultDeploy(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("backstage-%s", "bs"), bsService.service.Spec.Selector[backstageAppLabel])
 
 }
+
+func TestInitObjects(t *testing.T) {
+	type args struct {
+		ctx           context.Context
+		backstageMeta v1alpha1.Backstage
+		backstageSpec *DetailedBackstageSpec
+		ownsRuntime   bool
+		isOpenshift   bool
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []BackstageObject
+		wantErr assert.ErrorAssertionFunc
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := InitObjects(tt.args.ctx, tt.args.backstageMeta, tt.args.backstageSpec, tt.args.ownsRuntime, tt.args.isOpenshift)
+			if !tt.wantErr(t, err, fmt.Sprintf("InitObjects(%v, %v, %v, %v, %v)", tt.args.ctx, tt.args.backstageMeta, tt.args.backstageSpec, tt.args.ownsRuntime, tt.args.isOpenshift)) {
+				return
+			}
+			assert.Equalf(t, tt.want, got, "InitObjects(%v, %v, %v, %v, %v)", tt.args.ctx, tt.args.backstageMeta, tt.args.backstageSpec, tt.args.ownsRuntime, tt.args.isOpenshift)
+		})
+	}
+}

@@ -42,22 +42,16 @@ type BackstageObject interface {
 	Object() client.Object
 	initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool)
 	// needed only for check if Object exists to call KubeClient.Get() and it should be garbage collected right away
-	// TODO: is there more elegance way?
 	EmptyObject() client.Object
 	addToModel(model *runtimeModel)
 }
 
-type BackstageConfObject interface {
+type BackstagePodContributor interface {
 	BackstageObject
 	updateBackstagePod(pod *backstagePod)
 }
 
-type LocalDbConfObject interface {
+type LocalDbPodContributor interface {
 	BackstageObject
 	updateLocalDbPod(model *runtimeModel)
 }
-
-//type PreCreateHandledObject interface {
-//	BackstageObject
-//	OnCreate() error
-//}

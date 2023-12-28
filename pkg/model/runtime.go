@@ -73,26 +73,35 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 	objectList := make([]BackstageObject, 0)
 	runtimeModel := &runtimeModel{}
 
+	// looping through the registered runrimeConfig objects
 	for _, conf := range runtimeConfig {
 
+		// creating the instance of backstageObject
 		backstageObject := conf.ObjectFactory.newBackstageObject()
 		var defaultErr error
 		var overlayErr error
 
-		// read default configuration
+		// reading default configuration defined in the default-config/[key] file
+		// mounted from the 'default-config' configMap
+		// this is a cluster scope configuration applying to every Backstage CR by default
 		if err := utils.ReadYamlFile(utils.DefFile(conf.Key), backstageObject.Object()); err != nil {
 			defaultErr = fmt.Errorf("failed to read default value for the key %s, reason: %s", conf.Key, err)
 			//lg.V(1).Info("failed reading default config", "error", err.Error())
 		}
 
-		// overlay with or add rawConfig
-		overlay, overlayExist := backstageSpec.Details.RawConfig[conf.Key]
+		// reading configuration defined in BackstageCR.Spec.RawConfigContent ConfigMap
+		// if present, backstageObject's default configuration will be overriden
+		overlay, overlayExist := backstageSpec.RawConfigContent[conf.Key]
 		if overlayExist {
 			if err := utils.ReadYaml([]byte(overlay), backstageObject.Object()); err != nil {
 				overlayErr = fmt.Errorf("failed to read overlay value for the key %s, reason: %s", conf.Key, err)
 			}
 		}
 
+		// throw the error if raw configuration exists and is invalid
+		// throw the error if there is invalid or no configuration (default|raw) for Mandatory object
+		// continue if there is invalid or no configuration (default|raw) for Optional object
+		// TODO separate the case when configuration does not exist (intentionally) from invalid configuration
 		if overlayErr != nil || (!overlayExist && defaultErr != nil) {
 			if conf.need == Mandatory || (conf.need == ForLocalDatabase && *backstageSpec.EnableLocalDb) {
 				return nil, errors.Join(defaultErr, overlayErr)
@@ -102,17 +111,17 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 			}
 		}
 
-		// do not add if local db is disabled
+		// do not add if ForLocalDatabase and LocalDb is disabled
 		if !backstageSpec.LocalDbEnabled() && conf.need == ForLocalDatabase {
 			continue
 		}
 
-		// do not add if not openshift
+		// do not add if ForOpenshift and cluster is not Openshift
 		if !isOpenshift && conf.need == ForOpenshift {
 			continue
 		}
 
-		// populate BackstageObject metainfo (names, labels, selsctors etc) for consistency
+		// populate BackstageObject metainfo (names, labels, selsctors etc)
 		backstageObject.initMetainfo(backstageMeta, ownsRuntime)
 
 		// finally add the object to the model and list
@@ -120,10 +129,13 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 		objectList = append(objectList, backstageObject)
 	}
 
-	// update local-db conf objects
+	// update local-db deployment with contributions
 	if backstageSpec.LocalDbEnabled() {
+		if runtimeModel.localDbStatefulSet == nil {
+			return nil, fmt.Errorf("failed to identify Local DB StatefulSet by %s, it should not happen normally", "db-statefulset.yaml")
+		}
 		for _, bso := range objectList {
-			if ldco, ok := bso.(LocalDbConfObject); ok {
+			if ldco, ok := bso.(LocalDbPodContributor); ok {
 				ldco.updateLocalDbPod(runtimeModel)
 			}
 		}
@@ -131,17 +143,16 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 
 	// create Backstage Pod object
 	if runtimeModel.backstageDeployment == nil {
-		return nil, fmt.Errorf("failed to identify Backstage Deployment by %s, it should not happen normally", "deployment.xml")
+		return nil, fmt.Errorf("failed to identify Backstage Deployment by %s, it should not happen normally", "deployment.yaml")
 	}
 	backstagePod, err := newBackstagePod(runtimeModel.backstageDeployment)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Backstage Pod: %s", err)
 	}
 
-	// update Backstage Pod with parts (volumes, container)
-	// according to default configuration
+	// update Backstage Pod with contributions (volumes, container)
 	for _, bso := range objectList {
-		if bs, ok := bso.(BackstageConfObject); ok {
+		if bs, ok := bso.(BackstagePodContributor); ok {
 			bs.updateBackstagePod(backstagePod)
 		}
 	}
@@ -149,20 +160,10 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 	// Phase 3: process Backstage.spec
 	if backstageSpec.Application != nil {
 		runtimeModel.backstageDeployment.setReplicas(backstageSpec.Application.Replicas)
-		backstagePod.appendImagePullSecrets(backstageSpec.Application.ImagePullSecrets)
+		backstagePod.setImagePullSecrets(backstageSpec.Application.ImagePullSecrets)
 		backstagePod.setImage(backstageSpec.Application.Image)
 	}
-	// TODO API
-	//if backstageSpec.Details.appConfigs != nil {
-	//	for _, ac := range backstageSpec.Details.appConfigs {
-	//		ac.updateBackstagePod(backstagePod)
-	//	}
-	//}
-	//for _, cmf := range backstageSpec.Details.configMapsFiles {
-	//	cmf.updateBackstagePod(backstagePod)
-	//}
-
-	for _, v := range backstageSpec.Details.ConfigObjects {
+	for _, v := range backstageSpec.ConfigObjects {
 		v.updateBackstagePod(backstagePod)
 	}
 
@@ -173,8 +174,4 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 func initMetainfo(modelObject BackstageObject, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	modelObject.Object().SetNamespace(backstageMeta.Namespace)
 	modelObject.Object().SetLabels(utils.SetKubeLabels(modelObject.Object().GetLabels(), backstageMeta.Name))
-	//if ownsRuntime {
-	//if err = controllerutil.SetControllerReference(&backstageMeta, modelObject.Object(), r.Scheme); err != nil {
-	//	//return fmt.Errorf("failed to set owner reference: %s", err)
-	//}
 }

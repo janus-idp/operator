@@ -32,16 +32,17 @@ type backstagePod struct {
 }
 
 // Constructor for Backstage Pod type.
-// Always use it and do not create backstagePod manually
-// Current implementation relies on the fact that Pod contains single container
-// (a Backstage Container)
-// In the future, if needed, other logic can be implemented, (for example:
-// a name of Backstage Container can be writen as predefined Pod's annotation, etc)
+// Always use it and do not create backstagePod type manually
+// Current implementation relies on the fact that Pod contains single Backstage Container
 func newBackstagePod(bsdeployment *BackstageDeployment) (*backstagePod, error) {
+
+	if bsdeployment.deployment == nil {
+		return nil, fmt.Errorf("deployment not defined")
+	}
 
 	podSpec := bsdeployment.deployment.Spec.Template.Spec
 	if len(podSpec.Containers) != 1 {
-		return nil, fmt.Errorf("failed to create Backstage Pod. For the time only one Container,"+
+		return nil, fmt.Errorf("failed to create Backstage Pod. Only one Container, "+
 			"treated as Backstage Container expected, but found %v", len(podSpec.Containers))
 	}
 
@@ -56,129 +57,41 @@ func newBackstagePod(bsdeployment *BackstageDeployment) (*backstagePod, error) {
 	return bspod, nil
 }
 
-func (p backstagePod) addExtraFileFromSecrets(secrets []string) {
-
-	panic("TODO")
-}
-
-//func (p backstagePod) addExtraFilesFromConfigMap(configMapName string, paths []string) {
-//
-//	volName := fmt.Sprintf("vol-%s", configMapName)
-//
-//	volSource := corev1.VolumeSource{
-//		ConfigMap: &corev1.ConfigMapVolumeSource{
-//			DefaultMode:          pointer.Int32(420),
-//			LocalObjectReference: corev1.LocalObjectReference{Name: configMapName},
-//		},
-//	}
-//	p.appendVolume(corev1.Volume{
-//		Name:         volName,
-//		VolumeSource: volSource,
-//	})
-//
-//	for _, filePath := range paths {
-//		p.appendContainerVolumeMount(corev1.VolumeMount{
-//			Name:      volName,
-//			MountPath: filePath,
-//			SubPath:   filepath.Base(filePath),
-//		})
-//	}
-//
-//}
-
-func (p backstagePod) addExtraEnvVarFromSecrets(secretNames []string) {
-	for _, secretName := range secretNames {
-		envSource := &corev1.SecretEnvSource{
-			LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-		}
-
-		p.appendContainerEnvFrom(corev1.EnvFromSource{
-			//Prefix:    "secret-",
-			SecretRef: envSource,
-		})
-	}
-}
-
-//func (p backstagePod) addExtraEnvVarFromConfigMaps(configMapNames []string) {
-//	for _, cmName := range configMapNames {
-//		envSource := &corev1.ConfigMapEnvSource{
-//			LocalObjectReference: corev1.LocalObjectReference{Name: cmName},
-//		}
-//
-//		p.appendContainerEnvFrom(corev1.EnvFromSource{
-//			//Prefix:       "cm-",
-//			ConfigMapRef: envSource,
-//		})
-//	}
-//}
-
-func (p backstagePod) addExtraEnvVars(envVars map[string]string) {
-	for name, value := range envVars {
-
-		p.appendContainerEnvVar(corev1.EnvVar{
-			Name:  name,
-			Value: value,
-		})
-	}
-}
-
-// Add x.y.z.app-config.yaml file to the Backstage configuration
-//func (p backstagePod) addAppConfig(configMapName string, filePath string) {
-//
-//	volName := fmt.Sprintf("vol-%s", configMapName)
-//
-//	volSource := corev1.VolumeSource{
-//		ConfigMap: &corev1.ConfigMapVolumeSource{
-//			DefaultMode:          pointer.Int32(420),
-//			LocalObjectReference: corev1.LocalObjectReference{Name: configMapName},
-//		},
-//	}
-//	p.appendVolume(corev1.Volume{
-//		Name:         volName,
-//		VolumeSource: volSource,
-//	})
-//
-//	p.appendContainerVolumeMount(corev1.VolumeMount{
-//		Name:      volName,
-//		MountPath: filePath,
-//		SubPath:   filepath.Base(filePath),
-//	})
-//	p.appendContainerArgs([]string{"--config", filePath})
-//
-//}
-
+// appends Volume to the Backstage Pod
 func (p backstagePod) appendVolume(volume corev1.Volume) {
 	*p.volumes = append(*p.volumes, volume)
 	p.parent.Spec.Template.Spec.Volumes = *p.volumes
 }
 
-func (p backstagePod) appendContainerArgs(args []string) {
-	p.container.Args = append(p.container.Args, args...)
-	p.parent.Spec.Template.Spec.Containers[0].Args = p.container.Args
+// appends --config argument to the Backstage Container command line
+func (p backstagePod) appendConfigArg(appConfigPath string) {
+	p.container.Args = append(p.container.Args, []string{"--config", appConfigPath}...)
 }
 
+// appends VolumeMount to the Backstage Container
 func (p backstagePod) appendContainerVolumeMount(mount corev1.VolumeMount) {
 	p.container.VolumeMounts = append(p.container.VolumeMounts, mount)
-	p.parent.Spec.Template.Spec.Containers[0].VolumeMounts = p.container.VolumeMounts
 }
 
-func (p backstagePod) appendContainerEnvFrom(envFrom corev1.EnvFromSource) {
+// adds environment variable to the Backstage Container using ConfigMap or Secret source
+func (p backstagePod) addContainerEnvFrom(envFrom corev1.EnvFromSource) {
 	p.container.EnvFrom = append(p.container.EnvFrom, envFrom)
-	p.parent.Spec.Template.Spec.Containers[0].EnvFrom = p.container.EnvFrom
 }
 
-func (p backstagePod) appendContainerEnvVar(env corev1.EnvVar) {
+// adds environment variable to the Backstage Container
+func (p backstagePod) addContainerEnvVar(env corev1.EnvVar) {
 	p.container.Env = append(p.container.Env, env)
-	p.parent.Spec.Template.Spec.Containers[0].Env = p.container.Env
 }
 
-func (p backstagePod) appendImagePullSecrets(pullSecrets []string) {
+// sets pullSecret for Backstage Pod
+func (p backstagePod) setImagePullSecrets(pullSecrets []string) {
 	for _, ps := range pullSecrets {
 		p.parent.Spec.Template.Spec.ImagePullSecrets = append(p.parent.Spec.Template.Spec.ImagePullSecrets,
 			corev1.LocalObjectReference{Name: ps})
 	}
 }
 
+// sets container image name of Backstage Container
 func (p backstagePod) setImage(image *string) {
 	if image != nil {
 		p.container.Image = *image

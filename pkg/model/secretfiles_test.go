@@ -16,6 +16,7 @@ package model
 
 import (
 	"context"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -68,8 +69,8 @@ func TestSpecifiedSecretFiles(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
 
-	testObj.detailedSpec.Details.AddConfigObject(&SecretFiles{Secret: &sec1, MountPath: "/my/path"})
-	testObj.detailedSpec.Details.AddConfigObject(&SecretFiles{Secret: &sec2, MountPath: "/my/path"})
+	testObj.detailedSpec.AddConfigObject(&SecretFiles{Secret: &sec1, MountPath: "/my/path"})
+	testObj.detailedSpec.AddConfigObject(&SecretFiles{Secret: &sec2, MountPath: "/my/path"})
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
@@ -100,7 +101,7 @@ func TestDefaultAndSpecifiedSecretFiles(t *testing.T) {
 	}
 
 	//testObj.detailedSpec.Details.AddAppConfig(cm, "/my/path")
-	testObj.detailedSpec.Details.AddConfigObject(&SecretFiles{Secret: &sec, MountPath: "/my/path"})
+	testObj.detailedSpec.AddConfigObject(&SecretFiles{Secret: &sec, MountPath: "/my/path"})
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 

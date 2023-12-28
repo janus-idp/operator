@@ -222,7 +222,7 @@ spec:
                   references to the Database connection information, which might be
                   supplied as environment variables (see the ExtraEnvs field) or extra-configuration
                   files (see the ExtraFiles field in the Application structure). Note:
-                  since not setting Backstage.spec is optional, default value is not
+                  since Backstage.spec is optional by design, default value is not
                   working in case if spec.<something> is not specified use BackstageSpec.localDbEnabled()
                   function to not catch nil pointer dereference panic in a case of
                   non-existent spec'

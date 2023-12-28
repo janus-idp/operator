@@ -78,7 +78,7 @@ func (b *DbSecret) updateLocalDbPod(model *runtimeModel) {
 
 func (b *DbSecret) updateBackstagePod(pod *backstagePod) {
 	// populate backstage deployment
-	pod.appendContainerEnvFrom(corev1.EnvFromSource{
+	pod.addContainerEnvFrom(corev1.EnvFromSource{
 		SecretRef: &corev1.SecretEnvSource{
 			LocalObjectReference: corev1.LocalObjectReference{Name: b.secret.Name},
 		},

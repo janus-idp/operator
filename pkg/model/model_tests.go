@@ -25,11 +25,17 @@ import (
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 )
 
+// testBackstageObject it is a helper object to simplify testing model component allowing to customize and isolate testing configuration
+// usual sequence of creating testBackstageObject contains such a steps:
+// createBackstageTest(bsv1alpha1.Backstage).
+// withDefaultConfig(useDef bool)
+// addToDefaultConfig(key, fileName)
 type testBackstageObject struct {
 	backstage    bsv1alpha1.Backstage
 	detailedSpec *DetailedBackstageSpec
 }
 
+// simeple bsv1alpha1.Backstage
 var simpleTestBackstage = bsv1alpha1.Backstage{
 	ObjectMeta: metav1.ObjectMeta{
 		Name:      "bs",
@@ -40,12 +46,14 @@ var simpleTestBackstage = bsv1alpha1.Backstage{
 	},
 }
 
+// initialises testBackstageObject object
 func createBackstageTest(bs bsv1alpha1.Backstage) *testBackstageObject {
 	b := &testBackstageObject{backstage: bs, detailedSpec: &DetailedBackstageSpec{BackstageSpec: bs.Spec}}
-	b.detailedSpec.Details.RawConfig = map[string]string{}
+	b.detailedSpec.RawConfigContent = map[string]string{}
 	return b
 }
 
+// tells if object should use default Backstage Deployment/Service configuration from ./testdata/default-config or not
 func (b *testBackstageObject) withDefaultConfig(useDef bool) *testBackstageObject {
 	if useDef {
 		// here we have default-config folder
@@ -56,17 +64,20 @@ func (b *testBackstageObject) withDefaultConfig(useDef bool) *testBackstageObjec
 	return b
 }
 
+// adds particular part of configuration pointing to configuration key
+// where key is configuration key (such as "deployment.yaml" and fileName is a name of additional conf file in ./testdata
 func (b *testBackstageObject) addToDefaultConfig(key string, fileName string) *testBackstageObject {
 
 	yaml, err := readTestYamlFile(fileName)
 	if err != nil {
 		panic(err)
 	}
-	b.detailedSpec.Details.RawConfig[key] = string(yaml)
+	b.detailedSpec.RawConfigContent[key] = string(yaml)
 
 	return b
 }
 
+// reads file from ./testdata
 func readTestYamlFile(name string) ([]byte, error) {
 
 	b, err := os.ReadFile(filepath.Join("testdata", name))

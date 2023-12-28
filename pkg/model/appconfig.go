@@ -27,24 +27,41 @@ import (
 
 type AppConfigFactory struct{}
 
+// factory method to create App Config object
 func (f AppConfigFactory) newBackstageObject() BackstageObject {
 	return &AppConfig{ConfigMap: &corev1.ConfigMap{}, MountPath: defaultDir}
 }
 
+// structure containing ConfigMap where keys are Backstage ConfigApp file names and vaues are contents of the files
+// Mount path is a patch to the follder to place the files to
 type AppConfig struct {
 	ConfigMap *corev1.ConfigMap
 	MountPath string
 }
 
+// implementation of BackstageObject inteterface
 func (b *AppConfig) Object() client.Object {
 	return b.ConfigMap
 }
 
+// implementation of BackstageObject inteterface
 func (b *AppConfig) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(b, backstageMeta, ownsRuntime)
 	b.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-appconfig"))
 }
 
+// implementation of BackstageObject inteterface
+func (b *AppConfig) EmptyObject() client.Object {
+	return &corev1.ConfigMap{}
+}
+
+// implementation of BackstageObject inteterface
+func (b *AppConfig) addToModel(model *runtimeModel) {
+	// nothing to add
+}
+
+// implementation of BackstagePodContributor inteterface
+// it contrubutes to Volumes, container.VolumeMounts and contaiter.Args
 func (b *AppConfig) updateBackstagePod(pod *backstagePod) {
 
 	volName := fmt.Sprintf("vol-%s", b.ConfigMap.Name)
@@ -64,19 +81,11 @@ func (b *AppConfig) updateBackstagePod(pod *backstagePod) {
 
 		pod.appendContainerVolumeMount(corev1.VolumeMount{
 			Name:      volName,
-			MountPath: filepath.Join(b.MountPath, file), //b.MountPath,
-			SubPath:   file,                             //filepath.Base(filePath),
+			MountPath: filepath.Join(b.MountPath, file),
+			SubPath:   file,
 		})
 
-		pod.appendContainerArgs([]string{"--config", filepath.Join(b.MountPath, file)})
+		pod.appendConfigArg(filepath.Join(b.MountPath, file))
 	}
 
-}
-
-func (b *AppConfig) EmptyObject() client.Object {
-	return &corev1.ConfigMap{}
-}
-
-func (b *AppConfig) addToModel(model *runtimeModel) {
-	// nothing to add
 }

@@ -50,7 +50,7 @@ func (p *SecretEnvs) addToModel(model *runtimeModel) {
 
 func (p *SecretEnvs) updateBackstagePod(pod *backstagePod) {
 
-	pod.appendContainerEnvFrom(corev1.EnvFromSource{
+	pod.addContainerEnvFrom(corev1.EnvFromSource{
 		SecretRef: &corev1.SecretEnvSource{
 			LocalObjectReference: corev1.LocalObjectReference{Name: p.Secret.Name}}})
 

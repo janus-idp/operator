@@ -50,7 +50,7 @@ func (p *ConfigMapEnvs) addToModel(model *runtimeModel) {
 
 func (p *ConfigMapEnvs) updateBackstagePod(pod *backstagePod) {
 
-	pod.appendContainerEnvFrom(corev1.EnvFromSource{
+	pod.addContainerEnvFrom(corev1.EnvFromSource{
 		ConfigMapRef: &corev1.ConfigMapEnvSource{
 			LocalObjectReference: corev1.LocalObjectReference{Name: p.ConfigMap.Name}}})
 
