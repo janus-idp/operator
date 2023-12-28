@@ -6,7 +6,7 @@
 
 As it is described in Design doc (TODO), Backstage CR's desired state is defined using layered configuration approach, which means:
 - By default each newly created Backstage CR uses Operator scope Default Configuration
-- Which can be fully or partially overriden for particular CR instance using ConfigMap with witn name pointed in BackstageCR.spec.RawConfig 
+- Which can be fully or partially overriden for particular CR instance using ConfigMap with the name pointed in BackstageCR.spec.RawConfig 
 - Which in turn can be customized by other BackstageCR.spec fields (see Backstage API doc)
 
 Cluster Administrator may want to customize Default Configuration due to internal preferences/limitations, for example:
@@ -58,15 +58,15 @@ make deploy
 
 You can change default configuration by directly changing the default-config ConfigMap with kubectl like:
 
- - if you need to get existed default-config
+ - retrieve the current `default-config` from the cluster
 
 ``
 kubectl get -n backstage-system configmap default-config > my-config.yaml
 ``
 
-- modify any part of it (yes, it could be fairly big file)
+- modify the file in your editor of choice
 
-- apply it back
+- apply the updated configuration to your cluster
 
 ``
   kubectl apply -n backstage-system -f my-config.yaml
@@ -85,4 +85,4 @@ Creating Backtage CR, the Operator will try to create Backstage Pod, deploying:
 - 
 Also, if Backstage CR configured as EnabledLocalDb it will create Database (PGSQL) Container, configured in *(db-deployment.yaml).spec.template.spec.Containers[].image*
 
-By default Backstage Operator is configured to use publicly availabe images, which is not acceptable for Airgapped environment.
+By default Backstage Operator is configured to use publicly available images, which is not acceptable for Airgapped environment.
