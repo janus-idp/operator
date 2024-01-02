@@ -74,7 +74,7 @@ kubectl get -n backstage-system configmap default-config > my-config.yaml
   kubectl apply -n backstage-system -f my-config.yaml
 ``
 
-It has to be re-applied to the controller's container after some time.
+It has to be re-applied to the controller's container after being reconciled by kubernetes processes.
 
 
 ### Use Cases
