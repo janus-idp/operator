@@ -10,20 +10,53 @@ It uses [Controllers](https://kubernetes.io/docs/concepts/architecture/controlle
 which provides a reconcile function responsible for synchronizing resources until the desired state is reached on the cluster.
 
 
+## Local development
 
-### Running on the cluster
-1. Install Instances of Custom Resources:
+### Prerequisites
+
+You need ready to use **kubectl** and **minikube** [tools](https://kubernetes.io/docs/tasks/tools/) as a prerequisite.
+
+Get your copy of Backstage Operator from GitHub:
 ```sh
-kubectl apply -f config/samples/
+git clone https://github.com/janus-idp/operator
 ```
-2. Build and push your image to the location specified by `IMG`:
+
+### Local Tests
+
+Including unit testing (starting from v 0.02) and Kubernetes intergation testing ([envtest](https://book.kubebuilder.io/reference/envtest.html))
+
 ```sh
-make docker-build docker-push IMG=<some-registry>/backstage-operator:tag
+make test
 ```
-3. Deploy the controller to the cluster with the image specified by `IMG`:
+
+will run both of them  
+
+### Test on the local cluster
+
+You’ll need a Kubernetes cluster to run against. You can use [Minikube](https://minikube.sigs.k8s.io/docs/) or [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
+**Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
+
+- Build and push your image to the location specified by `IMG`:
 ```sh
-make deploy IMG=<some-registry>/backstage-operator:tag
+make docker-build docker-push IMG=<your-registry>/backstage-operator:tag
 ```
+
+- Install the CRDs into the local cluster (minikube is installed and running):
+```sh
+make install
+```
+
+-  You can run your controller standalone (this will run in the foreground, so switch to a new terminal if you want to leave it running)
+This way you can see controllers log just in your terminal window which is quite convenient for debugging:
+```sh
+make run
+```
+
+- Or deploy the controller to the cluster with the image specified by `IMG`:
+```sh
+make deploy IMG=<your-registry>/backstage-operator:tag
+```
+
 ### Uninstall CRDs
 To delete the CRDs from the cluster:
 ```sh
@@ -34,7 +67,7 @@ UnDeploy the controller from the cluster:
 ```sh
 make undeploy
 ```
-### Build and Deploy with OLM
+### Build and Deploy with OLM:
 1. To build operator, bundle and catalog images:
 ```sh
 make release-build
@@ -55,17 +88,6 @@ make deploy-olm
 ```sh
 make undeploy-olm
 ```
-
-### Test It Out
-1. Install the CRDs into the cluster:
-```sh
-make install
-```
-2. Run your controller (this will run in the foreground, so switch to a new terminal if you want to leave it running):
-```sh
-make run
-```
-**NOTE:** You can also run this in one step by running: `make install run`
 
 ### Modifying the API definitions
 If you are editing the API definitions, generate the manifests such as CRs or CRDs using:

@@ -16,8 +16,10 @@ Cluster Administrator may want to customize Default Configuration due to interna
 
 Default Configuration is implemented as a ConfigMap called *backstage-default-config*, deployed on *backstage-system* namespace and mounted to Backstage controller container as a */default-config* directory.
 This config map contains the set of keys/values which maps to file names/contents in the */default-config*.
-These files contain yaml manifests of objects used by Backstage controller as an initial desired state of Backstage CR according to Backstage Operator data model.
-(TODO: link to the diagram here) 
+These files contain yaml manifests of objects used by Backstage controller as an initial desired state of Backstage CR according to Backstage Operator configuration model:
+
+![bs-conf](https://github.com/gazarenkov/janus-idp-operator/assets/578124/d56cbbb0-781c-43fc-8624-8832893fede3)
+ 
 
 Mapping of configMap keys (yaml files) to runtime objects (NOTE: for the time (Dec 20'23) it is a subject of change):
 | Key/File name         | k8s/OCP Kind        | Mandatory*    |Notes                                      |
