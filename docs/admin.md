@@ -22,26 +22,31 @@ These files contain yaml manifests of objects used by Backstage controller as an
  
 
 Mapping of configMap keys (yaml files) to runtime objects (NOTE: for the time (Dec 20'23) it is a subject of change):
-| Key/File name         | k8s/OCP Kind        | Mandatory*    |Notes                                      |
-| ----------------------|:-------------------:| --------------|------------------------------------------:|
-| deployment.yaml       | appsv1.Deployment   | Yes           | Backstage deployment |
-| service.yaml          | corev1.Service      | Yes           | Backstage Service |
-| db-statefulset.yaml   | appsv1.Statefulset  | For DB enabled| PostgreSQL statefulSet    |    
-| db-service.yaml       | corev1.Service      | For DB enabled| PostgreSQL Service   |
-| db-secret.yaml        | corev1.Secret       | For DB enabled| Secret to connect Backstage to PSQL   |
-| route.yaml            | openshift.Route     | No (for OCP)  | Route exposing Backstage service    |
-| app-config.yaml       | corev1.ConfigMap    | No            | Backstage app-config.yaml    |
-| configmap-files.yaml  | corev1.ConfigMap    | No            | Backstage config file inclusions from configMap   |
-| configmap-envs.yaml   | corev1.ConfigMap    | No            | Backstage env variables from configMap    |
-| secret-files.yaml     | corev1.Secret       | No            | Backstage config file inclusions from Secret   |
-| secret-envs.yaml      | corev1.Secret       | No            | Backstage env variables from Secret    |
-| dynamic-plugins.yaml  | corev1.ConfigMap    | No            | dynamc-plugins config *    |
+| Key/File name         | k8s/OCP Kind        | Mandatory*    |ver.|Notes                                      |
+| ----------------------|:-------------------:| -------------------|------------------------------------------:|
+| deployment.yaml       | appsv1.Deployment   | Yes           |all |Backstage deployment  |
+| service.yaml          | corev1.Service      | Yes           |all |Backstage Service |
+| db-statefulset.yaml   | appsv1.Statefulset  | For DB enabled|all |PostgreSQL statefulSet    |    
+| db-service.yaml       | corev1.Service      | For DB enabled|all |PostgreSQL Service   |
+| db-secret.yaml        | corev1.Secret       | For DB enabled|all |Secret to connect Backstage to PSQL   |
+| route.yaml            | openshift.Route     | No (for OCP)  |all |Route exposing Backstage service    |
+| app-config.yaml       | corev1.ConfigMap    | No            |0.02|Backstage app-config.yaml    |
+| configmap-files.yaml  | corev1.ConfigMap    | No            |0.02|Backstage config file inclusions from configMap   |
+| configmap-envs.yaml   | corev1.ConfigMap    | No            |0.02|Backstage env variables from configMap    |
+| secret-files.yaml     | corev1.Secret       | No            |0.02|Backstage config file inclusions from Secret   |
+| secret-envs.yaml      | corev1.Secret       | No            |0.02|Backstage env variables from Secret    |
+| dynamic-plugins.yaml  | corev1.ConfigMap    | No            |0.02|dynamc-plugins config *    |
+| dynamic-plugins-      | corev1.ConfigMap    | No            |0.01|dynamc-plugins config *    |
+|configmap.yaml         |                     |               |    | |
+| backend-auth-         | corev1.ConfigMap    | No            |0.01|backend auth config    |
+|configmap.yaml         |                     |               |    | |
+
 
 
 NOTES: 
  - Mandatory means it is needed to be present in either (or both) Default and CR Raw Configuration.
  - dynamic-plugins.yaml is a fragment of app-config.yaml provided with RHDH/Janus-IDP. The reason it mentioned separately is specific way it provided (via mounting to dedicated initContainer)  
-
+ - items marked as version 0.01 are not supported in version 0.02 
 ### Operator Bundle configuration 
 
 With Backstage Operator's Makefile you can generate bundle descriptor using *make bundle* command
