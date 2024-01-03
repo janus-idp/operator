@@ -91,6 +91,6 @@ Creating Backtage CR, the Operator will try to create Backstage Pod, deploying:
 - Backstage Container from the image, configured in *(deployment.yaml).spec.template.spec.Containers[].image*
 - Init Container (applied for RHDH/Janus-IDP configuration, usually the same as Backstage Container)
 - 
-Also, if Backstage CR configured as EnabledLocalDb it will create Database (PGSQL) Container, configured in *(db-deployment.yaml).spec.template.spec.Containers[].image*
+Also, if Backstage CR configured with *EnabledLocalDb*,  it will create a PostgreSQL container pod, configured in *(db-deployment.yaml).spec.template.spec.Containers[].image*
 
 By default Backstage Operator is configured to use publicly available images, which is not acceptable for Airgapped environment.
