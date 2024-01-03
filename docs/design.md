@@ -7,7 +7,7 @@ The goal of Backstage Operator is to deploy Backstage workload to the Kubernetes
 Backstage Kubernetes workload consists of set of Kubernetes resources (Runtime Objects).
 Approximate set of Runtime Objects necessary for Backstage server on Kubernetes is shown on the diagram below:
 
-![bso-runtime](https://github.com/gazarenkov/janus-idp-operator/assets/578124/9f72a5a5-fbdc-455c-9723-7fcb79734251)
+![Backstage Kubernetes Runtime](images/backstage_kubernetes_runtime.jpg)
 
 The most important object is Backstage Pod created by Backstage Deployment. That is where we run 'backstage-backend' container with Backstage application inside.
 This Backstage application is a web server which can be reached using Backstage Service.
@@ -16,23 +16,23 @@ Actually, those 2 are the core part of Backstage workload.
 Backstage application uses SQL database as a data storage and it is possible to install PostgreSQL DB on the same namespace as Backstage instance.
 It brings PostgreSQL StatefulSet/Pod, Service to connect to Backstage and PV/PVC to store the data.
 
-For providing external access to Backstage server it is possible, depending on underlying infrastructure, to use Openshift Route or 
-K8s Ingress on top of Backstage Service. (As for v 0.01-0.02 only Route configuration is supported by the Operator out-of-the-box).
+For providing external access to Backstage server it is possible, depending on underlying infrastructure, to use Openshift Route or
+K8s Ingress on top of Backstage Service.
+Note that in versions up to 0.0.2, only Route configuration is supported by the Operator.
 
-And, finally, Backstage Operator supports all the [Backstage configuration](https://backstage.io/docs/conf/writing) options, which can be provided by creating dedicated 
-ConfigMaps and Secrets and contributing them to the Backstage Pod as mounted volumes or environment variables (see [Configuration](configuration.md) guide for details)  
+Finally, the Backstage Operator supports all the [Backstage configuration](https://backstage.io/docs/conf/writing) options, which can be provided by creating dedicated 
+ConfigMaps and Secrets, then contributing them to the Backstage Pod as mounted volumes or environment variables (see [Configuration](configuration.md) guide for details).  
 
 ## Configuration
 
 ### Configuration layers
 
-Backstage Operator designed to be flexible in terms of what eactly it is going to deploy to make a workload.
-At the same time we're trying to make a configuration as simple as possible for the case when user/admin just want to try it 
-or make a personal or small group Backstage instance.
+The Backstage Operator can be configured to customize the deployed workload.
+With no changes to the default configuration, an admin user can deploy a Backstage instance to try it out for a local, personal, or small group test deployment.
 
-Taking it into account lead to create 3 layers configuration.
+When you do want to customize your Backstage instance, there are 3 layers of configuration available.
 
-![bs-conf](https://github.com/gazarenkov/janus-idp-operator/assets/578124/d56cbbb0-781c-43fc-8624-8832893fede3)
+![Backstage Operator Configuration Layers](images/backstage_operator_configuration_layers.jpg)
 
 As shown in the picture above:
 
@@ -51,12 +51,12 @@ overall structure of Backstage runtime object and is able to simply configure "t
 
 Backstage Application comes with advanced configuration features.
 
-As it stated in [Backstage configuration](https://backstage.io/docs/conf/writing) document user can define and overload multiple _app-config.yaml_
-files and flexible configuring it with inclusing and environment variables.
+As per the [Backstage configuration](https://backstage.io/docs/conf/writing), a user can define and overload multiple _app-config.yaml_
+files and flexibly configure them by including environment variables.
 Backstage Operator supports this flexibility allowing to define these configurations components in all the configuration levels
 (default, raw and CR)
 
-![bs-pod](https://github.com/gazarenkov/janus-idp-operator/assets/578124/4ecf812b-28c7-4275-8c79-926b04fb94f8)
+![Backstage App with Advanced Configuration](images/backstage_application_advanced_config.jpg)
 
 ### Networking
 TODO

@@ -14,26 +14,26 @@ which provides a reconcile function responsible for synchronizing resources unti
 
 ### Prerequisites
 
-You need ready to use **kubectl** and **minikube** [tools](https://kubernetes.io/docs/tasks/tools/) as a prerequisite.
-
-Get your copy of Backstage Operator from GitHub:
+* **kubectl**. See [Instaling kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl).
+* **minikube**. See [Instaling minkube](https://kubernetes.io/docs/tasks/tools/#minikube).
+* A copy of the Backstage Operator sources:
 ```sh
 git clone https://github.com/janus-idp/operator
 ```
 
 ### Local Tests
 
-Including unit testing (starting from v 0.02) and Kubernetes intergation testing ([envtest](https://book.kubebuilder.io/reference/envtest.html))
+To run both unit tests (since 0.0.2) and Kubernetes integration tests ([envtest](https://book.kubebuilder.io/reference/envtest.html)):
 
 ```sh
 make test
 ```
 
-will run both of them  
-
 ### Test on the local cluster
 
-You’ll need a Kubernetes cluster to run against. You can use [Minikube](https://minikube.sigs.k8s.io/docs/) or [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
+You’ll need a Kubernetes cluster to run against.
+You can use [minikube](https://kubernetes.io/docs/tasks/tools/#minikube) or [kind](https://kubernetes.io/docs/tasks/tools/#kind) to get a local cluster for testing, or run against a remote cluster.
+
 **Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
 
 - Build and push your image to the location specified by `IMG`:
