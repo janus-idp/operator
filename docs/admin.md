@@ -46,7 +46,7 @@ Mapping of configMap keys (yaml files) to runtime objects (NOTE: for the time (D
 
 NOTES: 
  - Mandatory means it is needed to be present in either (or both) Default and CR Raw Configuration.
- - dynamic-plugins.yaml is a fragment of app-config.yaml provided with RHDH/Janus-IDP. The reason it mentioned separately is specific way it provided (via mounting to dedicated initContainer)  
+ - dynamic-plugins.yaml is a fragment of app-config.yaml provided with RHDH/Janus-IDP, which is mounted into a dedicated initContainer. 
  - items marked as version 0.0.1 are not supported in version 0.0.2 
 ### Operator Bundle configuration 
 
