@@ -87,7 +87,7 @@ It has to be re-applied to the controller's container after being reconciled by 
 
 #### Airgapped environment
 
-Creating Backtage CR, the Operator will try to create Backstage Pod, deploying:
+When creating the Backstage CR, the Operator will try to create a Backstage Pod, deploying:
 - Backstage Container from the image, configured in *(deployment.yaml).spec.template.spec.Containers[].image*
 - Init Container (applied for RHDH/Janus-IDP configuration, usually the same as Backstage Container)
 - 
