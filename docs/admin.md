@@ -52,7 +52,7 @@ With Backstage Operator's Makefile you can generate bundle descriptor using *mak
 
 Along with CSV manifest it generates default-config ConfigMap manifest, which can be modified and applied to Backstage Operator.
 
-[//]: # (TODO: is kubectl sufficient or there are some other tools?)
+[//]: # (TODO: document how an administrator can make changes to the default operator configuration, using their own configuration file (perhaps based on the generated one), and apply it using `kubectl` or `oc`.
 
 ### Kustomize deploy configuration
 
