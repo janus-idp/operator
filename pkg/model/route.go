@@ -31,20 +31,33 @@ type BackstageRoute struct {
 	route *openshift.Route
 }
 
+func init() {
+	registerConfig("route.yaml", BackstageRouteFactory{}, ForOpenshift)
+}
+
+// implementation of BackstageObject interface
 func (b *BackstageRoute) Object() client.Object {
 	return b.route
 }
 
+// implementation of BackstageObject interface
 func (b *BackstageRoute) EmptyObject() client.Object {
 	return &openshift.Route{}
 }
 
+// implementation of BackstageObject interface
 func (b *BackstageRoute) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(b, backstageMeta, ownsRuntime)
 	b.route.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "route"))
 	b.route.Spec.To.Name = b.route.Name
 }
 
-func (b *BackstageRoute) addToModel(model *runtimeModel) {
+// implementation of BackstageObject interface
+func (b *BackstageRoute) addToModel(model *RuntimeModel) {
 	// nothing to add
+}
+
+// implementation of BackstageObject interface
+func (b *BackstageRoute) validate(model *RuntimeModel) error {
+	return nil
 }

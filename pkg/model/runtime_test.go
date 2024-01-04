@@ -38,7 +38,9 @@ func TestInitDefaultDeploy(t *testing.T) {
 			Namespace: "ns123",
 		},
 		Spec: v1alpha1.BackstageSpec{
-			EnableLocalDb: pointer.Bool(false),
+			Database: v1alpha1.Database{
+				EnableLocalDb: pointer.Bool(false),
+			},
 		},
 	}
 
@@ -47,51 +49,24 @@ func TestInitDefaultDeploy(t *testing.T) {
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
 	assert.NoError(t, err)
-	assert.True(t, len(model) > 0)
-	assert.Equal(t, "bs-deployment", model[0].Object().GetName())
-	assert.Equal(t, "ns123", model[0].Object().GetNamespace())
-	assert.Equal(t, 2, len(model[0].Object().GetLabels()))
+	assert.True(t, len(model.Objects) > 0)
+	assert.Equal(t, "bs-deployment", model.backstageDeployment.Object().GetName())
+	assert.Equal(t, "ns123", model.backstageDeployment.Object().GetNamespace())
+	assert.Equal(t, 2, len(model.backstageDeployment.Object().GetLabels()))
 	//	assert.Equal(t, 1, len(model[0].Object().GetOwnerReferences()))
 
-	bsDeployment := model[0].(*BackstageDeployment)
+	bsDeployment := model.backstageDeployment
 	assert.NotNil(t, bsDeployment.pod.container)
 	assert.Equal(t, backstageContainerName, bsDeployment.pod.container.Name)
 	assert.NotNil(t, bsDeployment.pod.volumes)
 
 	//	assert.Equal(t, "Backstage", bsDeployment.deployment.OwnerReferences[0].Kind)
 
-	bsService := model[1].(*BackstageService)
+	bsService := model.backstageService
 	assert.Equal(t, "bs-service", bsService.service.Name)
 	assert.True(t, len(bsService.service.Spec.Ports) > 0)
 
 	assert.Equal(t, fmt.Sprintf("backstage-%s", "bs"), bsDeployment.deployment.Spec.Template.ObjectMeta.Labels[backstageAppLabel])
 	assert.Equal(t, fmt.Sprintf("backstage-%s", "bs"), bsService.service.Spec.Selector[backstageAppLabel])
 
-}
-
-func TestInitObjects(t *testing.T) {
-	type args struct {
-		ctx           context.Context
-		backstageMeta v1alpha1.Backstage
-		backstageSpec *DetailedBackstageSpec
-		ownsRuntime   bool
-		isOpenshift   bool
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    []BackstageObject
-		wantErr assert.ErrorAssertionFunc
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := InitObjects(tt.args.ctx, tt.args.backstageMeta, tt.args.backstageSpec, tt.args.ownsRuntime, tt.args.isOpenshift)
-			if !tt.wantErr(t, err, fmt.Sprintf("InitObjects(%v, %v, %v, %v, %v)", tt.args.ctx, tt.args.backstageMeta, tt.args.backstageSpec, tt.args.ownsRuntime, tt.args.isOpenshift)) {
-				return
-			}
-			assert.Equalf(t, tt.want, got, "InitObjects(%v, %v, %v, %v, %v)", tt.args.ctx, tt.args.backstageMeta, tt.args.backstageSpec, tt.args.ownsRuntime, tt.args.isOpenshift)
-		})
-	}
 }

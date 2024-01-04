@@ -17,6 +17,8 @@ package model
 import (
 	"fmt"
 
+	bs "janus-idp.io/backstage-operator/api/v1alpha1"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -78,9 +80,14 @@ func (p backstagePod) addContainerEnvFrom(envFrom corev1.EnvFromSource) {
 	p.container.EnvFrom = append(p.container.EnvFrom, envFrom)
 }
 
-// adds environment variable to the Backstage Container
-func (p backstagePod) addContainerEnvVar(env corev1.EnvVar) {
-	p.container.Env = append(p.container.Env, env)
+// sets environment variables to the Backstage Container
+func (p backstagePod) setContainerEnvVars(envs []bs.Env) {
+	for _, env := range envs {
+		p.container.Env = append(p.container.Env, corev1.EnvVar{
+			Name:  env.Name,
+			Value: env.Value,
+		})
+	}
 }
 
 // sets pullSecret for Backstage Pod

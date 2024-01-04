@@ -15,7 +15,6 @@
 package model
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"k8s.io/utils/pointer"
@@ -37,26 +36,40 @@ type ConfigMapFiles struct {
 	MountPath string
 }
 
+func init() {
+	registerConfig("configmap-files.yaml", ConfigMapFilesFactory{}, Optional)
+}
+
+// implementation of BackstageObject interface
 func (p *ConfigMapFiles) Object() client.Object {
 	return p.ConfigMap
 }
 
+// implementation of BackstageObject interface
 func (p *ConfigMapFiles) initMetainfo(backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(p, backstageMeta, ownsRuntime)
 	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-configmapfiles"))
 }
 
+// implementation of BackstageObject interface
 func (p *ConfigMapFiles) EmptyObject() client.Object {
 	return &corev1.ConfigMap{}
 }
 
-func (p *ConfigMapFiles) addToModel(model *runtimeModel) {
+// implementation of BackstageObject interface
+func (p *ConfigMapFiles) addToModel(model *RuntimeModel) {
 	// nothing
 }
 
+// implementation of BackstageObject interface
+func (p *ConfigMapFiles) validate(model *RuntimeModel) error {
+	return nil
+}
+
+// implementation of BackstagePodContributor interface
 func (p *ConfigMapFiles) updateBackstagePod(pod *backstagePod) {
 
-	volName := fmt.Sprintf("vol-%s", p.ConfigMap.Name)
+	volName := utils.GenerateVolumeNameFromCmOrSecret(p.ConfigMap.Name)
 
 	volSource := corev1.VolumeSource{
 		ConfigMap: &corev1.ConfigMapVolumeSource{

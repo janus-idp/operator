@@ -37,30 +37,52 @@ type DbSecret struct {
 	secret *corev1.Secret
 }
 
+func init() {
+	registerConfig("db-secret.yaml", DbSecretFactory{}, ForLocalDatabase)
+}
+
+// implementation of BackstageObject interface
 func (b *DbSecret) Object() client.Object {
 	return b.secret
 }
 
+// implementation of BackstageObject interface
 func (b *DbSecret) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(b, backstageMeta, ownsRuntime)
 	b.secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-dbsecret"))
 }
 
-func (b *DbSecret) addToModel(model *runtimeModel) {
+// implementation of BackstageObject interface
+func (b *DbSecret) addToModel(model *RuntimeModel) {
 	model.localDbSecret = b
 }
 
+// implementation of BackstageObject interface
 func (b *DbSecret) EmptyObject() client.Object {
 	return &corev1.Secret{}
 }
 
-func (b *DbSecret) updateLocalDbPod(model *runtimeModel) {
+// implementation of BackstageObject interface
+func (b *DbSecret) validate(model *RuntimeModel) error {
+	return nil
+}
+
+// implementation of LocalDbPodContributor interface
+// contributes username, password, host and port to PostgreSQL container from the Secret EnvVars source
+// if "template" Secret does not contain password/username (or empty) random one will be generated
+func (b *DbSecret) updateLocalDbPod(model *RuntimeModel) {
 	dbservice := model.localDbService.service
 
+	// check POSTGRES_PASSWORD and generate random one if not found
 	if b.secret.StringData["POSTGRES_PASSWORD"] == "" {
 		pswd := rand.String(8)
 		b.secret.StringData["POSTGRES_PASSWORD"] = pswd
 		b.secret.StringData["POSTGRESQL_ADMIN_PASSWORD"] = pswd
+	}
+
+	// check POSTGRES_USER and generate random one if not found
+	if b.secret.StringData["POSTGRES_USER"] == "" {
+		b.secret.StringData["POSTGRES_USER"] = rand.String(8)
 	}
 
 	// fill the host with localDb service name
@@ -68,14 +90,17 @@ func (b *DbSecret) updateLocalDbPod(model *runtimeModel) {
 	b.secret.StringData["POSTGRES_PORT"] = strconv.FormatInt(int64(dbservice.Spec.Ports[0].Port), 10)
 
 	// populate db statefulset
-	model.localDbStatefulSet.appendContainerEnvFrom(corev1.EnvFromSource{
+	model.localDbStatefulSet.setSecretNameEnvFrom(corev1.EnvFromSource{
 		SecretRef: &corev1.SecretEnvSource{
 			LocalObjectReference: corev1.LocalObjectReference{Name: b.secret.Name},
 		},
 	})
 
+	model.localDbSecret.secret = b.secret
+
 }
 
+// implementation of BackstagePodContributor interface
 func (b *DbSecret) updateBackstagePod(pod *backstagePod) {
 	// populate backstage deployment
 	pod.addContainerEnvFrom(corev1.EnvFromSource{

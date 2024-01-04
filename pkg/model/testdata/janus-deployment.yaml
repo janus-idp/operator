@@ -56,7 +56,6 @@ spec:
             - mountPath: /opt/app-root/src/dynamic-plugins.yaml
               subPath: dynamic-plugins.yaml
               name: dynamic-plugins-conf
-              readOnly: true
           workingDir: /opt/app-root/src
 
       containers:

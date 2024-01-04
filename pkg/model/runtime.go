@@ -29,38 +29,45 @@ import (
 const backstageAppLabel = "backstage.io/app"
 
 // Backstage configuration scaffolding with empty BackstageObjects.
-// Here're all possible objects for configuration, can be:
+// There are all possible objects for configuration, can be:
 // Mandatory - Backstage Deployment (Pod), Service
 // Optional - mostly (but not only) Bckstage Pod configuration objects (AppConfig, ExtraConfig)
 // ForLocalDatabase - mandatory if EnabledLocalDb, ignored otherwise
 // ForOpenshift - if configured, used for Openshift deployment, ignored otherwise
 var runtimeConfig = []ObjectConfig{
-	{Key: "deployment.yaml", ObjectFactory: BackstageDeploymentFactory{}, need: Mandatory},
-	{Key: "service.yaml", ObjectFactory: BackstageServiceFactory{}, need: Mandatory},
-	{Key: "db-statefulset.yaml", ObjectFactory: DbStatefulSetFactory{}, need: ForLocalDatabase},
-	{Key: "db-service.yaml", ObjectFactory: DbServiceFactory{}, need: ForLocalDatabase},
-	{Key: "db-secret.yaml", ObjectFactory: DbSecretFactory{}, need: ForLocalDatabase},
-	{Key: "app-config.yaml", ObjectFactory: AppConfigFactory{}, need: Optional},
-	{Key: "configmap-files.yaml", ObjectFactory: ConfigMapFilesFactory{}, need: Optional},
-	{Key: "secret-files.yaml", ObjectFactory: SecretFilesFactory{}, need: Optional},
-	{Key: "configmap-envs.yaml", ObjectFactory: ConfigMapEnvsFactory{}, need: Optional},
-	{Key: "secret-envs.yaml", ObjectFactory: SecretEnvsFactory{}, need: Optional},
-	{Key: "dynamic-plugins.yaml", ObjectFactory: DynamicPluginsFactory{}, need: Optional},
-	{Key: "route.yaml", ObjectFactory: BackstageRouteFactory{}, need: ForOpenshift},
+	//{Key: "deployment.yaml", ObjectFactory: BackstageDeploymentFactory{}, need: Mandatory},
+	//{Key: "service.yaml", ObjectFactory: BackstageServiceFactory{}, need: Mandatory},
+	//{Key: "db-statefulset.yaml", ObjectFactory: DbStatefulSetFactory{}, need: ForLocalDatabase},
+	//{Key: "db-service.yaml", ObjectFactory: DbServiceFactory{}, need: ForLocalDatabase},
+	//{Key: "db-secret.yaml", ObjectFactory: DbSecretFactory{}, need: ForLocalDatabase},
+	//{Key: "app-config.yaml", ObjectFactory: AppConfigFactory{}, need: Optional},
+	//{Key: "configmap-files.yaml", ObjectFactory: ConfigMapFilesFactory{}, need: Optional},
+	//{Key: "secret-files.yaml", ObjectFactory: SecretFilesFactory{}, need: Optional},
+	//{Key: "configmap-envs.yaml", ObjectFactory: ConfigMapEnvsFactory{}, need: Optional},
+	//{Key: "secret-envs.yaml", ObjectFactory: SecretEnvsFactory{}, need: Optional},
+	//{Key: "dynamic-plugins.yaml", ObjectFactory: DynamicPluginsFactory{}, need: Optional},
+	//{Key: "route.yaml", ObjectFactory: BackstageRouteFactory{}, need: ForOpenshift},
 }
 
-// internal object model to simplify management dealing with structured objects
-type runtimeModel struct {
+// internal object model
+type RuntimeModel struct {
 	backstageDeployment *BackstageDeployment
 	backstageService    *BackstageService
 
 	localDbStatefulSet *DbStatefulSet
 	localDbService     *DbService
 	localDbSecret      *DbSecret
+
+	Objects []BackstageObject
+}
+
+// Registers config object
+func registerConfig(key string, factory ObjectFactory, need needType) {
+	runtimeConfig = append(runtimeConfig, ObjectConfig{Key: key, ObjectFactory: factory, need: need})
 }
 
 // Main loop for configuring and making the array of objects to reconsile
-func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backstageSpec *DetailedBackstageSpec, ownsRuntime bool, isOpenshift bool) ([]BackstageObject, error) {
+func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backstageSpec *DetailedBackstageSpec, ownsRuntime bool, isOpenshift bool) (*RuntimeModel, error) {
 
 	// 3 phases of Backstage configuration:
 	// 1- load from Operator defaults, modify metadata (labels, selectors..) and namespace as needed
@@ -70,10 +77,10 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 
 	lg := log.FromContext(ctx)
 
-	objectList := make([]BackstageObject, 0)
-	runtimeModel := &runtimeModel{}
+	//objectList := make([]BackstageObject, 0)
+	model := &RuntimeModel{Objects: make([]BackstageObject, 0)}
 
-	// looping through the registered runrimeConfig objects
+	// looping through the registered runtimeConfig objects initializing the model
 	for _, conf := range runtimeConfig {
 
 		// creating the instance of backstageObject
@@ -103,7 +110,7 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 		// continue if there is invalid or no configuration (default|raw) for Optional object
 		// TODO separate the case when configuration does not exist (intentionally) from invalid configuration
 		if overlayErr != nil || (!overlayExist && defaultErr != nil) {
-			if conf.need == Mandatory || (conf.need == ForLocalDatabase && *backstageSpec.EnableLocalDb) {
+			if conf.need == Mandatory || (conf.need == ForLocalDatabase && *backstageSpec.Database.EnableLocalDb) {
 				return nil, errors.Join(defaultErr, overlayErr)
 			} else {
 				lg.V(1).Info("failed to read default value for optional key. Ignored \n", conf.Key, errors.Join(defaultErr, overlayErr))
@@ -125,49 +132,64 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 		backstageObject.initMetainfo(backstageMeta, ownsRuntime)
 
 		// finally add the object to the model and list
-		backstageObject.addToModel(runtimeModel)
-		objectList = append(objectList, backstageObject)
+		backstageObject.addToModel(model)
+		model.Objects = append(model.Objects, backstageObject)
 	}
 
 	// update local-db deployment with contributions
 	if backstageSpec.LocalDbEnabled() {
-		if runtimeModel.localDbStatefulSet == nil {
+		if model.localDbStatefulSet == nil {
 			return nil, fmt.Errorf("failed to identify Local DB StatefulSet by %s, it should not happen normally", "db-statefulset.yaml")
 		}
-		for _, bso := range objectList {
+		for _, bso := range model.Objects {
 			if ldco, ok := bso.(LocalDbPodContributor); ok {
-				ldco.updateLocalDbPod(runtimeModel)
+				ldco.updateLocalDbPod(model)
 			}
 		}
 	}
 
 	// create Backstage Pod object
-	if runtimeModel.backstageDeployment == nil {
+	if model.backstageDeployment == nil {
 		return nil, fmt.Errorf("failed to identify Backstage Deployment by %s, it should not happen normally", "deployment.yaml")
 	}
-	backstagePod, err := newBackstagePod(runtimeModel.backstageDeployment)
+	backstagePod, err := newBackstagePod(model.backstageDeployment)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Backstage Pod: %s", err)
 	}
 
 	// update Backstage Pod with contributions (volumes, container)
-	for _, bso := range objectList {
+	for _, bso := range model.Objects {
 		if bs, ok := bso.(BackstagePodContributor); ok {
 			bs.updateBackstagePod(backstagePod)
 		}
 	}
 
-	// Phase 3: process Backstage.spec
+	// Phase 3: process Backstage.spec, getting final desired state
 	if backstageSpec.Application != nil {
-		runtimeModel.backstageDeployment.setReplicas(backstageSpec.Application.Replicas)
+		model.backstageDeployment.setReplicas(backstageSpec.Application.Replicas)
 		backstagePod.setImagePullSecrets(backstageSpec.Application.ImagePullSecrets)
 		backstagePod.setImage(backstageSpec.Application.Image)
+		if backstageSpec.Application.ExtraEnvs != nil {
+			backstagePod.setContainerEnvVars(backstageSpec.Application.ExtraEnvs.Envs)
+		}
 	}
+	// contribute to Backstage/LocalDb config
 	for _, v := range backstageSpec.ConfigObjects {
 		v.updateBackstagePod(backstagePod)
+		if dbc, ok := v.(LocalDbPodContributor); ok {
+			dbc.updateLocalDbPod(model)
+		}
 	}
 
-	return objectList, nil
+	// validate all
+	for _, v := range model.Objects {
+		err := v.validate(model)
+		if err != nil {
+			return nil, fmt.Errorf("failed object validation, reason: %s", err)
+		}
+	}
+
+	return model, nil
 }
 
 // Every BackstageObject.initMetainfo should as minimum call this

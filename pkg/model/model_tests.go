@@ -42,7 +42,9 @@ var simpleTestBackstage = bsv1alpha1.Backstage{
 		Namespace: "ns123",
 	},
 	Spec: bsv1alpha1.BackstageSpec{
-		EnableLocalDb: pointer.Bool(false),
+		Database: bsv1alpha1.Database{
+			EnableLocalDb: pointer.Bool(false),
+		},
 	},
 }
 
@@ -50,6 +52,12 @@ var simpleTestBackstage = bsv1alpha1.Backstage{
 func createBackstageTest(bs bsv1alpha1.Backstage) *testBackstageObject {
 	b := &testBackstageObject{backstage: bs, detailedSpec: &DetailedBackstageSpec{BackstageSpec: bs.Spec}}
 	b.detailedSpec.RawConfigContent = map[string]string{}
+	return b
+}
+
+// enables LocalDB
+func (b *testBackstageObject) withLocalDb() *testBackstageObject {
+	b.detailedSpec.Database.EnableLocalDb = pointer.Bool(true)
 	return b
 }
 

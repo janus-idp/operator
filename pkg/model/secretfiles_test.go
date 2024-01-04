@@ -39,7 +39,7 @@ func TestDefaultSecretFiles(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	deployment := model[0].(*BackstageDeployment)
+	deployment := model.backstageDeployment
 	assert.NotNil(t, deployment)
 
 	assert.Equal(t, 1, len(deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts))
@@ -75,9 +75,9 @@ func TestSpecifiedSecretFiles(t *testing.T) {
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
 	assert.NoError(t, err)
-	assert.True(t, len(model) > 0)
+	assert.True(t, len(model.Objects) > 0)
 
-	deployment := model[0].(*BackstageDeployment)
+	deployment := model.backstageDeployment
 	assert.NotNil(t, deployment)
 
 	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts))
@@ -106,9 +106,9 @@ func TestDefaultAndSpecifiedSecretFiles(t *testing.T) {
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
 	assert.NoError(t, err)
-	assert.True(t, len(model) > 0)
+	assert.True(t, len(model.Objects) > 0)
 
-	deployment := model[0].(*BackstageDeployment)
+	deployment := model.backstageDeployment
 	assert.NotNil(t, deployment)
 
 	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts))

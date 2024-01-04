@@ -15,11 +15,8 @@
 package controller
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -31,9 +28,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/yaml"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -106,60 +101,24 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// This creates array of model objects to be reconsiled
-	objects, err := model.InitObjects(ctx, backstage, spec, r.OwnsRuntime, r.IsOpenShift)
+	bsModel, err := model.InitObjects(ctx, backstage, spec, r.OwnsRuntime, r.IsOpenShift)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to initialize backstage model: %w", err)
 	}
 
-	//TODO, do it on model? (need sending Scheme to InitObjects just for this)
+	//TODO, do it on model? (need to send Scheme to InitObjects just for this)
 	if r.OwnsRuntime {
-		for _, obj := range objects {
+		for _, obj := range bsModel.Objects {
 			if err = controllerutil.SetControllerReference(&backstage, obj.Object(), r.Scheme); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to set owner reference: %s", err)
 			}
 		}
 	}
 
-	err = r.applyObjects(ctx, objects)
+	err = r.applyObjects(ctx, bsModel.Objects)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to apply backstage objects: %w", err)
 	}
-
-	//if !backstage.Spec.SkipLocalDb {
-	//
-	//	/* We use default strogeclass currently, and no PV is needed in that case.
-	//	If we decide later on to support user provided storageclass we can enable pv creation.
-	//	if err := r.applyPV(ctx, backstage, req.Namespace); err != nil {
-	//		return ctrl.Result{}, err
-	//	}
-	//	*/
-	//
-	//	err := r.applyLocalDbStatefulSet(ctx, backstage, req.Namespace)
-	//	if err != nil {
-	//		return ctrl.Result{}, fmt.Errorf("failed to apply Database StatefulSet: %w", err)
-	//	}
-	//
-	//	err = r.applyLocalDbServices(ctx, backstage, req.Namespace)
-	//	if err != nil {
-	//		return ctrl.Result{}, fmt.Errorf("failed to apply Database Service: %w", err)
-	//	}
-	//
-	//}
-
-	//err = r.applyBackstageDeployment(ctx, backstage, req.Namespace)
-	//if err != nil {
-	//	return ctrl.Result{}, fmt.Errorf("failed to apply Backstage Deployment: %w", err)
-	//}
-	//
-	//if err := r.applyBackstageService(ctx, backstage, req.Namespace); err != nil {
-	//	return ctrl.Result{}, fmt.Errorf("failed to apply Backstage Service: %w", err)
-	//}
-
-	//if r.IsOpenShift {
-	//	if err := r.applyBackstageRoute(ctx, backstage, req.Namespace); err != nil {
-	//		return ctrl.Result{}, err
-	//	}
-	//}
 
 	//TODO: it is just a placeholder for the time
 	r.setRunningStatus(ctx, &backstage, req.Namespace)
@@ -192,7 +151,7 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 				return fmt.Errorf("failed to create object %s: %w", obj.Object().GetName(), err)
 			}
 
-			lg.V(1).Info("Create object ", "obj", obj.Object())
+			lg.V(1).Info("Create object ", "obj", obj.Object().GetName())
 			continue
 		}
 
@@ -201,91 +160,6 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 		}
 	}
 	return nil
-}
-
-func (r *BackstageReconciler) readConfigMapOrDefault(ctx context.Context, name string, key string, ns string, object v1.Object) error {
-
-	lg := log.FromContext(ctx)
-
-	if name == "" {
-		err := readYamlFile(defFile(key), object)
-		if err != nil {
-			return fmt.Errorf("failed to read YAML file: %w", err)
-		}
-		object.SetNamespace(ns)
-		return nil
-	}
-
-	cm := corev1.ConfigMap{}
-	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, &cm); err != nil {
-		return err
-	}
-
-	val, ok := cm.Data[key]
-
-	if !ok {
-		// key not found, default
-		lg.V(1).Info("custom configuration configMap and data exists, trying to apply it", "configMap", cm.Name, "key", key)
-		err := readYamlFile(defFile(key), object)
-		if err != nil {
-			return fmt.Errorf("failed to read YAML file: %w", err)
-		}
-	} else {
-		lg.V(1).Info("custom configuration configMap exists but no such key, applying default config", "configMap", cm.Name, "key", key)
-		err := readYaml([]byte(val), object)
-		if err != nil {
-			return fmt.Errorf("failed to read YAML: %w", err)
-		}
-	}
-	object.SetNamespace(ns)
-	return nil
-}
-
-func readYaml(manifest []byte, object interface{}) error {
-	dec := yaml.NewYAMLOrJSONDecoder(bytes.NewReader(manifest), 1000)
-	if err := dec.Decode(object); err != nil {
-		return fmt.Errorf("failed to decode YAML: %w", err)
-	}
-	return nil
-}
-
-func readYamlFile(path string, object interface{}) error {
-
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("failed to read YAML file: %w", err)
-	}
-	return readYaml(b, object)
-}
-
-func defFile(key string) string {
-	return filepath.Join(os.Getenv("LOCALBIN"), "default-config", key)
-}
-
-// sets backstage-{Id} for labels and selectors
-func setBackstageAppLabel(labels *map[string]string, backstage bs.Backstage) {
-	if *labels == nil {
-		*labels = map[string]string{}
-	}
-	(*labels)[BackstageAppLabel] = fmt.Sprintf("backstage-%s", backstage.Name)
-}
-
-// sets backstage-psql-{Id} for labels and selectors
-func setBackstageLocalDbLabel(labels *map[string]string, name string) {
-	if *labels == nil {
-		*labels = map[string]string{}
-	}
-	(*labels)[BackstageAppLabel] = name
-}
-
-// sets labels on Backstage's instance resources
-func (r *BackstageReconciler) labels(meta *v1.ObjectMeta, backstage bs.Backstage) {
-	if meta.Labels == nil {
-		meta.Labels = map[string]string{}
-	}
-	meta.Labels["app.kubernetes.io/name"] = "backstage"
-	meta.Labels["app.kubernetes.io/instance"] = backstage.Name
-	//meta.Labels[BackstageAppLabel] = fmt.Sprintf("backstage-%s", backstage.Name)
 }
 
 // SetupWithManager sets up the controller with the Manager.

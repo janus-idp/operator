@@ -31,23 +31,37 @@ type SecretEnvs struct {
 	Secret *corev1.Secret
 }
 
+func init() {
+	registerConfig("secret-envs.yaml", SecretEnvsFactory{}, Optional)
+}
+
+// implementation of BackstageObject interface
 func (p *SecretEnvs) Object() client.Object {
 	return p.Secret
 }
 
+// implementation of BackstageObject interface
 func (p *SecretEnvs) initMetainfo(backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(p, backstageMeta, ownsRuntime)
 	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretenvs"))
 }
 
+// implementation of BackstageObject interface
 func (p *SecretEnvs) EmptyObject() client.Object {
 	return &corev1.Secret{}
 }
 
-func (p *SecretEnvs) addToModel(model *runtimeModel) {
+// implementation of BackstageObject interface
+func (p *SecretEnvs) addToModel(model *RuntimeModel) {
 	// nothing
 }
 
+// implementation of BackstageObject interface
+func (p *SecretEnvs) validate(model *RuntimeModel) error {
+	return nil
+}
+
+// implementation of BackstagePodContributor interface
 func (p *SecretEnvs) updateBackstagePod(pod *backstagePod) {
 
 	pod.addContainerEnvFrom(corev1.EnvFromSource{

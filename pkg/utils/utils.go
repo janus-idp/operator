@@ -35,7 +35,7 @@ func SetKubeLabels(labels map[string]string, backstageName string) map[string]st
 	return labels
 }
 
-// sets backstage-{Id} for labels and selectors
+// GenerateLabel generates backstage-{Id} for labels or selectors
 func GenerateLabel(labels *map[string]string, name string, value string) {
 	if *labels == nil {
 		*labels = map[string]string{}
@@ -43,8 +43,14 @@ func GenerateLabel(labels *map[string]string, name string, value string) {
 	(*labels)[name] = value
 }
 
-func GenerateRuntimeObjectName(backstageObjectName string, suffix string) string {
-	return fmt.Sprintf("%s-%s", backstageObjectName, suffix)
+// GenerateRuntimeObjectName generates name using BackstageCR name and objectType which is ConfigObject Key without '.yaml' (like 'deployment')
+func GenerateRuntimeObjectName(backstageCRName string, objectType string) string {
+	return fmt.Sprintf("%s-%s", backstageCRName, objectType)
+}
+
+// GenerateVolumeNameFromCmOrSecret generates volume name for mounting ConfigMap or Secret
+func GenerateVolumeNameFromCmOrSecret(cmOrSecretName string) string {
+	return fmt.Sprintf("vol-%s", cmOrSecretName)
 }
 
 func ReadYaml(manifest []byte, object interface{}) error {

@@ -15,7 +15,6 @@
 package model
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"k8s.io/utils/pointer"
@@ -37,26 +36,40 @@ type SecretFiles struct {
 	MountPath string
 }
 
+func init() {
+	registerConfig("secret-files.yaml", SecretFilesFactory{}, Optional)
+}
+
+// implementation of BackstageObject interface
 func (p *SecretFiles) Object() client.Object {
 	return p.Secret
 }
 
+// implementation of BackstageObject interface
 func (p *SecretFiles) initMetainfo(backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(p, backstageMeta, ownsRuntime)
 	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretfiles"))
 }
 
+// implementation of BackstageObject interface
 func (p *SecretFiles) EmptyObject() client.Object {
 	return &corev1.Secret{}
 }
 
-func (p *SecretFiles) addToModel(model *runtimeModel) {
+// implementation of BackstageObject interface
+func (p *SecretFiles) addToModel(model *RuntimeModel) {
 	// nothing
 }
 
+// implementation of BackstageObject interface
+func (p *SecretFiles) validate(model *RuntimeModel) error {
+	return nil
+}
+
+// implementation of BackstagePodContributor interface
 func (p *SecretFiles) updateBackstagePod(pod *backstagePod) {
 
-	volName := fmt.Sprintf("vol-%s", p.Secret.Name)
+	volName := utils.GenerateVolumeNameFromCmOrSecret(p.Secret.Name)
 
 	volSource := corev1.VolumeSource{
 		Secret: &corev1.SecretVolumeSource{

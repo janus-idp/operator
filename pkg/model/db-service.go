@@ -33,20 +33,33 @@ type DbService struct {
 	service *corev1.Service
 }
 
+func init() {
+	registerConfig("db-service.yaml", DbServiceFactory{}, ForLocalDatabase)
+}
+
+// implementation of BackstageObject interface
 func (s *DbService) Object() client.Object {
 	return s.service
 }
 
+// implementation of BackstageObject interface
 func (s *DbService) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(s, backstageMeta, ownsRuntime)
 	s.service.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "db-service"))
 	utils.GenerateLabel(&s.service.Spec.Selector, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
 }
 
-func (b *DbService) addToModel(model *runtimeModel) {
+// implementation of BackstageObject interface
+func (b *DbService) addToModel(model *RuntimeModel) {
 	model.localDbService = b
 }
 
+// implementation of BackstageObject interface
 func (b *DbService) EmptyObject() client.Object {
 	return &corev1.Service{}
+}
+
+// implementation of BackstageObject interface
+func (b *DbService) validate(model *RuntimeModel) error {
+	return nil
 }

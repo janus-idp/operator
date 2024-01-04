@@ -31,23 +31,37 @@ type ConfigMapEnvs struct {
 	ConfigMap *corev1.ConfigMap
 }
 
+func init() {
+	registerConfig("configmap-envs.yaml", ConfigMapEnvsFactory{}, Optional)
+}
+
+// implementation of BackstageObject interface
 func (p *ConfigMapEnvs) Object() client.Object {
 	return p.ConfigMap
 }
 
+// implementation of BackstageObject interface
 func (p *ConfigMapEnvs) initMetainfo(backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(p, backstageMeta, ownsRuntime)
 	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-configmapenvs"))
 }
 
+// implementation of BackstageObject interface
 func (p *ConfigMapEnvs) EmptyObject() client.Object {
 	return &corev1.ConfigMap{}
 }
 
-func (p *ConfigMapEnvs) addToModel(model *runtimeModel) {
+// implementation of BackstageObject interface
+func (p *ConfigMapEnvs) addToModel(model *RuntimeModel) {
 	// nothing
 }
 
+// implementation of BackstageObject interface
+func (p *ConfigMapEnvs) validate(model *RuntimeModel) error {
+	return nil
+}
+
+// implementation of BackstagePodContributor interface
 func (p *ConfigMapEnvs) updateBackstagePod(pod *backstagePod) {
 
 	pod.addContainerEnvFrom(corev1.EnvFromSource{

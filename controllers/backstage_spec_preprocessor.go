@@ -30,7 +30,8 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.Back
 	//lg := log.FromContext(ctx)
 
 	result := &model.DetailedBackstageSpec{
-		BackstageSpec: bsSpec,
+		BackstageSpec:    bsSpec,
+		RawConfigContent: map[string]string{},
 	}
 
 	// Process RawRuntimeConfig
@@ -64,9 +65,21 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.Back
 		for _, ef := range bsSpec.Application.ExtraFiles.ConfigMaps {
 			cm := corev1.ConfigMap{}
 			if err := r.Get(ctx, types.NamespacedName{Name: ef.Name, Namespace: ns}, &cm); err != nil {
-				return nil, fmt.Errorf("failed to get configMap %s: %w", ef.Name, err)
+				return nil, fmt.Errorf("failed to get ConfigMap %s: %w", ef.Name, err)
 			}
 			result.AddConfigObject(&model.ConfigMapFiles{ConfigMap: &cm, MountPath: mountPath})
+		}
+	}
+
+	// Process SecretFiles
+	if bsSpec.Application != nil && bsSpec.Application.ExtraFiles != nil && bsSpec.Application.ExtraFiles.Secrets != nil {
+		mountPath := bsSpec.Application.ExtraFiles.MountPath
+		for _, ef := range bsSpec.Application.ExtraFiles.Secrets {
+			sec := corev1.Secret{}
+			if err := r.Get(ctx, types.NamespacedName{Name: ef.Name, Namespace: ns}, &sec); err != nil {
+				return nil, fmt.Errorf("failed to get Secret %s: %w", ef.Name, err)
+			}
+			result.AddConfigObject(&model.SecretFiles{Secret: &sec, MountPath: mountPath})
 		}
 	}
 
@@ -92,5 +105,21 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.Back
 		}
 	}
 
+	// PreProcess Database
+	if &bsSpec.Database != nil {
+
+		if authSecret := bsSpec.Database.AuthSecretName; authSecret != "" {
+			//TODO do we need this kind of check?
+			//sec := corev1.Secret{}
+			//if err := r.Get(ctx, types.NamespacedName{Name: authSecret, Namespace: ns}, &sec); err != nil {
+			//	return nil, fmt.Errorf("failed to get DB AuthSecret %s: %w", authSecret, err)
+			//}
+		} else if !*bsSpec.Database.EnableLocalDb {
+			return nil, fmt.Errorf("database configuration is invalid. existingDbSerect is required if enableLocalDb is false")
+		}
+
+	}
+
+	// TODO PreProcess Network
 	return result, nil
 }

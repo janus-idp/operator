@@ -212,21 +212,77 @@ spec:
                       Deployment. Defaults to 1.
                     format: int32
                     type: integer
+                  route:
+                    description: Route configuration. Used for OpenShift only.
+                    properties:
+                      enabled:
+                        default: true
+                        description: Control the creation of a Route on OpenShift.
+                        type: boolean
+                      host:
+                        description: Host is an alias/DNS that points to the service.
+                          Optional. Ignored if Enabled is false. If not specified
+                          a route name will typically be automatically chosen.  Must
+                          follow DNS952 subdomain conventions.
+                        maxLength: 253
+                        pattern: ^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$
+                        type: string
+                      subdomain:
+                        description: 'Subdomain is a DNS subdomain that is requested
+                          within the ingress controller''s domain (as a subdomain).
+                          Ignored if Enabled is false. Example: subdomain `frontend`
+                          automatically receives the router subdomain `apps.mycluster.com`
+                          to have a full hostname `frontend.apps.mycluster.com`.'
+                        maxLength: 253
+                        pattern: ^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$
+                        type: string
+                      tls:
+                        description: The tls field provides the ability to configure
+                          certificates for the route. Ignored if Enabled is false.
+                        properties:
+                          caCertificate:
+                            description: caCertificate provides the cert authority
+                              certificate contents
+                            type: string
+                          certificate:
+                            description: certificate provides certificate contents.
+                              This should be a single serving certificate, not a certificate
+                              chain. Do not include a CA certificate.
+                            type: string
+                          externalCertificateSecretName:
+                            description: ExternalCertificateSecretName provides certificate
+                              contents as a secret reference. This should be a single
+                              serving certificate, not a certificate chain. Do not
+                              include a CA certificate. The secret referenced should
+                              be present in the same namespace as that of the Route.
+                              Forbidden when `certificate` is set.
+                            type: string
+                          key:
+                            description: key provides key file contents
+                            type: string
+                        type: object
+                    type: object
                 type: object
-              enableLocalDb:
-                default: true
-                description: 'Control the creation of a local PostgreSQL DB. Set to
-                  false if using for example an external Database for Backstage. To
-                  use an external Database, you can provide your own app-config file
-                  (see the AppConfig field in the Application structure) containing
-                  references to the Database connection information, which might be
-                  supplied as environment variables (see the ExtraEnvs field) or extra-configuration
-                  files (see the ExtraFiles field in the Application structure). Note:
-                  since Backstage.spec is optional by design, default value is not
-                  working in case if spec.<something> is not specified use BackstageSpec.localDbEnabled()
-                  function to not catch nil pointer dereference panic in a case of
-                  non-existent spec'
-                type: boolean
+              database:
+                description: Configuration for database access. Optional.
+                properties:
+                  authSecretName:
+                    description: 'Name of the secret for database authentication.
+                      Required for external database access. Optional for a local
+                      database (EnableLocalDb=true) and if absent a secret will be
+                      auto generated. The secret shall include information used for
+                      the database access. An example for PostgreSQL DB access: "POSTGRES_PASSWORD":
+                      "rl4s3Fh4ng3M4" "POSTGRES_PORT": "5432" "POSTGRES_USER": "postgres"
+                      "POSTGRESQL_ADMIN_PASSWORD": "rl4s3Fh4ng3M4" "POSTGRES_HOST":
+                      "backstage-psql-bs1"  # For local database, set to "backstage-psql-<CR
+                      name>".'
+                    type: string
+                  enableLocalDb:
+                    default: true
+                    description: Control the creation of a local PostgreSQL DB. Set
+                      to false if using for example an external Database for Backstage.
+                    type: boolean
+                type: object
               rawRuntimeConfig:
                 description: Raw Runtime Objects configuration. For Advanced scenarios.
                 type: string

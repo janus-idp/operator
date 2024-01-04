@@ -33,12 +33,19 @@ func (f DbStatefulSetFactory) newBackstageObject() BackstageObject {
 
 type DbStatefulSet struct {
 	statefulSet *appsv1.StatefulSet
+	secretName  string
 }
 
+func init() {
+	registerConfig("db-statefulset.yaml", DbStatefulSetFactory{}, ForLocalDatabase)
+}
+
+// implementation of BackstageObject interface
 func (b *DbStatefulSet) Object() client.Object {
 	return b.statefulSet
 }
 
+// implementation of BackstageObject interface
 func (b *DbStatefulSet) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(b, backstageMeta, ownsRuntime)
 	b.statefulSet.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "db-statefulset"))
@@ -46,15 +53,49 @@ func (b *DbStatefulSet) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRun
 	utils.GenerateLabel(&b.statefulSet.Spec.Selector.MatchLabels, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
 }
 
-func (b *DbStatefulSet) addToModel(model *runtimeModel) {
+// implementation of BackstageObject interface
+func (b *DbStatefulSet) addToModel(model *RuntimeModel) {
 	model.localDbStatefulSet = b
 }
 
+// implementation of BackstageObject interface
 func (b *DbStatefulSet) EmptyObject() client.Object {
 	return &appsv1.StatefulSet{}
 }
 
-// NOTE we consider single container here
-func (b *DbStatefulSet) appendContainerEnvFrom(envFrom corev1.EnvFromSource) {
-	b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom = append(b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom, envFrom)
+// implementation of BackstageObject interface
+func (b *DbStatefulSet) validate(model *RuntimeModel) error {
+	return nil
+}
+
+// Injects DB Secret name as an env variable of DB container
+// Local DB pod considered to have single container
+func (b *DbStatefulSet) setSecretNameEnvFrom(envFrom corev1.EnvFromSource) {
+
+	// it is possible that Secret name already set by default configuration
+	// has to be overriden in this case
+	if b.secretName != "" {
+		var ind int
+		for i, v := range b.container().EnvFrom {
+			if v.SecretRef.Name == b.secretName {
+				ind = i
+				break
+			}
+		}
+		b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom[ind] = envFrom
+
+	} else {
+		b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom = append(b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom, envFrom)
+	}
+	b.secretName = envFrom.SecretRef.Name
+}
+
+// returns DB container
+func (b *DbStatefulSet) container() corev1.Container {
+	return b.podSpec().Containers[0]
+}
+
+// returns DB pod
+func (b *DbStatefulSet) podSpec() corev1.PodSpec {
+	return b.statefulSet.Spec.Template.Spec
 }

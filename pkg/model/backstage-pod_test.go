@@ -17,6 +17,8 @@ package model
 import (
 	"testing"
 
+	bs "janus-idp.io/backstage-operator/api/v1alpha1"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
@@ -54,8 +56,9 @@ func TestIfBasckstagePodPointsToDeployment(t *testing.T) {
 
 	assert.Equal(t, 0, len(testPod.parent.Spec.Template.Spec.Containers[0].Env))
 	assert.Equal(t, 0, len(bc.Env))
-	testPod.addContainerEnvVar(corev1.EnvVar{Name: "myKey", Value: "myValue"})
+	testPod.setContainerEnvVars([]bs.Env{{Name: "myKey", Value: "myValue"}})
 	assert.Equal(t, 1, len(bc.Env))
+	assert.Equal(t, "myKey", bc.Env[0].Name)
 	assert.Equal(t, 1, len(testPod.parent.Spec.Template.Spec.Containers[0].Env))
 
 	assert.Equal(t, 0, len(testPod.parent.Spec.Template.Spec.Containers[0].VolumeMounts))

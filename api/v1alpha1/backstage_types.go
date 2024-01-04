@@ -31,16 +31,26 @@ type BackstageSpec struct {
 	// Raw Runtime Objects configuration. For Advanced scenarios.
 	RawRuntimeConfig string `json:"rawRuntimeConfig,omitempty"`
 
+	// Configuration for database access. Optional.
+	Database Database `json:"database,omitempty"`
+}
+
+type Database struct {
 	// Control the creation of a local PostgreSQL DB. Set to false if using for example an external Database for Backstage.
-	// To use an external Database, you can provide your own app-config file (see the AppConfig field in the Application structure)
-	// containing references to the Database connection information,
-	// which might be supplied as environment variables (see the ExtraEnvs field) or extra-configuration files
-	// (see the ExtraFiles field in the Application structure).
-	// Note: since Backstage.spec is optional by design, default value is not working in case if spec.<something> is not specified
-	// use BackstageSpec.localDbEnabled() function to not catch nil pointer dereference panic in a case of non-existent spec
-	//+optional
+	// +optional
 	//+kubebuilder:default=true
-	EnableLocalDb *bool `json:"enableLocalDb"`
+	EnableLocalDb *bool `json:"enableLocalDb,omitempty"`
+
+	// Name of the secret for database authentication. Required for external database access.
+	// Optional for a local database (EnableLocalDb=true) and if absent a secret will be auto generated.
+	// The secret shall include information used for the database access.
+	// An example for PostgreSQL DB access:
+	// "POSTGRES_PASSWORD": "rl4s3Fh4ng3M4"
+	// "POSTGRES_PORT": "5432"
+	// "POSTGRES_USER": "postgres"
+	// "POSTGRESQL_ADMIN_PASSWORD": "rl4s3Fh4ng3M4"
+	// "POSTGRES_HOST": "backstage-psql-bs1"  # For local database, set to "backstage-psql-<CR name>".
+	AuthSecretName string `json:"authSecretName,omitempty"`
 }
 
 type Application struct {
@@ -84,6 +94,9 @@ type Application struct {
 	// Image Pull Secrets to use in all containers (including Init Containers)
 	// +optional
 	ImagePullSecrets []string `json:"imagePullSecrets,omitempty"`
+
+	// Route configuration. Used for OpenShift only.
+	Route *Route `json:"route,omitempty"`
 }
 
 type AppConfig struct {
@@ -188,13 +201,66 @@ type BackstageList struct {
 	Items           []Backstage `json:"items"`
 }
 
+// Route specifies configuration parameters for OpenShift Route for Backstage.
+// Only a secured edge route is supported for Backstage.
+type Route struct {
+	// Control the creation of a Route on OpenShift.
+	// +optional
+	//+kubebuilder:default=true
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Host is an alias/DNS that points to the service. Optional.
+	// Ignored if Enabled is false.
+	// If not specified a route name will typically be automatically
+	// chosen.  Must follow DNS952 subdomain conventions.
+	// +optional
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$`
+	Host string `json:"host,omitempty" protobuf:"bytes,1,opt,name=host"`
+
+	// Subdomain is a DNS subdomain that is requested within the ingress controller's
+	// domain (as a subdomain).
+	// Ignored if Enabled is false.
+	// Example: subdomain `frontend` automatically receives the router subdomain
+	// `apps.mycluster.com` to have a full hostname `frontend.apps.mycluster.com`.
+	// +optional
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$`
+	Subdomain string `json:"subdomain,omitempty"`
+
+	// The tls field provides the ability to configure certificates for the route.
+	// Ignored if Enabled is false.
+	// +optional
+	TLS *TLS `json:"tls,omitempty"`
+}
+
+type TLS struct {
+	// certificate provides certificate contents. This should be a single serving certificate, not a certificate
+	// chain. Do not include a CA certificate.
+	Certificate string `json:"certificate,omitempty"`
+
+	// ExternalCertificateSecretName provides certificate contents as a secret reference.
+	// This should be a single serving certificate, not a certificate
+	// chain. Do not include a CA certificate. The secret referenced should
+	// be present in the same namespace as that of the Route.
+	// Forbidden when `certificate` is set.
+	// +optional
+	ExternalCertificateSecretName string `json:"externalCertificateSecretName,omitempty"`
+
+	// key provides key file contents
+	Key string `json:"key,omitempty"`
+
+	// caCertificate provides the cert authority certificate contents
+	CACertificate string `json:"caCertificate,omitempty"`
+}
+
 func init() {
 	SchemeBuilder.Register(&Backstage{}, &BackstageList{})
 }
 
 func (s BackstageSpec) LocalDbEnabled() bool {
-	if s.EnableLocalDb == nil {
+	if s.Database.EnableLocalDb == nil {
 		return true
 	}
-	return *s.EnableLocalDb
+	return *s.Database.EnableLocalDb
 }

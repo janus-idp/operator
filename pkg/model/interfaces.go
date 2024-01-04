@@ -19,39 +19,59 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// Need Identifier for configuration object
+// Used on initialization phase to let initializer know what to do if configuration object
+// of the certain type is not found
 const (
-	Mandatory        needType = "Mandatory"
-	Optional         needType = "Optional"
+	// Mandatory for Backstage deployment, initialization fails
+	Mandatory needType = "Mandatory"
+	// Optional for Backstage deployment (for example config parameters), initialization continues
+	Optional needType = "Optional"
+	// Mandatory if Local database Enabled, initialization fails if LocalDB enabled, ignored otherwise
 	ForLocalDatabase needType = "ForLocalDatabase"
-	ForOpenshift     needType = "ForOpenshift"
+	// Used for Openshift cluster only, ignored otherwise
+	ForOpenshift needType = "ForOpenshift"
 )
 
 type needType string
 
+// Registered Object configuring Backstage deployment
 type ObjectConfig struct {
+	// Factory to create the object
 	ObjectFactory ObjectFactory
-	Key           string
-	need          needType
+	// Unique key identifying the "kind" of Object which also is the name of config file.
+	// For example: "deployment.yaml" containing configuration of Backstage Deployment
+	Key string
+	// Need identifier
+	need needType
 }
 
 type ObjectFactory interface {
 	newBackstageObject() BackstageObject
 }
 
+// Abstraction for the model Backstage object taking part in deployment
 type BackstageObject interface {
+	// underlying Kubernetes object
 	Object() client.Object
+	// Inits meta data. Typically used to set/change object name, labels, selectors to ensure integrity
 	initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool)
 	// needed only for check if Object exists to call KubeClient.Get() and it should be garbage collected right away
 	EmptyObject() client.Object
-	addToModel(model *runtimeModel)
+	// (For some types Backstage objects), adds it to the model
+	addToModel(model *RuntimeModel)
+	// validates the object at the end of initialization (after 3 phases)
+	validate(model *RuntimeModel) error
 }
 
+// BackstageObject contributing to Backstage pod. Usually app-config related
 type BackstagePodContributor interface {
 	BackstageObject
 	updateBackstagePod(pod *backstagePod)
 }
 
+// BackstageObject contributing to Local DB pod
 type LocalDbPodContributor interface {
 	BackstageObject
-	updateLocalDbPod(model *runtimeModel)
+	updateLocalDbPod(model *RuntimeModel)
 }

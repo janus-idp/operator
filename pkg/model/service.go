@@ -34,20 +34,33 @@ type BackstageService struct {
 	service *corev1.Service
 }
 
+func init() {
+	registerConfig("service.yaml", BackstageServiceFactory{}, Mandatory)
+}
+
+// implementation of BackstageObject interface
 func (s *BackstageService) Object() client.Object {
 	return s.service
 }
 
+// implementation of BackstageObject interface
 func (s *BackstageService) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(s, backstageMeta, ownsRuntime)
 	s.service.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "service"))
 	utils.GenerateLabel(&s.service.Spec.Selector, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageMeta.Name))
 }
 
-func (b *BackstageService) addToModel(model *runtimeModel) {
+// implementation of BackstageObject interface
+func (b *BackstageService) addToModel(model *RuntimeModel) {
 	model.backstageService = b
 }
 
+// implementation of BackstageObject interface
 func (b *BackstageService) EmptyObject() client.Object {
 	return &corev1.Service{}
+}
+
+// implementation of BackstageObject interface
+func (b *BackstageService) validate(model *RuntimeModel) error {
+	return nil
 }

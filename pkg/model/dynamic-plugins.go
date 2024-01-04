@@ -15,6 +15,8 @@
 package model
 
 import (
+	"fmt"
+
 	"janus-idp.io/backstage-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,18 +32,39 @@ type DynamicPlugins struct {
 	configMap *corev1.ConfigMap
 }
 
+func init() {
+	registerConfig("dynamic-plugins.yaml", DynamicPluginsFactory{}, Optional)
+}
+
+// implementation of BackstageObject interface
 func (p *DynamicPlugins) Object() client.Object {
 	return p.configMap
 }
 
+// implementation of BackstageObject interface
 func (p *DynamicPlugins) initMetainfo(backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(p, backstageMeta, ownsRuntime)
 }
 
+// implementation of BackstageObject interface
 func (p *DynamicPlugins) EmptyObject() client.Object {
 	return &corev1.ConfigMap{}
 }
 
-func (p *DynamicPlugins) addToModel(model *runtimeModel) {
+// implementation of BackstageObject interface
+func (p *DynamicPlugins) addToModel(model *RuntimeModel) {
 	// nothing
+}
+
+// implementation of BackstageObject interface
+// configMap name must be the same as (deployment.yaml).spec.template.spec.volumes.name.dynamic-plugins-conf.configMap.name
+func (p *DynamicPlugins) validate(model *RuntimeModel) error {
+
+	for _, v := range *model.backstageDeployment.pod.volumes {
+		if v.ConfigMap != nil && v.ConfigMap.Name == p.configMap.Name {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("failed to apply dynamic plugins, no deployment.spec.template.spec.volumes.configMap.name = '%s' configured", p.configMap.Name)
 }

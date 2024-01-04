@@ -39,28 +39,37 @@ type AppConfig struct {
 	MountPath string
 }
 
-// implementation of BackstageObject inteterface
+func init() {
+	registerConfig("app-config.yaml", AppConfigFactory{}, Optional)
+}
+
+// implementation of BackstageObject interface
 func (b *AppConfig) Object() client.Object {
 	return b.ConfigMap
 }
 
-// implementation of BackstageObject inteterface
+// implementation of BackstageObject interface
 func (b *AppConfig) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(b, backstageMeta, ownsRuntime)
 	b.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-appconfig"))
 }
 
-// implementation of BackstageObject inteterface
+// implementation of BackstageObject interface
 func (b *AppConfig) EmptyObject() client.Object {
 	return &corev1.ConfigMap{}
 }
 
-// implementation of BackstageObject inteterface
-func (b *AppConfig) addToModel(model *runtimeModel) {
+// implementation of BackstageObject interface
+func (b *AppConfig) addToModel(model *RuntimeModel) {
 	// nothing to add
 }
 
-// implementation of BackstagePodContributor inteterface
+// implementation of BackstageObject interface
+func (b *AppConfig) validate(model *RuntimeModel) error {
+	return nil
+}
+
+// implementation of BackstagePodContributor interface
 // it contrubutes to Volumes, container.VolumeMounts and contaiter.Args
 func (b *AppConfig) updateBackstagePod(pod *backstagePod) {
 

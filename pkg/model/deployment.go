@@ -35,15 +35,22 @@ type BackstageDeployment struct {
 	pod        *backstagePod
 }
 
+func init() {
+	registerConfig("deployment.yaml", BackstageDeploymentFactory{}, Mandatory)
+}
+
+// implementation of BackstageObject interface
 func (b *BackstageDeployment) Object() client.Object {
 	return b.deployment
 }
 
+// implementation of BackstageObject interface
 func (b *BackstageDeployment) EmptyObject() client.Object {
 
 	return &appsv1.Deployment{}
 }
 
+// implementation of BackstageObject interface
 func (b *BackstageDeployment) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(b, backstageMeta, ownsRuntime)
 	b.deployment.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "deployment"))
@@ -51,10 +58,17 @@ func (b *BackstageDeployment) initMetainfo(backstageMeta bsv1alpha1.Backstage, o
 	utils.GenerateLabel(&b.deployment.Spec.Selector.MatchLabels, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageMeta.Name))
 }
 
-func (b *BackstageDeployment) addToModel(model *runtimeModel) {
+// implementation of BackstageObject interface
+func (b *BackstageDeployment) addToModel(model *RuntimeModel) {
 	model.backstageDeployment = b
 }
 
+// implementation of BackstageObject interface
+func (b *BackstageDeployment) validate(model *RuntimeModel) error {
+	return nil
+}
+
+// sets the amount of replicas (used by CR config)
 func (b *BackstageDeployment) setReplicas(replicas *int32) {
 	if replicas != nil {
 		b.deployment.Spec.Replicas = replicas
