@@ -1,5 +1,5 @@
 # backstage-operator
-Operator for deploying Backstage for Janus-IDP.
+Operator for deploying Backstage for Janus-IDP
 
 ## Description
 Implementing https://janus-idp.io/docs/deployment/k8s/ procedure
