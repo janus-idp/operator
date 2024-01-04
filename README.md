@@ -13,7 +13,7 @@ You’ll need a Kubernetes or OpenShift cluster. You can use [Minikube](https://
 
 To test it on minikube from the source code:
 
-You need ready to use **kubectl** and **minikube** [tools](https://kubernetes.io/docs/tasks/tools/) as a prerequisite.
+Both **kubectl** and **minikube** must be installed. See [tools](https://kubernetes.io/docs/tasks/tools/).
 
 1.  Get your copy of Operator from GitHub: 
 ```sh
