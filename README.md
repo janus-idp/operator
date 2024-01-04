@@ -8,7 +8,7 @@ The Operator provides clear and flexible configuration options to satisfy a wide
 [More documentation...](#more-documentation)
 
 ## Getting Started
-You’ll need a Kubernetes cluster to run against. You can use [Minikube](https://minikube.sigs.k8s.io/docs/) or [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
+You’ll need a Kubernetes or OpenShift cluster. You can use [Minikube](https://minikube.sigs.k8s.io/docs/) or [KIND](https://sigs.k8s.io/kind) for local testing, or deploy to a remote cluster.
 **Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
 
 To test it on minikube from the source code:
