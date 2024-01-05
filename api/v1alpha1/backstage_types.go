@@ -16,6 +16,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 const (
@@ -259,8 +260,9 @@ func init() {
 }
 
 func (s BackstageSpec) LocalDbEnabled() bool {
-	if s.Database.EnableLocalDb == nil {
-		return true
-	}
-	return *s.Database.EnableLocalDb
+	//if s.Database.EnableLocalDb == nil {
+	//	return true
+	//}
+	//return *s.Database.EnableLocalDb
+	return pointer.BoolDeref(s.Database.EnableLocalDb, true)
 }
