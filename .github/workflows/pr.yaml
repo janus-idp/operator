@@ -40,5 +40,7 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version-file: 'go.mod'
-      - name: ${{ matrix.engine }}-build
-        run: make ${{ matrix.engine }}-build
+      - name: ${{ matrix.engine }} build
+        run: |
+          export CONTAINER_ENGINE=${{ matrix.engine }}
+          make operator-build
