@@ -70,3 +70,17 @@ func TestInitDefaultDeploy(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("backstage-%s", "bs"), bsService.service.Spec.Selector[backstageAppLabel])
 
 }
+
+func TestIfEmptyObjectIsValid(t *testing.T) {
+
+	bs := simpleTestBackstage
+	testObj := createBackstageTest(bs).withDefaultConfig(true)
+
+	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
+	assert.NoError(t, err)
+
+	for _, obj := range model.Objects {
+		t.Log(">>>>>>>>" + fmt.Sprintf("%v", obj.EmptyObject().GetObjectKind()))
+	}
+
+}

@@ -34,6 +34,7 @@ func (f SecretFilesFactory) newBackstageObject() BackstageObject {
 type SecretFiles struct {
 	Secret    *corev1.Secret
 	MountPath string
+	Key       string
 }
 
 func init() {
@@ -84,23 +85,23 @@ func (p *SecretFiles) updateBackstagePod(pod *backstagePod) {
 	})
 
 	for file := range p.Secret.Data {
-
-		pod.appendContainerVolumeMount(corev1.VolumeMount{
-			Name:      volName,
-			MountPath: filepath.Join(p.MountPath, file),
-			SubPath:   file,
-		})
-
+		if p.Key == "" || (p.Key == file) {
+			pod.appendContainerVolumeMount(corev1.VolumeMount{
+				Name:      volName,
+				MountPath: filepath.Join(p.MountPath, file),
+				SubPath:   file,
+			})
+		}
 	}
 
 	for file := range p.Secret.StringData {
-
-		pod.appendContainerVolumeMount(corev1.VolumeMount{
-			Name:      volName,
-			MountPath: filepath.Join(p.MountPath, file),
-			SubPath:   file,
-		})
-
+		if p.Key == "" || (p.Key == file) {
+			pod.appendContainerVolumeMount(corev1.VolumeMount{
+				Name:      volName,
+				MountPath: filepath.Join(p.MountPath, file),
+				SubPath:   file,
+			})
+		}
 	}
 
 }

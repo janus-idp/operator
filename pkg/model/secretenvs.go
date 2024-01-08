@@ -29,6 +29,7 @@ func (f SecretEnvsFactory) newBackstageObject() BackstageObject {
 
 type SecretEnvs struct {
 	Secret *corev1.Secret
+	Key    string
 }
 
 func init() {
@@ -63,9 +64,13 @@ func (p *SecretEnvs) validate(model *RuntimeModel) error {
 
 // implementation of BackstagePodContributor interface
 func (p *SecretEnvs) updateBackstagePod(pod *backstagePod) {
-
-	pod.addContainerEnvFrom(corev1.EnvFromSource{
-		SecretRef: &corev1.SecretEnvSource{
-			LocalObjectReference: corev1.LocalObjectReference{Name: p.Secret.Name}}})
-
+	if p.Key == "" {
+		pod.addContainerEnvFrom(corev1.EnvFromSource{
+			SecretRef: &corev1.SecretEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: p.Secret.Name}}})
+	} else if data, ok := p.Secret.Data[p.Key]; ok {
+		pod.addContainerEnvVar(v1alpha1.Env{Name: p.Key, Value: string(data)})
+	} else if data, ok := p.Secret.StringData[p.Key]; ok {
+		pod.addContainerEnvVar(v1alpha1.Env{Name: p.Key, Value: data})
+	}
 }

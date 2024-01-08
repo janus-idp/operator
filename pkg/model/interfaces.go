@@ -54,7 +54,7 @@ type ObjectFactory interface {
 type BackstageObject interface {
 	// underlying Kubernetes object
 	Object() client.Object
-	// Inits meta data. Typically used to set/change object name, labels, selectors to ensure integrity
+	// Inits metadata. Typically used to set/change object name, labels, selectors to ensure integrity
 	initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool)
 	// needed only for check if Object exists to call KubeClient.Get() and it should be garbage collected right away
 	EmptyObject() client.Object

@@ -15,7 +15,6 @@
 package model
 
 import (
-	"fmt"
 	"path/filepath"
 
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
@@ -37,6 +36,7 @@ func (f AppConfigFactory) newBackstageObject() BackstageObject {
 type AppConfig struct {
 	ConfigMap *corev1.ConfigMap
 	MountPath string
+	Key       string
 }
 
 func init() {
@@ -73,7 +73,7 @@ func (b *AppConfig) validate(model *RuntimeModel) error {
 // it contrubutes to Volumes, container.VolumeMounts and contaiter.Args
 func (b *AppConfig) updateBackstagePod(pod *backstagePod) {
 
-	volName := fmt.Sprintf("vol-%s", b.ConfigMap.Name)
+	volName := utils.GenerateVolumeNameFromCmOrSecret(b.ConfigMap.Name)
 
 	volSource := corev1.VolumeSource{
 		ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -87,14 +87,14 @@ func (b *AppConfig) updateBackstagePod(pod *backstagePod) {
 	})
 
 	for file := range b.ConfigMap.Data {
+		if b.Key == "" || (b.Key == file) {
+			pod.appendContainerVolumeMount(corev1.VolumeMount{
+				Name:      volName,
+				MountPath: filepath.Join(b.MountPath, file),
+				SubPath:   file,
+			})
 
-		pod.appendContainerVolumeMount(corev1.VolumeMount{
-			Name:      volName,
-			MountPath: filepath.Join(b.MountPath, file),
-			SubPath:   file,
-		})
-
-		pod.appendConfigArg(filepath.Join(b.MountPath, file))
+			pod.appendConfigArg(filepath.Join(b.MountPath, file))
+		}
 	}
-
 }

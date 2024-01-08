@@ -55,7 +55,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.Back
 			if err := r.Get(ctx, types.NamespacedName{Name: ac.Name, Namespace: ns}, &cm); err != nil {
 				return nil, fmt.Errorf("failed to get configMap %s: %w", ac.Name, err)
 			}
-			result.AddConfigObject(&model.AppConfig{ConfigMap: &cm, MountPath: mountPath})
+			result.AddConfigObject(&model.AppConfig{ConfigMap: &cm, MountPath: mountPath, Key: ac.Key})
 		}
 	}
 
@@ -67,7 +67,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.Back
 			if err := r.Get(ctx, types.NamespacedName{Name: ef.Name, Namespace: ns}, &cm); err != nil {
 				return nil, fmt.Errorf("failed to get ConfigMap %s: %w", ef.Name, err)
 			}
-			result.AddConfigObject(&model.ConfigMapFiles{ConfigMap: &cm, MountPath: mountPath})
+			result.AddConfigObject(&model.ConfigMapFiles{ConfigMap: &cm, MountPath: mountPath, Key: ef.Key})
 		}
 	}
 
@@ -79,7 +79,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.Back
 			if err := r.Get(ctx, types.NamespacedName{Name: ef.Name, Namespace: ns}, &sec); err != nil {
 				return nil, fmt.Errorf("failed to get Secret %s: %w", ef.Name, err)
 			}
-			result.AddConfigObject(&model.SecretFiles{Secret: &sec, MountPath: mountPath})
+			result.AddConfigObject(&model.SecretFiles{Secret: &sec, MountPath: mountPath, Key: ef.Key})
 		}
 	}
 
@@ -90,7 +90,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.Back
 			if err := r.Get(ctx, types.NamespacedName{Name: ee.Name, Namespace: ns}, &cm); err != nil {
 				return nil, fmt.Errorf("failed to get configMap %s: %w", ee.Name, err)
 			}
-			result.AddConfigObject(&model.ConfigMapEnvs{ConfigMap: &cm})
+			result.AddConfigObject(&model.ConfigMapEnvs{ConfigMap: &cm, Key: ee.Key})
 		}
 	}
 
@@ -101,7 +101,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.Back
 			if err := r.Get(ctx, types.NamespacedName{Name: ee.Name, Namespace: ns}, &sec); err != nil {
 				return nil, fmt.Errorf("failed to get Secret %s: %w", ee.Name, err)
 			}
-			result.AddConfigObject(&model.SecretEnvs{Secret: &sec})
+			result.AddConfigObject(&model.SecretEnvs{Secret: &sec, Key: ee.Key})
 		}
 	}
 

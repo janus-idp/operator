@@ -34,6 +34,7 @@ func (f ConfigMapFilesFactory) newBackstageObject() BackstageObject {
 type ConfigMapFiles struct {
 	ConfigMap *corev1.ConfigMap
 	MountPath string
+	Key       string
 }
 
 func init() {
@@ -83,13 +84,12 @@ func (p *ConfigMapFiles) updateBackstagePod(pod *backstagePod) {
 	})
 
 	for file := range p.ConfigMap.Data {
-
-		pod.appendContainerVolumeMount(corev1.VolumeMount{
-			Name:      volName,
-			MountPath: filepath.Join(p.MountPath, file),
-			SubPath:   file,
-		})
-
+		if p.Key == "" || (p.Key == file) {
+			pod.appendContainerVolumeMount(corev1.VolumeMount{
+				Name:      volName,
+				MountPath: filepath.Join(p.MountPath, file),
+				SubPath:   file,
+			})
+		}
 	}
-
 }

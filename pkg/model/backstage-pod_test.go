@@ -56,7 +56,7 @@ func TestIfBasckstagePodPointsToDeployment(t *testing.T) {
 
 	assert.Equal(t, 0, len(testPod.parent.Spec.Template.Spec.Containers[0].Env))
 	assert.Equal(t, 0, len(bc.Env))
-	testPod.setContainerEnvVars([]bs.Env{{Name: "myKey", Value: "myValue"}})
+	testPod.addContainerEnvVar(bs.Env{Name: "myKey", Value: "myValue"})
 	assert.Equal(t, 1, len(bc.Env))
 	assert.Equal(t, "myKey", bc.Env[0].Name)
 	assert.Equal(t, 1, len(testPod.parent.Spec.Template.Spec.Containers[0].Env))

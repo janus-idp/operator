@@ -21,3 +21,7 @@ import (
 func TestImagePullSecrets(t *testing.T) {
 
 }
+
+func TestKeyForExtFiles(t *testing.T) {
+
+}

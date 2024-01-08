@@ -29,6 +29,7 @@ func (f ConfigMapEnvsFactory) newBackstageObject() BackstageObject {
 
 type ConfigMapEnvs struct {
 	ConfigMap *corev1.ConfigMap
+	Key       string
 }
 
 func init() {
@@ -63,9 +64,17 @@ func (p *ConfigMapEnvs) validate(model *RuntimeModel) error {
 
 // implementation of BackstagePodContributor interface
 func (p *ConfigMapEnvs) updateBackstagePod(pod *backstagePod) {
+	if p.Key == "" || (p.Key == p.ConfigMap.Name) {
+		pod.addContainerEnvFrom(corev1.EnvFromSource{
+			ConfigMapRef: &corev1.ConfigMapEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: p.ConfigMap.Name}}})
+	}
 
-	pod.addContainerEnvFrom(corev1.EnvFromSource{
-		ConfigMapRef: &corev1.ConfigMapEnvSource{
-			LocalObjectReference: corev1.LocalObjectReference{Name: p.ConfigMap.Name}}})
-
+	if p.Key == "" {
+		pod.addContainerEnvFrom(corev1.EnvFromSource{
+			ConfigMapRef: &corev1.ConfigMapEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: p.ConfigMap.Name}}})
+	} else if data, ok := p.ConfigMap.Data[p.Key]; ok {
+		pod.addContainerEnvVar(v1alpha1.Env{Name: p.Key, Value: data})
+	}
 }

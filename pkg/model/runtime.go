@@ -66,7 +66,7 @@ func registerConfig(key string, factory ObjectFactory, need needType) {
 	runtimeConfig = append(runtimeConfig, ObjectConfig{Key: key, ObjectFactory: factory, need: need})
 }
 
-// Main loop for configuring and making the array of objects to reconsile
+// InitObjects performs a main loop for configuring and making the array of objects to reconsile
 func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backstageSpec *DetailedBackstageSpec, ownsRuntime bool, isOpenshift bool) (*RuntimeModel, error) {
 
 	// 3 phases of Backstage configuration:
@@ -170,7 +170,9 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 		backstagePod.setImagePullSecrets(backstageSpec.Application.ImagePullSecrets)
 		backstagePod.setImage(backstageSpec.Application.Image)
 		if backstageSpec.Application.ExtraEnvs != nil {
-			backstagePod.setContainerEnvVars(backstageSpec.Application.ExtraEnvs.Envs)
+			for _, e := range backstageSpec.Application.ExtraEnvs.Envs {
+				backstagePod.addContainerEnvVar(e)
+			}
 		}
 	}
 	// contribute to Backstage/LocalDb config

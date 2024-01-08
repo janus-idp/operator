@@ -80,14 +80,12 @@ func (p backstagePod) addContainerEnvFrom(envFrom corev1.EnvFromSource) {
 	p.container.EnvFrom = append(p.container.EnvFrom, envFrom)
 }
 
-// sets environment variables to the Backstage Container
-func (p backstagePod) setContainerEnvVars(envs []bs.Env) {
-	for _, env := range envs {
-		p.container.Env = append(p.container.Env, corev1.EnvVar{
-			Name:  env.Name,
-			Value: env.Value,
-		})
-	}
+// adds environment variables to the Backstage Container
+func (p backstagePod) addContainerEnvVar(env bs.Env) {
+	p.container.Env = append(p.container.Env, corev1.EnvVar{
+		Name:  env.Name,
+		Value: env.Value,
+	})
 }
 
 // sets pullSecret for Backstage Pod
