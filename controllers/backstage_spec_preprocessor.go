@@ -114,8 +114,6 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.Back
 			//if err := r.Get(ctx, types.NamespacedName{Name: authSecret, Namespace: ns}, &sec); err != nil {
 			//	return nil, fmt.Errorf("failed to get DB AuthSecret %s: %w", authSecret, err)
 			//}
-		} else if !*bsSpec.Database.EnableLocalDb {
-			return nil, fmt.Errorf("database configuration is invalid. existingDbSerect is required if enableLocalDb is false")
 		}
 
 	}
