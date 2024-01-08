@@ -31,9 +31,9 @@ jobs:
       matrix:
         # See ../Makefile for value of single arch PLATFORM used with targets docker-build and podman-build
         # NOTE: to build multiple arches, see ../Makefile and use target docker-buildx with PLATFORMS
-        # only run this with podman since we have docker builds in pr-docker-build.yaml
+        # only run this with docker since we have podman builds in pr-docker-build.yaml
         # TODO: do we really even need this check?
-        engine: [podman]
+        engine: [docker]
     steps:
       - uses: actions/checkout@v3
       - name: Setup Go

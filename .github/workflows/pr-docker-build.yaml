@@ -97,7 +97,7 @@ jobs:
           curl -sSLo /tmp/opm https://github.com/operator-framework/operator-registry/releases/download/v1.33.0/${OS}-${ARCH}-opm && chmod +x /tmp/opm
 
           # build 3 container images with a 14d expiry
-          CONTAINER_ENGINE=${CONTAINER_ENGINE} VERSION=0.0.1-${VERSION} make release-build
+          CONTAINER_ENGINE=${CONTAINER_ENGINE} VERSION=0.0.1-${VERSION} make lint release-build
 
           # now copy images from local cache to quay, using pr-123-f00cafe and pr-123 tags
           for image in operator operator-bundle operator-catalog; do
