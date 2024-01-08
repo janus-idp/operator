@@ -84,9 +84,8 @@ jobs:
 
       - name: Build and push operator, bundle, and catalog images
         run: |
-          # install skopeo
-          sudo apt-get -y update
-          sudo apt-get -y install skopeo
+          # install skopeo, podman
+          sudo apt-get -y update; sudo apt-get -y install skopeo podman
 
           export CONTAINER_ENGINE=podman 
           export VERSION=pr-${{ github.event.number }}-${{ env.SHORT_SHA }} 
