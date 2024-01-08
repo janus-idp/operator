@@ -88,6 +88,14 @@ func (p backstagePod) addContainerEnvVar(env bs.Env) {
 	})
 }
 
+// adds environment from source to the Backstage Container
+func (p backstagePod) addContainerEnvVarSource(name string, envVarSource *corev1.EnvVarSource) {
+	p.container.Env = append(p.container.Env, corev1.EnvVar{
+		Name:      name,
+		ValueFrom: envVarSource,
+	})
+}
+
 // sets pullSecret for Backstage Pod
 func (p backstagePod) setImagePullSecrets(pullSecrets []string) {
 	for _, ps := range pullSecrets {

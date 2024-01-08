@@ -68,9 +68,14 @@ func (p *SecretEnvs) updateBackstagePod(pod *backstagePod) {
 		pod.addContainerEnvFrom(corev1.EnvFromSource{
 			SecretRef: &corev1.SecretEnvSource{
 				LocalObjectReference: corev1.LocalObjectReference{Name: p.Secret.Name}}})
-	} else if data, ok := p.Secret.Data[p.Key]; ok {
-		pod.addContainerEnvVar(v1alpha1.Env{Name: p.Key, Value: string(data)})
-	} else if data, ok := p.Secret.StringData[p.Key]; ok {
-		pod.addContainerEnvVar(v1alpha1.Env{Name: p.Key, Value: data})
+	} else if _, ok := p.Secret.Data[p.Key]; ok {
+		pod.addContainerEnvVarSource(p.Key, &corev1.EnvVarSource{
+			SecretKeyRef: &corev1.SecretKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: p.Secret.Name,
+				},
+				Key: p.Key,
+			},
+		})
 	}
 }

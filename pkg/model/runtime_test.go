@@ -79,8 +79,6 @@ func TestIfEmptyObjectIsValid(t *testing.T) {
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 	assert.NoError(t, err)
 
-	for _, obj := range model.Objects {
-		t.Log(">>>>>>>>" + fmt.Sprintf("%v", obj.EmptyObject().GetObjectKind()))
-	}
+	assert.Equal(t, len(model.Objects), 2)
 
 }

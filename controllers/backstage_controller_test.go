@@ -1159,46 +1159,27 @@ spec:
 					envVar, ok = findEnvVar(mainCont.Env, "MY_ENV_VAR_2")
 					Expect(ok).To(BeTrue(), "No env var with name MY_ENV_VAR_2 in main container")
 					Expect(envVar.Value).Should(Equal("value 20"))
-
-					// I believe that's how Kubernetes process that (there are no dedicated logic in the Operator, it adds everything):
-					// "
-					// List of sources to populate environment variables in the container.
-					// The keys defined within a source must be a C_IDENTIFIER. All invalid keys
-					// will be reported as an event when the container is starting. When a key exists in multiple
-					// sources, the value associated with the last source will take precedence.
-					// Values defined by an Env with a duplicate key will take precedence.
-					// Cannot be updated.
-					// +optional
-					// EnvFrom []EnvFromSource `json:"envFrom,omitempty" protobuf:"bytes,19,rep,name=envFrom"`
-					// "
-					// so it seems like "Values defined by an Env with a duplicate key will take precedence."
 					envVar, ok = findEnvVar(mainCont.Env, "MY_ENV_VAR_2_FROM_CM_SINGLE")
-					Expect(envVar.Value).ShouldNot(BeEmpty())
-					Expect(envVar.ValueFrom).Should(BeNil())
-
-					//Expect(ok).To(BeTrue(), "No env var with name MY_ENV_VAR_2_FROM_CM_SINGLE in main container")
-					//Expect(envVar.Value).Should(BeEmpty())
-					//Expect(envVar.ValueFrom).ShouldNot(BeNil())
-					//Expect(envVar.ValueFrom.FieldRef).Should(BeNil())
-					//Expect(envVar.ValueFrom.ResourceFieldRef).Should(BeNil())
-					//Expect(envVar.ValueFrom.SecretKeyRef).Should(BeNil())
-					//Expect(envVar.ValueFrom.ConfigMapKeyRef).ShouldNot(BeNil())
-					//Expect(envVar.ValueFrom.ConfigMapKeyRef.Key).Should(Equal("MY_ENV_VAR_2_FROM_CM_SINGLE"))
-					//Expect(envVar.ValueFrom.ConfigMapKeyRef.LocalObjectReference.Name).Should(Equal(envConfig1CmNameSingle))
-					//
+					Expect(ok).To(BeTrue(), "No env var with name MY_ENV_VAR_2_FROM_CM_SINGLE in main container")
+					Expect(envVar.Value).Should(BeEmpty())
+					Expect(envVar.ValueFrom).ShouldNot(BeNil())
+					Expect(envVar.ValueFrom.FieldRef).Should(BeNil())
+					Expect(envVar.ValueFrom.ResourceFieldRef).Should(BeNil())
+					Expect(envVar.ValueFrom.SecretKeyRef).Should(BeNil())
+					Expect(envVar.ValueFrom.ConfigMapKeyRef).ShouldNot(BeNil())
+					Expect(envVar.ValueFrom.ConfigMapKeyRef.Key).Should(Equal("MY_ENV_VAR_2_FROM_CM_SINGLE"))
+					Expect(envVar.ValueFrom.ConfigMapKeyRef.LocalObjectReference.Name).Should(Equal(envConfig1CmNameSingle))
 
 					envVar, ok = findEnvVar(mainCont.Env, "MY_ENV_VAR_2_FROM_SECRET_SINGLE")
-					Expect(envVar.Value).ShouldNot(BeEmpty())
-					Expect(envVar.ValueFrom).Should(BeNil())
-					//Expect(ok).To(BeTrue(), "No env var with name MY_ENV_VAR_2_FROM_SECRET_SINGLE in main container")
-					//Expect(envVar.Value).Should(BeEmpty())
-					//Expect(envVar.ValueFrom).ShouldNot(BeNil())
-					//Expect(envVar.ValueFrom.FieldRef).Should(BeNil())
-					//Expect(envVar.ValueFrom.ResourceFieldRef).Should(BeNil())
-					//Expect(envVar.ValueFrom.ConfigMapKeyRef).Should(BeNil())
-					//Expect(envVar.ValueFrom.SecretKeyRef).ShouldNot(BeNil())
-					//Expect(envVar.ValueFrom.SecretKeyRef.Key).Should(Equal("MY_ENV_VAR_2_FROM_SECRET_SINGLE"))
-					//Expect(envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name).Should(Equal(envConfig2SecretNameSingle))
+					Expect(ok).To(BeTrue(), "No env var with name MY_ENV_VAR_2_FROM_SECRET_SINGLE in main container")
+					Expect(envVar.Value).Should(BeEmpty())
+					Expect(envVar.ValueFrom).ShouldNot(BeNil())
+					Expect(envVar.ValueFrom.FieldRef).Should(BeNil())
+					Expect(envVar.ValueFrom.ResourceFieldRef).Should(BeNil())
+					Expect(envVar.ValueFrom.ConfigMapKeyRef).Should(BeNil())
+					Expect(envVar.ValueFrom.SecretKeyRef).ShouldNot(BeNil())
+					Expect(envVar.ValueFrom.SecretKeyRef.Key).Should(Equal("MY_ENV_VAR_2_FROM_SECRET_SINGLE"))
+					Expect(envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name).Should(Equal(envConfig2SecretNameSingle))
 				})
 				By(fmt.Sprintf("Checking EnvFrom in the Backstage Deployment - container: %q", mainCont.Name), func() {
 					Expect(len(mainCont.EnvFrom)).To(BeNumerically(">=", 2),

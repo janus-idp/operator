@@ -74,7 +74,14 @@ func (p *ConfigMapEnvs) updateBackstagePod(pod *backstagePod) {
 		pod.addContainerEnvFrom(corev1.EnvFromSource{
 			ConfigMapRef: &corev1.ConfigMapEnvSource{
 				LocalObjectReference: corev1.LocalObjectReference{Name: p.ConfigMap.Name}}})
-	} else if data, ok := p.ConfigMap.Data[p.Key]; ok {
-		pod.addContainerEnvVar(v1alpha1.Env{Name: p.Key, Value: data})
+	} else if _, ok := p.ConfigMap.Data[p.Key]; ok {
+		pod.addContainerEnvVarSource(p.Key, &corev1.EnvVarSource{
+			ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: p.ConfigMap.Name,
+				},
+				Key: p.Key,
+			},
+		})
 	}
 }
