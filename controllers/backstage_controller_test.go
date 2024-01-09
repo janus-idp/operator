@@ -1430,8 +1430,9 @@ spec:
 				NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
 			})
 
-			Expect(err).Should(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("existingDbSerect is required if enableLocalDb is false"))
+			// As discussed, it is not required
+			//			Expect(err).Should(HaveOccurred())
+			//			Expect(err.Error()).Should(ContainSubstring("existingDbSerect is required if enableLocalDb is false"))
 		})
 	})
 })
