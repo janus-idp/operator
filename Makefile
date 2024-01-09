@@ -161,11 +161,12 @@ operator-push: ## Push IMG image to registry
 PLATFORMS ?= linux/amd64
 .PHONY: docker-buildx
 docker-buildx: test ## Build and push docker image for the manager for cross-platform support
+	# see https://docs.docker.com/build/building/multi-platform/#cross-compilation for BUILDPLATFORM definition
 	# copy existing docker/Dockerfile and insert --platform=${BUILDPLATFORM} into docker/Dockerfile.cross, and preserve the original Dockerfile
 	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' docker/Dockerfile > docker/Dockerfile.cross
 	- docker buildx create --name project-v3-builder
 	docker buildx use project-v3-builder
-	- docker buildx build --push --platform=$(PLATFORMS) --tag $(IMG) . -f docker/Dockerfile.cross  --label $(LABEL)
+	- docker buildx build --push --platform $(PLATFORMS) --tag $(IMG) . -f docker/Dockerfile.cross  --label $(LABEL)
 	- docker buildx rm project-v3-builder
 	rm docker/Dockerfile.cross
 
