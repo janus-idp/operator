@@ -16,8 +16,7 @@ name: Next Docker Build operator, bundle, and catalog images
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -49,6 +48,8 @@ jobs:
         run: |
           SHORT_SHA=$(git rev-parse --short HEAD)
           echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
+          BASE_VERSION=$(grep -E "^VERSION \?=" Makefile | sed -r -e "s/.+= //") # 0.0.1
+          echo "BASE_VERSION=$BASE_VERSION" >> $GITHUB_ENV
 
       - name: Login to quay.io
         uses: docker/login-action@v2
@@ -66,7 +67,7 @@ jobs:
           sudo apt-get -y update; sudo apt-get -y install skopeo podman
 
           export CONTAINER_ENGINE=podman 
-          export VERSION=next-${{ env.SHORT_SHA }} 
+          export VERSION=${{ env.BASE_VERSION }}-next-${{ env.SHORT_SHA }}
 
           set -ex
 
@@ -75,16 +76,11 @@ jobs:
           curl -sSLo /tmp/opm https://github.com/operator-framework/operator-registry/releases/download/v1.33.0/${OS}-${ARCH}-opm && chmod +x /tmp/opm
 
           # build 3 container images with a 14d expiry
-          CONTAINER_ENGINE=${CONTAINER_ENGINE} VERSION=0.0.1-${VERSION} make release-build
+          CONTAINER_ENGINE=${CONTAINER_ENGINE} VERSION=${VERSION} make release-build
 
-          # now copy images from local cache to quay, using pr-123-f00cafe and pr-123 tags
+          # now copy images from local cache to quay, using 0.0.1-next-f00cafe, 0.0.1-next, and next tags
           for image in operator operator-bundle operator-catalog; do
-            skopeo --insecure-policy copy --all docker://quay.io/janus/${image}:0.0.1-${VERSION} docker://quay.io/janus/${image}:${VERSION}
-            skopeo --insecure-policy copy --all docker://quay.io/janus/${image}:0.0.1-${VERSION} docker://quay.io/janus/${image}:${VERSION%-*}
+            skopeo --insecure-policy copy --all docker://quay.io/janus/${image}:${VERSION} docker://quay.io/janus/${image}:${VERSION}
+            skopeo --insecure-policy copy --all docker://quay.io/janus/${image}:${VERSION} docker://quay.io/janus/${image}:${VERSION%-*}
+            skopeo --insecure-policy copy --all docker://quay.io/janus/${image}:${VERSION} docker://quay.io/janus/${image}:next
           done
-
-      # TODO do we still need this step? verify we can install from the catalog source and if so, this can be deleted
-      # - name: Adjust operator image and tag in CSV
-      #   run: |
-      #     sed -r -e "s#(image: +)quay.io/.+operator.+#\1quay.io/janus/operator:next-${{ env.SHORT_SHA }}#g" -i bundle/manifests/backstage-operator.clusterserviceversion.yaml
-      #     echo "Operator in CSV changed to: quay.io/janus/operator:next-${{ env.SHORT_SHA }}"
