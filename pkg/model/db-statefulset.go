@@ -16,6 +16,7 @@ package model
 
 import (
 	"fmt"
+	"os"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -24,6 +25,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const PostgresImageEnvVar = "RELATED_IMAGE_postgresql"
 
 type DbStatefulSetFactory struct{}
 
@@ -42,6 +45,10 @@ func init() {
 
 // implementation of BackstageObject interface
 func (b *DbStatefulSet) Object() client.Object {
+	// override image with env var
+	if os.Getenv(PostgresImageEnvVar) != "" {
+		b.container().Image = os.Getenv(PostgresImageEnvVar)
+	}
 	return b.statefulSet
 }
 
@@ -91,8 +98,8 @@ func (b *DbStatefulSet) setSecretNameEnvFrom(envFrom corev1.EnvFromSource) {
 }
 
 // returns DB container
-func (b *DbStatefulSet) container() corev1.Container {
-	return b.podSpec().Containers[0]
+func (b *DbStatefulSet) container() *corev1.Container {
+	return &b.podSpec().Containers[0]
 }
 
 // returns DB pod

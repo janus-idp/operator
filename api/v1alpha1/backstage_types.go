@@ -22,8 +22,6 @@ import (
 const (
 	RuntimeConditionRunning string = "RuntimeRunning"
 	RuntimeConditionSynced  string = "RuntimeSyncedWithConfig"
-	//EnvPostGresImage        string = "RELATED_IMAGE_postgresql"
-	//EnvBackstageImage       string = "RELATED_IMAGE_backstage"
 )
 
 // BackstageSpec defines the desired state of Backstage
@@ -262,9 +260,5 @@ func init() {
 }
 
 func (s BackstageSpec) LocalDbEnabled() bool {
-	//if s.Database.EnableLocalDb == nil {
-	//	return true
-	//}
-	//return *s.Database.EnableLocalDb
 	return pointer.BoolDeref(s.Database.EnableLocalDb, true)
 }

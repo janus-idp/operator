@@ -16,6 +16,7 @@ package model
 
 import (
 	"fmt"
+	"os"
 
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 
@@ -23,6 +24,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const BackstageImageEnvVar = "RELATED_IMAGE_backstage"
 
 type BackstageDeploymentFactory struct{}
 
@@ -41,12 +44,15 @@ func init() {
 
 // implementation of BackstageObject interface
 func (b *BackstageDeployment) Object() client.Object {
+	// override image with env var
+	if os.Getenv(BackstageImageEnvVar) != "" {
+		b.pod.container.Image = os.Getenv(BackstageImageEnvVar)
+	}
 	return b.deployment
 }
 
 // implementation of BackstageObject interface
 func (b *BackstageDeployment) EmptyObject() client.Object {
-
 	return &appsv1.Deployment{}
 }
 

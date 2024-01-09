@@ -170,16 +170,6 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 // SetupWithManager sets up the controller with the Manager.
 func (r *BackstageReconciler) SetupWithManager(mgr ctrl.Manager, log logr.Logger) error {
 
-	//if len(r.PsqlImage) == 0 {
-	//	r.PsqlImage = "quay.io/fedora/postgresql-15:latest"
-	//	log.Info("Enviroment variable is not set, default is used", bs.EnvPostGresImage, r.PsqlImage)
-	//}
-	//
-	//if len(r.BackstageImage) == 0 {
-	//	r.BackstageImage = "quay.io/janus-idp/backstage-showcase:next"
-	//	log.Info("Enviroment variable is not set, default is used", bs.EnvBackstageImage, r.BackstageImage)
-	//}
-
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&bs.Backstage{})
 
