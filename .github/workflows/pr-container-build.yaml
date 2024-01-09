@@ -45,8 +45,8 @@ jobs:
         run: |
           echo "✓"
 
-  pr-docker-build:
-    name: PR Docker Build
+  pr-build:
+    name: PR Build
     runs-on: ubuntu-latest
     needs: authorize
     permissions:
