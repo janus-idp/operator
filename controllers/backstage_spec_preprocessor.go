@@ -106,17 +106,17 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.Back
 	}
 
 	// PreProcess Database
-	if &bsSpec.Database != nil {
-
-		if authSecret := bsSpec.Database.AuthSecretName; authSecret != "" {
-			//TODO do we need this kind of check?
-			//sec := corev1.Secret{}
-			//if err := r.Get(ctx, types.NamespacedName{Name: authSecret, Namespace: ns}, &sec); err != nil {
-			//	return nil, fmt.Errorf("failed to get DB AuthSecret %s: %w", authSecret, err)
-			//}
-		}
-
-	}
+	//if bsSpec.Database != nil {
+	//
+	//	if authSecret := bsSpec.Database.AuthSecretName; authSecret != "" {
+	//		//TODO do we need this kind of check?
+	//		//sec := corev1.Secret{}
+	//		//if err := r.Get(ctx, types.NamespacedName{Name: authSecret, Namespace: ns}, &sec); err != nil {
+	//		//	return nil, fmt.Errorf("failed to get DB AuthSecret %s: %w", authSecret, err)
+	//		//}
+	//	}
+	//
+	//}
 
 	// TODO PreProcess Network
 	return result, nil

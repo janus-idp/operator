@@ -743,9 +743,6 @@ spec:
 										Equal("/opt/app-root/src/default.app-config.yaml"),
 									))
 									Expect(mainCont.Args[3]).To(Not(Equal(mainCont.Args[5])))
-								} else {
-									// TODO Key
-									//Expect(mainCont.Args[3]).To(Equal(fmt.Sprintf("%s/%s", expectedMountPath, key)))
 								}
 							})
 
@@ -1431,7 +1428,7 @@ spec:
 			})
 
 			// As discussed, it is not required
-			//			Expect(err).Should(HaveOccurred())
+			Expect(err).ShouldNot(HaveOccurred())
 			//			Expect(err.Error()).Should(ContainSubstring("existingDbSerect is required if enableLocalDb is false"))
 		})
 	})
