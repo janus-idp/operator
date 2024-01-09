@@ -126,7 +126,7 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	//TODO: it is just a placeholder for the time
-	r.setRunningStatus(ctx, &backstage, req.Namespace)
+	r.setRunningStatus(&backstage)
 	r.setSyncStatus(&backstage)
 	err = r.Status().Update(ctx, &backstage)
 	if err != nil {

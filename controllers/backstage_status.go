@@ -15,15 +15,13 @@
 package controller
 
 import (
-	"context"
-
 	bs "janus-idp.io/backstage-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // sets the RuntimeRunning condition
-func (r *BackstageReconciler) setRunningStatus(ctx context.Context, backstage *bs.Backstage, ns string) {
+func (r *BackstageReconciler) setRunningStatus(backstage *bs.Backstage) {
 
 	meta.SetStatusCondition(&backstage.Status.Conditions, v1.Condition{
 		Type:               bs.RuntimeConditionRunning,
