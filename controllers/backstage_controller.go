@@ -52,6 +52,10 @@ type BackstageReconciler struct {
 	Namespace string
 
 	IsOpenShift bool
+
+	PsqlImage string
+
+	BackstageImage string
 }
 
 //+kubebuilder:rbac:groups=janus-idp.io,resources=backstages,verbs=get;list;watch;create;update;patch;delete
@@ -60,7 +64,7 @@ type BackstageReconciler struct {
 //+kubebuilder:rbac:groups="",resources=configmaps;secrets;persistentvolumes;persistentvolumeclaims;services,verbs=get;watch;create;update;list;delete
 //+kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;watch;create;update;list;delete
 //+kubebuilder:rbac:groups="apps",resources=statefulsets,verbs=get;watch;create;update;list;delete
-//+kubebuilder:rbac:groups="route.openshift.io",resources=routes,verbs=get;watch;create;update;list;delete
+//+kubebuilder:rbac:groups="route.openshift.io",resources=routes;routes/custom-host,verbs=get;watch;create;update;list;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -163,11 +167,18 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *BackstageReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *BackstageReconciler) SetupWithManager(mgr ctrl.Manager, log logr.Logger) error {
 
-	//if err := initDefaults(); err != nil {
-	//	return err
-	//}
+	if len(r.PsqlImage) == 0 {
+		r.PsqlImage = "quay.io/fedora/postgresql-15:latest"
+		log.Info("Enviroment variable is not set, default is used", bs.EnvPostGresImage, r.PsqlImage)
+	}
+
+	if len(r.BackstageImage) == 0 {
+		r.BackstageImage = "quay.io/janus-idp/backstage-showcase:next"
+		log.Info("Enviroment variable is not set, default is used", bs.EnvBackstageImage, r.BackstageImage)
+	}
+
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&bs.Backstage{})
 

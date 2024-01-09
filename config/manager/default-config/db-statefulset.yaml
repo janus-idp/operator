@@ -26,10 +26,11 @@ spec:
               value: /var/lib/pgsql/data
             - name: PGDATA
               value: /var/lib/pgsql/data/userdata
-#          envFrom:
+          envFrom:
 #            - secretRef:
-#                name: postgres-secrets
-          image: quay.io/fedora/postgresql-15:latest
+#                name: <POSTGRESQL_SECRET>  # will be replaced with 'backstage-psql-secrets-<cr-name>'
+#          image: quay.io/fedora/postgresql-15:latest
+          image: <RELATED_IMAGE_postgresql> # will be replaced with the actual image
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsNonRoot: true

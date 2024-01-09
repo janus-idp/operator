@@ -12,7 +12,18 @@ data:
             keys:
               # This is a default value, which you should change by providing your own app-config
               - secret: "pl4s3Ch4ng3M3"
-  db-service-hl.yaml: |-
+  db-secret.yaml: |
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: # placeholder for 'backstage-psql-secret-<cr-name>'
+    stringData:
+      "POSTGRES_PASSWORD": "rl4s3Fh4ng3M4" # default value, change to your own value
+      "POSTGRES_PORT": "5432"
+      "POSTGRES_USER": "postgres"
+      "POSTGRESQL_ADMIN_PASSWORD": "rl4s3Fh4ng3M4" # default value, change to your own value
+      "POSTGRES_HOST": "" # set to your Postgres DB host. If the local DB is deployed, set to 'backstage-psql-<cr-name>'
+  db-service-hl.yaml: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -33,7 +44,7 @@ data:
         janus-idp.io/app:  backstage-psql-cr1 # placeholder for 'backstage-psql-<cr-name>'
       ports:
         - port: 5432
-  db-statefulset.yaml: |-
+  db-statefulset.yaml: |
     apiVersion: apps/v1
     kind: StatefulSet
     metadata:
@@ -64,8 +75,8 @@ data:
                   value: /var/lib/pgsql/data/userdata
               envFrom:
                 - secretRef:
-                    name: postgres-secrets
-              image: quay.io/fedora/postgresql-15:latest
+                    name: <POSTGRESQL_SECRET>  # will be replaced with 'backstage-psql-secrets-<cr-name>'
+              image: <RELATED_IMAGE_postgresql> # will be replaced with the actual image
               imagePullPolicy: IfNotPresent
               securityContext:
                 runAsNonRoot: true
@@ -177,7 +188,7 @@ data:
               env:
                 - name: NPM_CONFIG_USERCONFIG
                   value: /opt/app-root/src/.npmrc.dynamic-plugins
-              image: 'quay.io/janus-idp/backstage-showcase:next'
+              image: <RELATED_IMAGE_backstage> # will be replaced with the actual image quay.io/janus-idp/backstage-showcase:next
               imagePullPolicy: IfNotPresent
               name: install-dynamic-plugins
               volumeMounts:
@@ -191,7 +202,7 @@ data:
 
           containers:
             - name: backstage-backend
-              image: quay.io/janus-idp/backstage-showcase:next
+              image: <RELATED_IMAGE_backstage> # will be replaced with the actual image quay.io/janus-idp/backstage-showcase:next
               imagePullPolicy: IfNotPresent
               args:
                 - "--config"
@@ -224,7 +235,7 @@ data:
                   value: "7007"
               envFrom:
                 - secretRef:
-                    name: postgres-secrets
+                    name: <POSTGRESQL_SECRET>  # will be replaced with 'backstage-psql-secrets-<cr-name>'
               #            - secretRef:
               #                name: backstage-secrets
               volumeMounts:

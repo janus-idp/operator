@@ -5,7 +5,8 @@
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
 VERSION ?= 0.0.1
 
-CONTAINER_ENGINE ?= docker  #Using docker or podman to build and push images
+# Using docker or podman to build and push images
+CONTAINER_ENGINE ?= docker
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
@@ -31,7 +32,8 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 # janus-idp.io/backstage-operator-bundle:$VERSION and janus-idp.io/backstage-operator-catalog:$VERSION.
-IMAGE_TAG_BASE ?= quay.io/rhdh/backstage-operator
+# TODO use janus-idp/operator* images instead of janus/operator*
+IMAGE_TAG_BASE ?= quay.io/janus/operator
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
@@ -108,6 +110,7 @@ fmt: goimports fmt_license ## Format the code using goimports
 
 fmt_license: addlicense ## Ensure the license header is set on all files
 	$(ADDLICENSE) -v -f license_header.txt $$(find . -not -path '*/\.*' -name '*.go')
+	$(ADDLICENSE) -v -f license_header.txt $$(find . -name '*ockerfile')
 
 .PHONY: lint
 lint: golangci-lint ## Run the linter on the codebase
@@ -158,7 +161,8 @@ podman-push: ## Push docker image with the manager using podman.
 # - have enable BuildKit, More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 # - be able to push the image for your registry (i.e. if you do not inform a valid value via IMG=<myregistry/image:<tag>> than the export will fail)
 # To properly provided solutions that supports more than one platform you should use this option.
-PLATFORMS ?= linux/arm64,linux/amd64
+# If more arches are needed, use comma-separated list: linux/amd64,linux/arm64,linux390x,linux/ppc64le
+PLATFORMS ?= linux/amd64
 .PHONY: docker-buildx
 docker-buildx: test ## Build and push docker image for the manager for cross-platform support
 	# copy existing docker/Dockerfile and insert --platform=${BUILDPLATFORM} into docker/Dockerfile.cross, and preserve the original Dockerfile
@@ -210,7 +214,7 @@ ADDLICENSE ?= $(LOCALBIN)/addlicense
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v3.8.7
 CONTROLLER_TOOLS_VERSION ?= v0.11.3
-GOLANGCI_LINT_VERSION ?= v1.49.0
+GOLANGCI_LINT_VERSION ?= v1.55.2
 GOIMPORTS_VERSION ?= v0.15.0
 ADDLICENSE_VERSION ?= v1.1.1
 
@@ -251,10 +255,16 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle $(BUNDLE_GEN_FLAGS)
 	operator-sdk bundle validate ./bundle
+	mv -f bundle.Dockerfile docker/bundle.Dockerfile
+	$(MAKE) fmt_license
 
+## to update the CSV with a new tagged version of the operator:
+## yq '.spec.install.spec.deployments[0].spec.template.spec.containers[1].image|="quay.io/janus/backstage-operator:some-other-tag"' bundle/manifests/backstage-operator.clusterserviceversion.yaml
+## or 
+## sed -r -e "s#(image: +)quay.io/.+operator.+#\1quay.io/janus/backstage-operator:some-other-tag#g" -i bundle/manifests/backstage-operator.clusterserviceversion.yaml
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
-	$(CONTAINER_ENGINE) build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+	$(CONTAINER_ENGINE) build -f docker/bundle.Dockerfile -t $(BUNDLE_IMG) .
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
@@ -269,7 +279,7 @@ ifeq (,$(shell which opm 2>/dev/null))
 	set -e ;\
 	mkdir -p $(dir $(OPM)) ;\
 	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
-	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.23.0/$${OS}-$${ARCH}-opm ;\
+	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.33.0/$${OS}-$${ARCH}-opm ;\
 	chmod +x $(OPM) ;\
 	}
 else
