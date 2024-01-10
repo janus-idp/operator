@@ -10,6 +10,9 @@ images:
 generatorOptions:
   disableNameSuffixHash: true
 
+  #- default-config/configmap-files.yaml
+  #- default-config/configmap-envs.yaml
+  #- default-config/seret-files.yaml
 configMapGenerator:
 - files:
   - default-config/deployment.yaml
@@ -19,11 +22,7 @@ configMapGenerator:
   - default-config/db-service.yaml
   - default-config/db-service-hl.yaml
   - default-config/db-secret.yaml
-  - default-config/backend-auth-configmap.yaml
   - default-config/dynamic-plugins.yaml
   - default-config/app-config.yaml
   - default-config/secret-envs.yaml
-  #- default-config/configmap-files.yaml
-  #- default-config/configmap-envs.yaml
-  #- default-config/seret-files.yaml
   name: default-config
