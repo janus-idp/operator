@@ -33,7 +33,7 @@ jobs:
         # NOTE: to build multiple arches, see ../Makefile and use target docker-buildx with PLATFORMS
         # only run this with docker since we have podman builds in pr-container-build.yaml
         # TODO: do we really even need this check?
-        engine: [docker]
+        engine: [docker, podman]
     steps:
       - uses: actions/checkout@v3
       - name: Setup Go
@@ -42,5 +42,4 @@ jobs:
           go-version-file: 'go.mod'
       - name: ${{ matrix.engine }} build
         run: |
-          export CONTAINER_ENGINE=${{ matrix.engine }}
-          make operator-build
+          CONTAINER_ENGINE=${{ matrix.engine }} make operator-build
