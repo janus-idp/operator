@@ -45,7 +45,7 @@ type RuntimeModel struct {
 	localDbService     *DbService
 	localDbSecret      *DbSecret
 
-	//route *BackstageRoute
+	route *BackstageRoute
 
 	Objects []BackstageObject
 }

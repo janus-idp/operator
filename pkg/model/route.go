@@ -49,15 +49,16 @@ func (b *BackstageRoute) EmptyObject() client.Object {
 func (b *BackstageRoute) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(b, backstageMeta, ownsRuntime)
 	b.route.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "route"))
-	b.route.Spec.To.Name = b.route.Name
+	//b.route.Spec.To.Name = b.route.Name
 }
 
 // implementation of BackstageObject interface
 func (b *BackstageRoute) addToModel(model *RuntimeModel) {
-	//model.route = b
+	model.route = b
 }
 
 // implementation of BackstageObject interface
 func (b *BackstageRoute) validate(model *RuntimeModel) error {
+	b.route.Spec.To.Name = model.backstageService.service.Name
 	return nil
 }

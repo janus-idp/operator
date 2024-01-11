@@ -60,7 +60,8 @@ type BackstageObject interface {
 	EmptyObject() client.Object
 	// (For some types Backstage objects), adds it to the model
 	addToModel(model *RuntimeModel)
-	// validates the object at the end of initialization (after 3 phases)
+	// at this stage all the information is updated
+	// set the final references validates the object at the end of initialization (after 3 phases)
 	validate(model *RuntimeModel) error
 }
 
