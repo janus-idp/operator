@@ -54,7 +54,7 @@ func (b *BackstageRoute) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRu
 
 // implementation of BackstageObject interface
 func (b *BackstageRoute) addToModel(model *RuntimeModel) {
-	// nothing to add
+	//model.route = b
 }
 
 // implementation of BackstageObject interface

@@ -34,20 +34,7 @@ const backstageAppLabel = "backstage.io/app"
 // Optional - mostly (but not only) Bckstage Pod configuration objects (AppConfig, ExtraConfig)
 // ForLocalDatabase - mandatory if EnabledLocalDb, ignored otherwise
 // ForOpenshift - if configured, used for Openshift deployment, ignored otherwise
-var runtimeConfig = []ObjectConfig{
-	//{Key: "deployment.yaml", ObjectFactory: BackstageDeploymentFactory{}, need: Mandatory},
-	//{Key: "service.yaml", ObjectFactory: BackstageServiceFactory{}, need: Mandatory},
-	//{Key: "db-statefulset.yaml", ObjectFactory: DbStatefulSetFactory{}, need: ForLocalDatabase},
-	//{Key: "db-service.yaml", ObjectFactory: DbServiceFactory{}, need: ForLocalDatabase},
-	//{Key: "db-secret.yaml", ObjectFactory: DbSecretFactory{}, need: ForLocalDatabase},
-	//{Key: "app-config.yaml", ObjectFactory: AppConfigFactory{}, need: Optional},
-	//{Key: "configmap-files.yaml", ObjectFactory: ConfigMapFilesFactory{}, need: Optional},
-	//{Key: "secret-files.yaml", ObjectFactory: SecretFilesFactory{}, need: Optional},
-	//{Key: "configmap-envs.yaml", ObjectFactory: ConfigMapEnvsFactory{}, need: Optional},
-	//{Key: "secret-envs.yaml", ObjectFactory: SecretEnvsFactory{}, need: Optional},
-	//{Key: "dynamic-plugins.yaml", ObjectFactory: DynamicPluginsFactory{}, need: Optional},
-	//{Key: "route.yaml", ObjectFactory: BackstageRouteFactory{}, need: ForOpenshift},
-}
+var runtimeConfig = []ObjectConfig{}
 
 // internal object model
 type RuntimeModel struct {
@@ -57,6 +44,8 @@ type RuntimeModel struct {
 	localDbStatefulSet *DbStatefulSet
 	localDbService     *DbService
 	localDbSecret      *DbSecret
+
+	//route *BackstageRoute
 
 	Objects []BackstageObject
 }
@@ -110,7 +99,7 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 		// continue if there is invalid or no configuration (default|raw) for Optional object
 		// TODO separate the case when configuration does not exist (intentionally) from invalid configuration
 		if overlayErr != nil || (!overlayExist && defaultErr != nil) {
-			if conf.need == Mandatory || (conf.need == ForLocalDatabase && *backstageSpec.Database.EnableLocalDb) {
+			if conf.need == Mandatory || (conf.need == ForLocalDatabase && backstageSpec.IsLocalDbEnabled()) {
 				return nil, errors.Join(defaultErr, overlayErr)
 			} else {
 				lg.V(1).Info("failed to read default value for optional key. Ignored \n", conf.Key, errors.Join(defaultErr, overlayErr))
@@ -119,12 +108,12 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 		}
 
 		// do not add if ForLocalDatabase and LocalDb is disabled
-		if !backstageSpec.LocalDbEnabled() && conf.need == ForLocalDatabase {
+		if !backstageSpec.IsLocalDbEnabled() && conf.need == ForLocalDatabase {
 			continue
 		}
 
 		// do not add if ForOpenshift and cluster is not Openshift
-		if !isOpenshift && conf.need == ForOpenshift {
+		if !isOpenshift && conf.need == ForOpenshift && backstageSpec.IsRouteEnabled() {
 			continue
 		}
 
@@ -137,7 +126,7 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 	}
 
 	// update local-db deployment with contributions
-	if backstageSpec.LocalDbEnabled() {
+	if backstageSpec.IsLocalDbEnabled() {
 		if model.localDbStatefulSet == nil {
 			return nil, fmt.Errorf("failed to identify Local DB StatefulSet by %s, it should not happen normally", "db-statefulset.yaml")
 		}
@@ -182,6 +171,17 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 			dbc.updateLocalDbPod(model)
 		}
 	}
+
+	//TODO Network
+	//if Route disabled remove it from the model
+
+	//if backstageSpec.Application != nil && backstageSpec.Application.Route != nil {
+	//	for _, o := range model.Objects {
+	//		if _, ok := o.(*BackstageRoute); ok && !*backstageSpec.Application.Route.Enabled{
+	//			o.Object() = nil
+	//		}
+	//	}
+	//}
 
 	// validate all
 	for _, v := range model.Objects {

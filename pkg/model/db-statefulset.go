@@ -82,14 +82,14 @@ func (b *DbStatefulSet) setSecretNameEnvFrom(envFrom corev1.EnvFromSource) {
 	// it is possible that Secret name already set by default configuration
 	// has to be overriden in this case
 	if b.secretName != "" {
-		var ind int
+		//var ind int
 		for i, v := range b.container().EnvFrom {
 			if v.SecretRef.Name == b.secretName {
-				ind = i
+				b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom[i] = envFrom
+				//ind = i
 				break
 			}
 		}
-		b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom[ind] = envFrom
 
 	} else {
 		b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom = append(b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom, envFrom)

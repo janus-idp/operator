@@ -21,15 +21,12 @@ import (
 // extension of Backstage.Spec to make it possible to work on model package level
 type DetailedBackstageSpec struct {
 	bs.BackstageSpec
-	ConfigObjects    backstageConfSlice
 	RawConfigContent map[string]string
+	ConfigObjects    backstageConfigs
 }
 
 // array of BackstagePodContributor interfaces
-type backstageConfSlice []interface {
-	BackstageObject
-	updateBackstagePod(pod *backstagePod)
-}
+type backstageConfigs []BackstagePodContributor
 
 func (a *DetailedBackstageSpec) AddConfigObject(obj BackstagePodContributor) {
 	a.ConfigObjects = append(a.ConfigObjects, obj)

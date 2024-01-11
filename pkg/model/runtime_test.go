@@ -82,3 +82,34 @@ func TestIfEmptyObjectIsValid(t *testing.T) {
 	assert.Equal(t, len(model.Objects), 2)
 
 }
+
+// [GA]Can be helpful to explore new model features (for example for Db and Route removing
+// Do not remove it.
+
+//func TestIfModelObjectAndArrayElementIsTheSame(t *testing.T) {
+//
+//	bs := simpleTestBackstage
+//	testObj := createBackstageTest(bs).withDefaultConfig(true)
+//
+//	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
+//	assert.NoError(t, err)
+//
+//	bs.Spec.Application = &v1alpha1.Application{
+//		Route: &v1alpha1.Route{
+//			Enabled: pointer.Bool(false),
+//		},
+//	}
+//
+//	route := BackstageRouteFactory{}.newBackstageObject()
+//	model.Objects = append(model.Objects, route)
+//	for _, o := range model.Objects {
+//
+//		if _, ok := o.(*BackstageRoute); ok {
+//			t.Log(">>>>>>>>>>>OB>>>>>>>>>>>>>> ", o.Object())
+//			assert.Nil(t, o.Object())
+//			break
+//		}
+//	}
+//	//t.Error("Model does not contain BackstageRoute")
+//
+//}

@@ -259,6 +259,13 @@ func init() {
 	SchemeBuilder.Register(&Backstage{}, &BackstageList{})
 }
 
-func (s BackstageSpec) LocalDbEnabled() bool {
+func (s BackstageSpec) IsLocalDbEnabled() bool {
 	return pointer.BoolDeref(s.Database.EnableLocalDb, true)
+}
+
+func (s BackstageSpec) IsRouteEnabled() bool {
+	if s.Application == nil || s.Application.Route == nil {
+		return true
+	}
+	return pointer.BoolDeref(s.Application.Route.Enabled, true)
 }

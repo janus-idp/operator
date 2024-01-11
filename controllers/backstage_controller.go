@@ -53,10 +53,6 @@ type BackstageReconciler struct {
 	Namespace string
 
 	IsOpenShift bool
-
-	PsqlImage string
-
-	BackstageImage string
 }
 
 //+kubebuilder:rbac:groups=janus-idp.io,resources=backstages,verbs=get;list;watch;create;update;patch;delete
