@@ -45,10 +45,6 @@ func init() {
 
 // implementation of BackstageObject interface
 func (b *DbStatefulSet) Object() client.Object {
-	// override image with env var
-	if os.Getenv(PostgresImageEnvVar) != "" {
-		b.container().Image = os.Getenv(PostgresImageEnvVar)
-	}
 	return b.statefulSet
 }
 
@@ -72,6 +68,10 @@ func (b *DbStatefulSet) EmptyObject() client.Object {
 
 // implementation of BackstageObject interface
 func (b *DbStatefulSet) validate(model *RuntimeModel) error {
+	// override image with env var
+	if os.Getenv(PostgresImageEnvVar) != "" {
+		b.container().Image = os.Getenv(PostgresImageEnvVar)
+	}
 	return nil
 }
 

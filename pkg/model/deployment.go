@@ -44,10 +44,6 @@ func init() {
 
 // implementation of BackstageObject interface
 func (b *BackstageDeployment) Object() client.Object {
-	// override image with env var
-	if os.Getenv(BackstageImageEnvVar) != "" {
-		b.pod.container.Image = os.Getenv(BackstageImageEnvVar)
-	}
 	return b.deployment
 }
 
@@ -71,6 +67,10 @@ func (b *BackstageDeployment) addToModel(model *RuntimeModel) {
 
 // implementation of BackstageObject interface
 func (b *BackstageDeployment) validate(model *RuntimeModel) error {
+	// override image with env var
+	if os.Getenv(BackstageImageEnvVar) != "" {
+		b.pod.container.Image = os.Getenv(BackstageImageEnvVar)
+	}
 	return nil
 }
 
