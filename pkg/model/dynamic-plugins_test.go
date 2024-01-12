@@ -18,6 +18,9 @@ import (
 	"context"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,15 +28,17 @@ func TestDynamicPluginsValidationFailed(t *testing.T) {
 
 	bs := simpleTestBackstage
 
-	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("dynamic-plugins.yaml", "dynamic-plugins1.yaml")
+	testObj := createBackstageTest(bs).withDefaultConfig(true).
+		addToDefaultConfig("dynamic-plugins.yaml", "dynamic-plugins1.yaml")
 
 	_, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
-	//"failed object validation, reason: failed to apply dynamic plugins, no deployment.spec.template.spec.volumes.configMap.name = 'default-dynamic-plugins' configured\n")
+	//"failed object validation, reason: failed to find initContainer named install-dynamic-plugins")
 	assert.Error(t, err)
+
 }
 
-func TestDynamicPluginsConfigured(t *testing.T) {
+func TestDefaultDynamicPlugins(t *testing.T) {
 
 	bs := simpleTestBackstage
 
@@ -45,5 +50,50 @@ func TestDynamicPluginsConfigured(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model.backstageDeployment)
+	//dynamic-plugins-root
+	//dynamic-plugins-npmrc
+	//vol-default-dynamic-plugins
+	assert.Equal(t, 3, len(model.backstageDeployment.deployment.Spec.Template.Spec.Volumes))
+	//for _, v := range model.backstageDeployment.deployment.Spec.Template.Spec.Volumes {
+	//	t.Log(">>>>>>>>>>>>>>>>>>>> ", v.Name, v.ConfigMap)
+	//
+	//}
 
+}
+
+func TestSpecifiedDynamicPlugins(t *testing.T) {
+
+	bs := simpleTestBackstage
+
+	testObj := createBackstageTest(bs).withDefaultConfig(true).
+		addToDefaultConfig("dynamic-plugins.yaml", "dynamic-plugins1.yaml").
+		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")
+
+	cm := corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "dplugin",
+			Namespace: "ns123",
+		},
+		Data: map[string]string{"dynamic-plugins.yaml": ""},
+	}
+
+	testObj.detailedSpec.AddConfigObject(&DynamicPlugins{ConfigMap: &cm})
+
+	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, model)
+
+	//for _, v := range model.backstageDeployment.deployment.Spec.Template.Spec.Volumes {
+	//	t.Log(">>>>>>>>>>>>>>>>>>>> ", v.Name, v.ConfigMap)
+	//
+	//}
+	//
+	//for _, v := range model.backstageDeployment.deployment.Spec.Template.Spec.InitContainers {
+	//	t.Log(">>>>>>>MOUNT>>>>>>>>>>>>> ", v.Name, v.VolumeMounts)
+	//
+	//}
+
+	//"failed object validation, reason: failed to apply dynamic plugins, no deployment.spec.template.spec.volumes.ConfigMap.name = 'default-dynamic-plugins' configured\n")
+	//assert.Error(t, err)
 }

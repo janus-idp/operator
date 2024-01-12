@@ -22,27 +22,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestImagePullSecrets(t *testing.T) {
-
-}
-
 // It tests the overriding image feature
 // [GA] if we need this (and like this) feature
 // we need to think about simple template engine
 // for substitution env vars instead.
 // Current implementation is not good
-func TestOverrideBackstageImage(t *testing.T) {
+func TestOverrideDbImage(t *testing.T) {
 	bs := simpleTestBackstage
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).
-		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")
+		addToDefaultConfig("db-statefulset.yaml", "janus-db-statefulset.yaml").withLocalDb()
 
-	_ = os.Setenv(BackstageImageEnvVar, "dummy")
+	_ = os.Setenv(LocalDbImageEnvVar, "dummy")
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 	assert.NoError(t, err)
 
-	assert.Equal(t, "dummy", model.backstageDeployment.pod.container.Image)
-	assert.Equal(t, "dummy", model.backstageDeployment.deployment.Spec.Template.Spec.InitContainers[0].Image)
-
+	assert.Equal(t, "dummy", model.localDbStatefulSet.statefulSet.Spec.Template.Spec.Containers[0].Image)
 }

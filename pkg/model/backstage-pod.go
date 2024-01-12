@@ -75,6 +75,26 @@ func (p backstagePod) appendContainerVolumeMount(mount corev1.VolumeMount) {
 	p.container.VolumeMounts = append(p.container.VolumeMounts, mount)
 }
 
+// appends VolumeMount to the Backstage Container and
+// a workaround for supporting dynamic plugins
+func (p backstagePod) appendInitContainerVolumeMount(mount corev1.VolumeMount, containerName string) {
+	for i, ic := range p.parent.Spec.Template.Spec.InitContainers {
+		if ic.Name == containerName {
+			replaced := false
+			for j, vm := range p.parent.Spec.Template.Spec.InitContainers[i].VolumeMounts {
+				if vm.MountPath == mount.MountPath {
+					p.parent.Spec.Template.Spec.InitContainers[i].VolumeMounts[j] = mount
+					replaced = true
+				}
+			}
+			if !replaced {
+				p.parent.Spec.Template.Spec.InitContainers[i].VolumeMounts = append(ic.VolumeMounts, mount)
+			}
+
+		}
+	}
+}
+
 // adds environment variable to the Backstage Container using ConfigMap or Secret source
 func (p backstagePod) addContainerEnvFrom(envFrom corev1.EnvFromSource) {
 	p.container.EnvFrom = append(p.container.EnvFrom, envFrom)

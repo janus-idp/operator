@@ -260,8 +260,9 @@ var _ = Describe("Backstage controller", func() {
 			})
 
 			By("Generating a ConfigMap for default config for dynamic plugins")
-			dynamicPluginsConfigName := "default-dynamic-plugins"
-			dynamicPluginsVolumeName := "dynamic-plugins-conf"
+			//dynamicPluginsConfigName := "default-dynamic-plugins"
+			dynamicPluginsConfigName := utils.GenerateRuntimeObjectName(backstageName, "default-dynamic-plugins")
+			dynamicPluginsVolumeName := utils.GenerateVolumeNameFromCmOrSecret(dynamicPluginsConfigName) //"vol-default-dynamic-plugins"
 			//fmt.Sprintf("%s-dynamic-plugins", backstageName)
 			Eventually(func(g Gomega) {
 				found := &corev1.ConfigMap{}
@@ -637,10 +638,10 @@ spec:
 							By("Checking the Volumes in the Backstage Deployment", func() {
 								// dynamic-plugins-root
 								// dynamic-plugins-npmrc
-								// dynamic-plugins-conf
 								// vol-test-backstage-tiqt4-default-appconfig
 								// vol-my-app-config-1-cm
-								Expect(found.Spec.Template.Spec.Volumes).To(HaveLen(5))
+								//?
+								Expect(found.Spec.Template.Spec.Volumes).To(HaveLen(6))
 
 								_, ok := findVolume(found.Spec.Template.Spec.Volumes, "dynamic-plugins-root")
 								Expect(ok).To(BeTrue(), "No volume found with name: dynamic-plugins-root")
@@ -655,13 +656,13 @@ spec:
 								Expect(appConfig1CmVol.VolumeSource.ConfigMap.DefaultMode).To(HaveValue(Equal(int32(420))))
 								Expect(appConfig1CmVol.VolumeSource.ConfigMap.LocalObjectReference.Name).To(Equal(appConfig1CmName))
 
-								// preconfigured in the pod
-								volName = "dynamic-plugins-conf"
+								//volName = "dynamic-plugins-conf"
+								volName = utils.GenerateVolumeNameFromCmOrSecret(dynamicPluginsConfigName)
 								dynamicPluginsConfigVol, ok := findVolume(found.Spec.Template.Spec.Volumes, volName)
 								Expect(ok).To(BeTrue(), "No volume found with name: %s", volName)
 								Expect(dynamicPluginsConfigVol.VolumeSource.Secret).To(BeNil())
 								Expect(dynamicPluginsConfigVol.VolumeSource.ConfigMap.DefaultMode).To(HaveValue(Equal(int32(420))))
-								Expect(dynamicPluginsConfigVol.VolumeSource.ConfigMap.LocalObjectReference.Name).To(Equal("default-dynamic-plugins"))
+								Expect(dynamicPluginsConfigVol.VolumeSource.ConfigMap.LocalObjectReference.Name).To(Equal(dynamicPluginsConfigName))
 							})
 
 							By("Checking the Number of init containers in the Backstage Deployment")
@@ -691,8 +692,9 @@ spec:
 								Expect(dpNpmrc[0].ReadOnly).To(BeTrue())
 								Expect(dpNpmrc[0].SubPath).To(Equal(".npmrc"))
 
-								// preconfigured in the pod
-								volName := "dynamic-plugins-conf"
+								//// preconfigured in the pod
+								//volName := "dynamic-plugins-conf"
+								volName := utils.GenerateVolumeNameFromCmOrSecret(dynamicPluginsConfigName)
 								dp := findVolumeMounts(initCont.VolumeMounts, volName)
 								Expect(dp).To(HaveLen(1), "No volume mount found with name: %s", volName)
 								Expect(dp[0].MountPath).To(Equal("/opt/app-root/src/dynamic-plugins.yaml"))

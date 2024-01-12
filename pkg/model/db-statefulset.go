@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const PostgresImageEnvVar = "RELATED_IMAGE_postgresql"
+const LocalDbImageEnvVar = "RELATED_IMAGE_postgresql"
 
 type DbStatefulSetFactory struct{}
 
@@ -69,8 +69,12 @@ func (b *DbStatefulSet) EmptyObject() client.Object {
 // implementation of BackstageObject interface
 func (b *DbStatefulSet) validate(model *RuntimeModel) error {
 	// override image with env var
-	if os.Getenv(PostgresImageEnvVar) != "" {
-		b.container().Image = os.Getenv(PostgresImageEnvVar)
+	// [GA] TODO if we need this (and like this) feature
+	// we need to think about simple template engine
+	// for substitution env vars instead.
+	// Current implementation is not good
+	if os.Getenv(LocalDbImageEnvVar) != "" {
+		b.container().Image = os.Getenv(LocalDbImageEnvVar)
 	}
 	return nil
 }

@@ -16,20 +16,27 @@ package model
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+
+	"janus-idp.io/backstage-operator/pkg/utils"
+	"k8s.io/utils/pointer"
 
 	"janus-idp.io/backstage-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const initContainerName = "install-dynamic-plugins"
+
 type DynamicPluginsFactory struct{}
 
 func (f DynamicPluginsFactory) newBackstageObject() BackstageObject {
-	return &DynamicPlugins{configMap: &corev1.ConfigMap{}}
+	return &DynamicPlugins{ConfigMap: &corev1.ConfigMap{}}
 }
 
 type DynamicPlugins struct {
-	configMap *corev1.ConfigMap
+	ConfigMap *corev1.ConfigMap
 }
 
 func init() {
@@ -38,12 +45,13 @@ func init() {
 
 // implementation of BackstageObject interface
 func (p *DynamicPlugins) Object() client.Object {
-	return p.configMap
+	return p.ConfigMap
 }
 
 // implementation of BackstageObject interface
 func (p *DynamicPlugins) initMetainfo(backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
 	initMetainfo(p, backstageMeta, ownsRuntime)
+	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-dynamic-plugins"))
 }
 
 // implementation of BackstageObject interface
@@ -56,15 +64,77 @@ func (p *DynamicPlugins) addToModel(model *RuntimeModel) {
 	// nothing
 }
 
-// implementation of BackstageObject interface
-// configMap name must be the same as (deployment.yaml).spec.template.spec.volumes.name.dynamic-plugins-conf.configMap.name
-func (p *DynamicPlugins) validate(model *RuntimeModel) error {
+// implementation of BackstagePodContributor interface
+func (p *DynamicPlugins) updateBackstagePod(pod *backstagePod) {
 
-	for _, v := range *model.backstageDeployment.pod.volumes {
-		if v.ConfigMap != nil && v.ConfigMap.Name == p.configMap.Name {
-			return nil
-		}
+	//it relies on implementation where dynamic-plugin initContainer
+	//uses specified ConfigMap for producing app-config with dynamic-plugins
+	//For this:
+	//- backstage contaier and dynamic-plugin initContainer must share a volume
+	//  where initContainer writes and backstage container reads produced app-config
+	//- app-config path should be set as a --config parameter of backstage container
+	//in the deployment manifest
+
+	//it creates a volume with dynamic-plugins ConfigMap (there should be a key named "dynamic-plugins.yaml")
+	//and mount it to the dynamic-plugin initContainer's WorkingDir (what if not specified?)
+	initContainer := dynamicPluginsInitContainer(pod.parent.Spec.Template.Spec.InitContainers)
+	if initContainer == nil {
+		// it will fail on validate
+		return
 	}
 
-	return fmt.Errorf("failed to apply dynamic plugins, no deployment.spec.template.spec.volumes.configMap.name = '%s' configured", p.configMap.Name)
+	volName := utils.GenerateVolumeNameFromCmOrSecret(p.ConfigMap.Name)
+
+	volSource := corev1.VolumeSource{
+		ConfigMap: &corev1.ConfigMapVolumeSource{
+			DefaultMode:          pointer.Int32(420),
+			LocalObjectReference: corev1.LocalObjectReference{Name: p.ConfigMap.Name},
+		},
+	}
+	pod.appendVolume(corev1.Volume{
+		Name:         volName,
+		VolumeSource: volSource,
+	})
+
+	for file := range p.ConfigMap.Data {
+		pod.appendInitContainerVolumeMount(corev1.VolumeMount{
+			Name:      volName,
+			MountPath: filepath.Join(initContainer.WorkingDir, file),
+			SubPath:   file,
+			ReadOnly:  true,
+		}, initContainerName)
+	}
+}
+
+// implementation of BackstageObject interface
+// ConfigMap name must be the same as (deployment.yaml).spec.template.spec.volumes.name.dynamic-plugins-conf.ConfigMap.name
+func (p *DynamicPlugins) validate(model *RuntimeModel) error {
+
+	initContainer := dynamicPluginsInitContainer(model.backstageDeployment.deployment.Spec.Template.Spec.InitContainers)
+	if initContainer == nil {
+		return fmt.Errorf("failed to find initContainer named %s", initContainerName)
+	}
+	// override image with env var
+	// [GA] TODO if we need this (and like this) feature
+	// we need to think about simple template engine
+	// for substitution env vars instead.
+	// Current implementation is not good
+	if os.Getenv(BackstageImageEnvVar) != "" {
+		// TODO workaround for the (janus-idp, rhdh) case where we have
+		// exactly the same image for initContainer and want it to be overriden
+		// the same way as Backstage's one
+		initContainer.Image = os.Getenv(BackstageImageEnvVar)
+	}
+	return nil
+}
+
+// returns initContainer supposed to initialize DynamicPlugins
+// TODO consider to use a label to identify instead
+func dynamicPluginsInitContainer(initContainers []corev1.Container) *corev1.Container {
+	for _, ic := range initContainers {
+		if ic.Name == initContainerName {
+			return &ic
+		}
+	}
+	return nil
 }

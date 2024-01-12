@@ -68,8 +68,18 @@ func (b *BackstageDeployment) addToModel(model *RuntimeModel) {
 // implementation of BackstageObject interface
 func (b *BackstageDeployment) validate(model *RuntimeModel) error {
 	// override image with env var
+	// [GA] TODO if we need this (and like this) feature
+	// we need to think about simple template engine
+	// for substitution env vars instead.
+	// Current implementation is not good
 	if os.Getenv(BackstageImageEnvVar) != "" {
 		b.pod.container.Image = os.Getenv(BackstageImageEnvVar)
+		// TODO workaround for the (janus-idp, rhdh) case where we have
+		// exactly the same image for initContainer and want it to be overriden
+		// the same way as Backstage's one
+		for i := range b.deployment.Spec.Template.Spec.InitContainers {
+			b.deployment.Spec.Template.Spec.InitContainers[i].Image = os.Getenv(BackstageImageEnvVar)
+		}
 	}
 	return nil
 }

@@ -105,6 +105,19 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.Back
 		}
 	}
 
+	// Process DynamicPlugins
+	if bsSpec.Application != nil {
+		dynaPluginsConfig := bsSpec.Application.DynamicPluginsConfigMapName
+		cm := corev1.ConfigMap{}
+		if dynaPluginsConfig != "" {
+			if err := r.Get(ctx, types.NamespacedName{Name: dynaPluginsConfig, Namespace: ns}, &cm); err != nil {
+				return nil, fmt.Errorf("failed to get ConfigMap %s: %w", dynaPluginsConfig, err)
+			}
+			result.AddConfigObject(&model.DynamicPlugins{ConfigMap: &cm})
+		}
+
+	}
+
 	// PreProcess Database
 	//if bsSpec.Database != nil {
 	//

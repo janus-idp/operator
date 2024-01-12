@@ -78,7 +78,7 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 		var overlayErr error
 
 		// reading default configuration defined in the default-config/[key] file
-		// mounted from the 'default-config' configMap
+		// mounted from the 'default-config' ConfigMap
 		// this is a cluster scope configuration applying to every Backstage CR by default
 		if err := utils.ReadYamlFile(utils.DefFile(conf.Key), backstageObject.Object()); err != nil {
 			defaultErr = fmt.Errorf("failed to read default value for the key %s, reason: %s", conf.Key, err)
