@@ -32,12 +32,11 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 # janus-idp.io/backstage-operator-bundle:$VERSION and janus-idp.io/backstage-operator-catalog:$VERSION.
-# TODO use janus-idp/operator* images instead of janus/operator*
-IMAGE_TAG_BASE ?= quay.io/janus/operator
+IMAGE_TAG_BASE ?= quay.io/janus-idp/operator
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
-BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:v$(VERSION)
+BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:$(VERSION)
 
 # BUNDLE_GEN_FLAGS are the flags passed to the operator-sdk generate bundle command
 BUNDLE_GEN_FLAGS ?= -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
@@ -51,12 +50,12 @@ ifeq ($(USE_IMAGE_DIGESTS), true)
 endif
 
 # Image URL to use all building/pushing image targets
-IMG ?= $(IMAGE_TAG_BASE):v$(VERSION)
+IMG ?= $(IMAGE_TAG_BASE):$(VERSION)
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.25.0
 
 # Default Backstage config directory to use
-# it has to be defined as a set of YAML files inside ./config/manager/${CONF_DIR} directory
+# it has to be defined as a set of YAML files inside ./config/manager/$(CONF_DIR) directory
 # to use other config - add a directory with config and run 'CONF_DIR=<dir-name> make ...'
 # TODO find better place than ./config/manager (but not ./config/overlays) ?
 # TODO it works only for make run, needs supporting make deploy as well https://github.com/janus-idp/operator/issues/47
@@ -105,7 +104,7 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 .PHONY: fmt
-fmt: goimports fmt_license ## Format the code using goimports
+fmt: goimports ## Format the code using goimports
 	find . -not -path '*/\.*' -name '*.go' -exec $(GOIMPORTS) -w {} \;
 
 fmt_license: addlicense ## Ensure the license header is set on all files
@@ -122,8 +121,8 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: manifests generate fmt vet envtest ## Run tests. We need LOCALBIN=$(LOCALBIN) to get correct default-config path
-	mkdir -p $(LOCALBIN)/default-config && cp config/manager/${CONF_DIR}/* $(LOCALBIN)/default-config
-	LOCALBIN=$(LOCALBIN) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test -v ./... -coverprofile cover.out
+	mkdir -p $(LOCALBIN)/default-config && cp config/manager/$(CONF_DIR)/* $(LOCALBIN)/default-config
+	LOCALBIN=$(LOCALBIN) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
 
 ##@ Build
 
@@ -133,43 +132,40 @@ build: generate fmt vet ## Build manager binary.
 
 .PHONY: run
 run: manifests generate fmt vet build ## Run a controller from your host.
-	cd $(LOCALBIN) && mkdir -p default-config && cp ../config/manager/${CONF_DIR}/* default-config && ./manager
+	cd $(LOCALBIN) && mkdir -p default-config && cp ../config/manager/$(CONF_DIR)/* default-config && ./manager
 
+# by default images expire from quay registry after 14 days
+# set a longer timeout (or set no label to keep images forever)
+LABEL ?= quay.expires-after=14d
 PLATFORM ?= linux/amd64
 # If you wish built the manager image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64 ). However, you must enable docker buildKit for it.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
-.PHONY: docker-build
-docker-build: test ## Build docker image with the manager using docker.
-	docker build --platform ${PLATFORM} -t ${IMG} . -f docker/Dockerfile
 
-.PHONY: docker-push
-docker-push: ## Push docker image with the manager using docker.
-	docker push ${IMG}
+.PHONY: operator-build
+operator-build: test ## Build docker image with the manager using docker.
+	$(CONTAINER_ENGINE) build --platform $(PLATFORM) -f docker/Dockerfile -t $(IMG) --label $(LABEL) .
 
-.PHONY: podman-build
-podman-build: test ## Build docker image with the manager using podman.
-	podman build --platform ${PLATFORM} -t ${IMG} . -f docker/Dockerfile
-
-.PHONY: podman-push
-podman-push: ## Push docker image with the manager using podman.
-	podman push ${IMG}
+.PHONY: operator-push
+operator-push: ## Push IMG image to registry
+	$(CONTAINER_ENGINE) push $(IMG)
 
 # PLATFORMS defines the target platforms for  the manager image be build to provide support to multiple
 # architectures. (i.e. make docker-buildx IMG=myregistry/mypoperator:0.0.1). To use this option you need to:
 # - able to use docker buildx . More info: https://docs.docker.com/build/buildx/
 # - have enable BuildKit, More info: https://docs.docker.com/develop/develop-images/build_enhancements/
-# - be able to push the image for your registry (i.e. if you do not inform a valid value via IMG=<myregistry/image:<tag>> than the export will fail)
+# - be able to push the image for your registry (i.e. if you do not inform a valid value via IMG=<myregistry/image:tag> than the export will fail)
 # To properly provided solutions that supports more than one platform you should use this option.
 # If more arches are needed, use comma-separated list: linux/amd64,linux/arm64,linux390x,linux/ppc64le
 PLATFORMS ?= linux/amd64
 .PHONY: docker-buildx
 docker-buildx: test ## Build and push docker image for the manager for cross-platform support
+	# see https://docs.docker.com/build/building/multi-platform/#cross-compilation for BUILDPLATFORM definition
 	# copy existing docker/Dockerfile and insert --platform=${BUILDPLATFORM} into docker/Dockerfile.cross, and preserve the original Dockerfile
 	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' docker/Dockerfile > docker/Dockerfile.cross
 	- docker buildx create --name project-v3-builder
 	docker buildx use project-v3-builder
-	- docker buildx build --push --platform=$(PLATFORMS) --tag ${IMG} . -f docker/Dockerfile.cross
+	- docker buildx build --push --platform $(PLATFORMS) --tag $(IMG) . -f docker/Dockerfile.cross  --label $(LABEL)
 	- docker buildx rm project-v3-builder
 	rm docker/Dockerfile.cross
 
@@ -189,7 +185,7 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 .PHONY: undeploy
@@ -217,6 +213,8 @@ CONTROLLER_TOOLS_VERSION ?= v0.11.3
 GOLANGCI_LINT_VERSION ?= v1.55.2
 GOIMPORTS_VERSION ?= v0.15.0
 ADDLICENSE_VERSION ?= v1.1.1
+# opm and operator-sdk version
+OP_VERSION ?= v1.33.0
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize
@@ -249,26 +247,23 @@ addlicense: $(ADDLICENSE) ## Download addlicense locally if necessary.
 $(ADDLICENSE): $(LOCALBIN)
 	test -s $(LOCALBIN)/addlicense || GOBIN=$(LOCALBIN) go install github.com/google/addlicense@$(ADDLICENSE_VERSION)
 
-.PHONY: bundle
-bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
-	operator-sdk generate kustomize manifests -q
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
-	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle $(BUNDLE_GEN_FLAGS)
-	operator-sdk bundle validate ./bundle
-	mv -f bundle.Dockerfile docker/bundle.Dockerfile
-	$(MAKE) fmt_license
-
-## to update the CSV with a new tagged version of the operator:
-## yq '.spec.install.spec.deployments[0].spec.template.spec.containers[1].image|="quay.io/janus/backstage-operator:some-other-tag"' bundle/manifests/backstage-operator.clusterserviceversion.yaml
-## or 
-## sed -r -e "s#(image: +)quay.io/.+operator.+#\1quay.io/janus/backstage-operator:some-other-tag#g" -i bundle/manifests/backstage-operator.clusterserviceversion.yaml
-.PHONY: bundle-build
-bundle-build: ## Build the bundle image.
-	$(CONTAINER_ENGINE) build -f docker/bundle.Dockerfile -t $(BUNDLE_IMG) .
-
-.PHONY: bundle-push
-bundle-push: ## Push the bundle image.
-	$(MAKE) $(CONTAINER_ENGINE)-push IMG=$(BUNDLE_IMG)
+.PHONY: operator-sdk
+OPSDK = ./bin/operator-sdk
+operator-sdk: ## Download operator-sdk locally if necessary.
+ifeq (,$(wildcard $(OPSDK)))
+ifeq (,$(shell which operator-sdk 2>/dev/null))
+	@{ \
+	set -e ;\
+	mkdir -p $(dir $(OPSDK)) ;\
+	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
+	echo "Dowloading https://github.com/operator-framework/operator-sdk/releases/download/$(OP_VERSION)/operator-sdk_$${OS}_$${ARCH} to ./bin/operator-sdk" ;\
+	curl -sSLo $(OPSDK) https://github.com/operator-framework/operator-sdk/releases/download/$(OP_VERSION)/operator-sdk_$${OS}_$${ARCH} ;\
+	chmod +x $(OPSDK) ;\
+	}
+else
+OPSDK = $(shell which operator-sdk)
+endif
+endif
 
 .PHONY: opm
 OPM = ./bin/opm
@@ -279,7 +274,8 @@ ifeq (,$(shell which opm 2>/dev/null))
 	set -e ;\
 	mkdir -p $(dir $(OPM)) ;\
 	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
-	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.33.0/$${OS}-$${ARCH}-opm ;\
+	echo "Dowloading https://github.com/operator-framework/operator-registry/releases/download/$(OP_VERSION)/$${OS}-$${ARCH}-opm to ./bin/opm" ;\
+	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/$(OP_VERSION)/$${OS}-$${ARCH}-opm ;\
 	chmod +x $(OPM) ;\
 	}
 else
@@ -287,12 +283,35 @@ OPM = $(shell which opm)
 endif
 endif
 
+## this will fail if VERSION is not a semver x.y.z version
+# Build a bundle image using the 'operator-sdk' tool
+.PHONY: bundle
+bundle: operator-sdk manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
+	$(OPSDK) generate kustomize manifests -q
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
+	$(KUSTOMIZE) build config/manifests | $(OPSDK) generate bundle $(BUNDLE_GEN_FLAGS)
+	$(OPSDK) bundle validate ./bundle
+	mv -f bundle.Dockerfile docker/bundle.Dockerfile
+	$(MAKE) fmt_license
+
+## to update the CSV with a new tagged version of the operator:
+## yq '.spec.install.spec.deployments[0].spec.template.spec.containers[1].image|="quay.io/janus-idp/operator:some-other-tag"' bundle/manifests/backstage-operator.clusterserviceversion.yaml
+## or 
+## sed -r -e "s#(image: +)quay.io/.+operator.+#\1quay.io/janus-idp/operator:some-other-tag#g" -i bundle/manifests/backstage-operator.clusterserviceversion.yaml
+.PHONY: bundle-build
+bundle-build: ## Build the bundle image.
+	$(CONTAINER_ENGINE) build --platform $(PLATFORM) -f docker/bundle.Dockerfile -t $(BUNDLE_IMG) --label $(LABEL) .
+
+.PHONY: bundle-push
+bundle-push: ## Push bundle image to registry
+	$(MAKE) operator-push IMG=$(BUNDLE_IMG)
+
 # A comma-separated list of bundle images (e.g. make catalog-build BUNDLE_IMGS=example.com/operator-bundle:v0.1.0,example.com/operator-bundle:v0.2.0).
 # These images MUST exist in a registry and be pull-able.
 BUNDLE_IMGS ?= $(BUNDLE_IMG)
 
 # The image tag given to the resulting catalog image (e.g. make catalog-build CATALOG_IMG=example.com/operator-catalog:v0.2.0).
-CATALOG_IMG ?= $(IMAGE_TAG_BASE)-catalog:v$(VERSION)
+CATALOG_IMG ?= $(IMAGE_TAG_BASE)-catalog:$(VERSION)
 
 # Set CATALOG_BASE_IMG to an existing catalog image tag to add $BUNDLE_IMGS to that image.
 ifneq ($(origin CATALOG_BASE_IMG), undefined)
@@ -303,18 +322,19 @@ endif
 # This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
 # https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
 .PHONY: catalog-build
-catalog-build: opm bundle-push ## Build a catalog image. Bundle image must have been pushed into the registry.
-	$(OPM) index add --container-tool $(CONTAINER_ENGINE) --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
+catalog-build: opm bundle-push ## Generate operator-catalog dockerfile using the operator-bundle image built and published above; then build catalog image
+	$(OPM) index add --container-tool $(CONTAINER_ENGINE) --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT) --generate
+	$(CONTAINER_ENGINE) build --platform $(PLATFORM) -f index.Dockerfile -t $(CATALOG_IMG) --label $(LABEL) .
 
 .PHONY: catalog-push
-catalog-push: ## Push a catalog image.
-	$(MAKE) $(CONTAINER_ENGINE)-push IMG=$(CATALOG_IMG)
+catalog-push: ## Push catalog image to registry
+	$(MAKE) operator-push IMG=$(CATALOG_IMG)
 
 .PHONY:
-release-build: bundle $(CONTAINER_ENGINE)-build bundle-build catalog-build ## Build operator docker, bundle, catalog images
+release-build: bundle operator-build bundle-build catalog-build ## Build operator, bundle + catalog images
 
 .PHONY:
-release-push: $(CONTAINER_ENGINE)-push bundle-push catalog-push ## Push operator docker, bundle, catalog images
+release-push: operator-push bundle-push catalog-push ## Push operator, bundle + catalog images
 
 .PHONY: deploy-olm
 deploy-olm: ## Deploy the operator with OLM
@@ -325,7 +345,7 @@ deploy-olm: ## Deploy the operator with OLM
 undeploy-olm: ## Un-deploy the operator with OLM
 	-kubectl delete subscriptions.operators.coreos.com backstage-operator
 	-kubectl delete operatorgroup backstage-operator-group
-	-kubectl delete clusterserviceversion backstage-operator.v$(VERSION)
+	-kubectl delete clusterserviceversion backstage-operator.$(VERSION)
 
 DEFAULT_OLM_NAMESPACE ?= openshift-marketplace
 .PHONY: catalog-update
