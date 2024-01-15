@@ -26,8 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	bs "janus-idp.io/backstage-operator/api/v1alpha1"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -169,11 +167,11 @@ func (r *BackstageReconciler) SetupWithManager(mgr ctrl.Manager, log logr.Logger
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&bs.Backstage{})
 
-	if r.OwnsRuntime {
-		builder.Owns(&appsv1.Deployment{}).
-			Owns(&corev1.Service{}).
-			Owns(&appsv1.StatefulSet{})
-	}
+	//if r.OwnsRuntime {
+	//	builder.Owns(&appsv1.Deployment{}).
+	//		Owns(&corev1.Service{}).
+	//		Owns(&appsv1.StatefulSet{})
+	//}
 
 	return builder.Complete(r)
 }
