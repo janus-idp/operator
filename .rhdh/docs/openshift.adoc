@@ -248,7 +248,7 @@ spec:
 ----
 
 . Click *Save*.
-. Navigate back to the *Topology* view and wait for the Red Hat Developer Hub Pod to start. The Database resource should not be created.
+. Navigate back to the *Topology* view and wait for the Red Hat Developer Hub Pod to start. The Postgres pod should not be created.
 image:images/rhdh_without_local_db.png[RHDH with no local DB]
 . Click the *Open URL* option to start using the Red Hat Developer Hub platform with the new configuration changes.
 
