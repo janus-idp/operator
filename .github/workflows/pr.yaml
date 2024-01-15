@@ -7,7 +7,8 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  operator-lint-and-test:
+    name: PR Lint and Test (operator only)
     runs-on: ubuntu-latest
 
     steps:
