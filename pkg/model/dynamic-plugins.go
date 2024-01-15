@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const initContainerName = "install-dynamic-plugins"
+const dynamicPluginInitContainerName = "install-dynamic-plugins"
 
 type DynamicPluginsFactory struct{}
 
@@ -97,12 +97,12 @@ func (p *DynamicPlugins) updateBackstagePod(pod *backstagePod) {
 	})
 
 	for file := range p.ConfigMap.Data {
-		pod.appendInitContainerVolumeMount(corev1.VolumeMount{
+		pod.appendOrReplaceInitContainerVolumeMount(corev1.VolumeMount{
 			Name:      volName,
 			MountPath: filepath.Join(initContainer.WorkingDir, file),
 			SubPath:   file,
 			ReadOnly:  true,
-		}, initContainerName)
+		}, dynamicPluginInitContainerName)
 	}
 }
 
@@ -112,7 +112,7 @@ func (p *DynamicPlugins) validate(model *RuntimeModel) error {
 
 	initContainer := dynamicPluginsInitContainer(model.backstageDeployment.deployment.Spec.Template.Spec.InitContainers)
 	if initContainer == nil {
-		return fmt.Errorf("failed to find initContainer named %s", initContainerName)
+		return fmt.Errorf("failed to find initContainer named %s", dynamicPluginInitContainerName)
 	}
 	// override image with env var
 	// [GA] TODO if we need this (and like this) feature
@@ -132,7 +132,7 @@ func (p *DynamicPlugins) validate(model *RuntimeModel) error {
 // TODO consider to use a label to identify instead
 func dynamicPluginsInitContainer(initContainers []corev1.Container) *corev1.Container {
 	for _, ic := range initContainers {
-		if ic.Name == initContainerName {
+		if ic.Name == dynamicPluginInitContainerName {
 			return &ic
 		}
 	}

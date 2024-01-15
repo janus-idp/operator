@@ -54,11 +54,13 @@ func TestDefaultDynamicPlugins(t *testing.T) {
 	//dynamic-plugins-npmrc
 	//vol-default-dynamic-plugins
 	assert.Equal(t, 3, len(model.backstageDeployment.deployment.Spec.Template.Spec.Volumes))
-	//for _, v := range model.backstageDeployment.deployment.Spec.Template.Spec.Volumes {
-	//	t.Log(">>>>>>>>>>>>>>>>>>>> ", v.Name, v.ConfigMap)
-	//
-	//}
 
+	ic := initContainer(model)
+	assert.NotNil(t, ic)
+	//dynamic-plugins-root
+	//dynamic-plugins-npmrc
+	//vol-default-dynamic-plugins
+	assert.Equal(t, 3, len(ic.VolumeMounts))
 }
 
 func TestSpecifiedDynamicPlugins(t *testing.T) {
@@ -84,16 +86,19 @@ func TestSpecifiedDynamicPlugins(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, model)
 
-	//for _, v := range model.backstageDeployment.deployment.Spec.Template.Spec.Volumes {
-	//	t.Log(">>>>>>>>>>>>>>>>>>>> ", v.Name, v.ConfigMap)
-	//
-	//}
-	//
-	//for _, v := range model.backstageDeployment.deployment.Spec.Template.Spec.InitContainers {
-	//	t.Log(">>>>>>>MOUNT>>>>>>>>>>>>> ", v.Name, v.VolumeMounts)
-	//
-	//}
+	ic := initContainer(model)
+	assert.NotNil(t, ic)
+	//dynamic-plugins-root
+	//dynamic-plugins-npmrc
+	//vol-dplugin
+	assert.Equal(t, 3, len(ic.VolumeMounts))
+}
 
-	//"failed object validation, reason: failed to apply dynamic plugins, no deployment.spec.template.spec.volumes.ConfigMap.name = 'default-dynamic-plugins' configured\n")
-	//assert.Error(t, err)
+func initContainer(model *RuntimeModel) *corev1.Container {
+	for _, v := range model.backstageDeployment.deployment.Spec.Template.Spec.InitContainers {
+		if v.Name == dynamicPluginInitContainerName {
+			return &v
+		}
+	}
+	return nil
 }

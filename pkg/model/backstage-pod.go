@@ -77,20 +77,21 @@ func (p backstagePod) appendContainerVolumeMount(mount corev1.VolumeMount) {
 
 // appends VolumeMount to the Backstage Container and
 // a workaround for supporting dynamic plugins
-func (p backstagePod) appendInitContainerVolumeMount(mount corev1.VolumeMount, containerName string) {
+func (p backstagePod) appendOrReplaceInitContainerVolumeMount(mount corev1.VolumeMount, containerName string) {
 	for i, ic := range p.parent.Spec.Template.Spec.InitContainers {
 		if ic.Name == containerName {
 			replaced := false
+			// check if such mount path already exists and replace if so
 			for j, vm := range p.parent.Spec.Template.Spec.InitContainers[i].VolumeMounts {
 				if vm.MountPath == mount.MountPath {
 					p.parent.Spec.Template.Spec.InitContainers[i].VolumeMounts[j] = mount
 					replaced = true
 				}
 			}
+			// add if not replaced
 			if !replaced {
 				p.parent.Spec.Template.Spec.InitContainers[i].VolumeMounts = append(ic.VolumeMounts, mount)
 			}
-
 		}
 	}
 }
