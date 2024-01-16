@@ -61,8 +61,8 @@ import (
 //
 // `
 // )
-func (r *BackstageReconciler) reconcileLocalDbServices(ctx context.Context, backstage bs.Backstage, ns string) error {
-	name := getDefaultDbObjName(backstage)
+func (r *BackstageReconciler) reconcileLocalDbServices(ctx context.Context, backstage *bs.Backstage, ns string) error {
+	name := getDefaultDbObjName(*backstage)
 	err := r.reconcilePsqlService(ctx, backstage, name, name, "db-service.yaml", ns)
 	if err != nil {
 		return err
@@ -72,18 +72,20 @@ func (r *BackstageReconciler) reconcileLocalDbServices(ctx context.Context, back
 
 }
 
-func (r *BackstageReconciler) reconcilePsqlService(ctx context.Context, backstage bs.Backstage, serviceName, label, configKey, ns string) error {
+func (r *BackstageReconciler) reconcilePsqlService(ctx context.Context, backstage *bs.Backstage, serviceName, label, configKey, ns string) error {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
 			Namespace: ns,
 		},
 	}
-	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, service, r.serviceObjectMutFun(ctx, service, backstage, backstage.Spec.RawRuntimeConfig.LocalDbConfigName, configKey, serviceName, label)); err != nil {
+	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, service, r.serviceObjectMutFun(ctx, service, *backstage, backstage.Spec.RawRuntimeConfig.LocalDbConfigName, configKey, serviceName, label)); err != nil {
 		if errors.IsConflict(err) {
 			return fmt.Errorf("retry sync needed: %v", err)
 		}
-		return err
+		msg := fmt.Sprintf("failed to sync database service: %s", err.Error())
+		setStatusCondition(backstage, bs.ConditionSynced, metav1.ConditionFalse, bs.SyncFailed, msg)
+		setStatusCondition(backstage, bs.ConditionLocalDbSynced, metav1.ConditionFalse, bs.SyncFailed, msg)
 	}
 	return nil
 }

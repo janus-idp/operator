@@ -137,18 +137,21 @@ const (
 	ownerRefFmt = "failed to set owner reference: %s"
 )
 
-func (r *BackstageReconciler) reconcileLocalDbStatefulSet(ctx context.Context, backstage bs.Backstage, ns string) error {
+func (r *BackstageReconciler) reconcileLocalDbStatefulSet(ctx context.Context, backstage *bs.Backstage, ns string) error {
 	statefulSet := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getDefaultDbObjName(backstage),
+			Name:      getDefaultDbObjName(*backstage),
 			Namespace: ns,
 		},
 	}
-	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, statefulSet, r.localDBStatefulSetMutFun(ctx, statefulSet, backstage, ns)); err != nil {
+	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, statefulSet, r.localDBStatefulSetMutFun(ctx, statefulSet, *backstage, ns)); err != nil {
 		if errors.IsConflict(err) {
 			return fmt.Errorf("retry sync needed: %v", err)
 		}
-		return err
+		msg := fmt.Sprintf("failed to sync Database StatefulSet: %s", err.Error())
+		setStatusCondition(backstage, bs.ConditionSynced, metav1.ConditionFalse, bs.SyncFailed, msg)
+		setStatusCondition(backstage, bs.ConditionLocalDbSynced, metav1.ConditionFalse, bs.SyncFailed, msg)
+		return fmt.Errorf(msg)
 	}
 	return nil
 }

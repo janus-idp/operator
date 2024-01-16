@@ -1445,6 +1445,39 @@ plugins: []
 				},
 			)
 		})
+
+		When("setting invalid replicas", func() {
+			var nbReplicas int32 = -1
+			var backstage *bsv1alpha1.Backstage
+			var crName = "backstage-invalid-replicas"
+
+			BeforeEach(func() {
+				backstage = buildBackstageCR(bsv1alpha1.BackstageSpec{
+					Application: &bsv1alpha1.Application{
+						Replicas: &nbReplicas,
+					},
+				})
+				backstage.Name = crName
+				err := k8sClient.Create(ctx, backstage)
+				Expect(err).To(Not(HaveOccurred()))
+			})
+
+			It("should fail to reconcile", func() {
+				By("Checking if the custom resource was successfully created")
+				Eventually(func() error {
+					found := &bsv1alpha1.Backstage{}
+					return k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, found)
+				}, time.Minute, time.Second).Should(Succeed())
+
+				By("Reconciling the custom resource created")
+				_, err := backstageReconciler.Reconcile(ctx, reconcile.Request{
+					NamespacedName: types.NamespacedName{Name: crName, Namespace: ns},
+				})
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).Should(ContainSubstring(
+					fmt.Sprintf("spec.replicas: Invalid value: %d: must be greater than or equal to 0", nbReplicas)))
+			})
+		})
 	})
 
 	Context("PostgreSQL", func() {
@@ -1526,14 +1559,14 @@ func findElementsByPredicate[T any](l []T, predicate func(t T) bool) (result []T
 }
 
 func isLocalDbDeployed(backstage bsv1alpha1.Backstage) bool {
-	if cond := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alpha1.LocalDbSynced); cond != nil {
+	if cond := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alpha1.ConditionLocalDbSynced); cond != nil {
 		return cond.Status == metav1.ConditionTrue && cond.Reason == bsv1alpha1.SyncOK
 	}
 	return false
 }
 
 func isSynced(backstage bsv1alpha1.Backstage) bool {
-	if cond := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alpha1.RuntimeConditionSynced); cond != nil {
+	if cond := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alpha1.ConditionSynced); cond != nil {
 		return cond.Status == metav1.ConditionTrue
 	}
 	return false
