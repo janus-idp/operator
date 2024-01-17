@@ -16,14 +16,13 @@ package controller
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	k8srand "k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	bs "janus-idp.io/backstage-operator/api/v1alpha1"
@@ -55,10 +54,7 @@ func (r *BackstageReconciler) handlePsqlSecret(ctx context.Context, statefulSet 
 			return nil, fmt.Errorf("failed to get secret for PostgreSQL DB (%q), reason: %s", secretName, err)
 		}
 		// Create a secret with a random value
-		pwd, pwdErr := generatePassword(24)
-		if pwdErr != nil {
-			return nil, fmt.Errorf("failed to generate a password for the PostgreSQL database: %w", pwdErr)
-		}
+		pwd := k8srand.String(24)
 		sec.StringData["POSTGRES_PASSWORD"] = pwd
 		sec.StringData["POSTGRESQL_ADMIN_PASSWORD"] = pwd
 		sec.StringData["POSTGRES_HOST"] = getDefaultDbObjName(*backstage)
@@ -80,15 +76,6 @@ func (r *BackstageReconciler) handlePsqlSecret(ctx context.Context, statefulSet 
 
 func getDefaultPsqlSecretName(backstage *bs.Backstage) string {
 	return fmt.Sprintf("backstage-psql-secret-%s", backstage.Name)
-}
-
-func generatePassword(length int) (string, error) {
-	bytes := make([]byte, length)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	// Encode the password to prevent special characters
-	return base64.StdEncoding.EncodeToString(bytes), nil
 }
 
 func getSecretNameForGeneration(statefulSet *appsv1.StatefulSet, backstage *bs.Backstage) string {
