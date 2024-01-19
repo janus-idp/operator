@@ -371,14 +371,6 @@ var _ = Describe("Backstage controller", func() {
 			By("Checking the latest Status added to the Backstage instance")
 			verifyBackstageInstance(ctx)
 
-			By("Checking the localDb Sync Status in the Backstage instance")
-			Eventually(func(g Gomega) {
-				var backstage bsv1alpha1.Backstage
-				err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, &backstage)
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(isLocalDbDeployed(backstage)).To(BeTrue())
-			}, time.Minute, time.Second).Should(Succeed())
-
 			By("Checking the localdb statefulset has been created")
 			Eventually(func(g Gomega) {
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("backstage-psql-%s", backstageName), Namespace: ns}, &appsv1.StatefulSet{})
@@ -416,14 +408,6 @@ var _ = Describe("Backstage controller", func() {
 				NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
 			})
 			Expect(err).To(Not(HaveOccurred()))
-
-			By("Checking the localDb Sync Status has been updated in the Backstage instance")
-			Eventually(func(g Gomega) {
-				var backstage bsv1alpha1.Backstage
-				err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, &backstage)
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(isLocalDbDeployed(backstage)).To(BeFalse())
-			}, time.Minute, time.Second).Should(Succeed())
 
 			By("Checking that the local db statefulset has been deleted")
 			Eventually(func(g Gomega) {
@@ -1556,13 +1540,6 @@ func findElementsByPredicate[T any](l []T, predicate func(t T) bool) (result []T
 		}
 	}
 	return result
-}
-
-func isLocalDbDeployed(backstage bsv1alpha1.Backstage) bool {
-	if cond := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alpha1.ConditionLocalDbSynced); cond != nil {
-		return cond.Status == metav1.ConditionTrue && cond.Reason == bsv1alpha1.SyncOK
-	}
-	return false
 }
 
 func isSynced(backstage bsv1alpha1.Backstage) bool {

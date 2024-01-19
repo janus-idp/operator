@@ -38,7 +38,7 @@ func (r *BackstageReconciler) reconcileBackstageService(ctx context.Context, bac
 		if errors.IsConflict(err) {
 			return fmt.Errorf("retry sync needed: %v", err)
 		}
-		msg := fmt.Sprintf("failed to sync Backstage Service: %s", err.Error())
+		msg := fmt.Sprintf("failed to sync Backstage Service: %s", err)
 		setStatusCondition(backstage, bs.ConditionSynced, metav1.ConditionFalse, bs.SyncFailed, msg)
 	}
 	return nil

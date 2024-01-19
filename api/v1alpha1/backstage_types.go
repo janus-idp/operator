@@ -20,14 +20,11 @@ import (
 
 const (
 	//RuntimeConditionRunning string = "RuntimeRunning"
-	ConditionSynced        string = "Synced"
-	ConditionRouteSynced   string = "RouteSynced"
-	ConditionLocalDbSynced string = "LocalDbSynced"
-	SyncOK                 string = "SyncOK"
-	SyncFailed             string = "SyncFailed"
-	Deleted                string = "Deleted"
-	EnvPostGresImage       string = "RELATED_IMAGE_postgresql"
-	EnvBackstageImage      string = "RELATED_IMAGE_backstage"
+	ConditionSynced   string = "Synced"
+	SyncOK            string = "SyncOK"
+	SyncFailed        string = "SyncFailed"
+	EnvPostGresImage  string = "RELATED_IMAGE_postgresql"
+	EnvBackstageImage string = "RELATED_IMAGE_backstage"
 )
 
 // BackstageSpec defines the desired state of Backstage

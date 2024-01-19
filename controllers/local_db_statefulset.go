@@ -148,9 +148,8 @@ func (r *BackstageReconciler) reconcileLocalDbStatefulSet(ctx context.Context, b
 		if errors.IsConflict(err) {
 			return fmt.Errorf("retry sync needed: %v", err)
 		}
-		msg := fmt.Sprintf("failed to sync Database StatefulSet: %s", err.Error())
+		msg := fmt.Sprintf("failed to sync Database StatefulSet: %s", err)
 		setStatusCondition(backstage, bs.ConditionSynced, metav1.ConditionFalse, bs.SyncFailed, msg)
-		setStatusCondition(backstage, bs.ConditionLocalDbSynced, metav1.ConditionFalse, bs.SyncFailed, "local db statefulset sync failed")
 		return fmt.Errorf(msg)
 	}
 	return nil
@@ -235,7 +234,7 @@ func (r *BackstageReconciler) cleanupLocalDbResources(ctx context.Context, backs
 		},
 	}
 	if _, err := r.cleanupResource(ctx, statefulSet, backstage); err != nil {
-		return err
+		return fmt.Errorf("failed to delete database statefulset, reason: %s", err)
 	}
 
 	service := &v1.Service{
@@ -245,9 +244,8 @@ func (r *BackstageReconciler) cleanupLocalDbResources(ctx context.Context, backs
 		},
 	}
 	if _, err := r.cleanupResource(ctx, service, backstage); err != nil {
-		return err
+		return fmt.Errorf("failed to delete database service, reason: %s", err)
 	}
-
 	serviceHL := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("backstage-psql-%s-hl", backstage.Name),
@@ -255,7 +253,7 @@ func (r *BackstageReconciler) cleanupLocalDbResources(ctx context.Context, backs
 		},
 	}
 	if _, err := r.cleanupResource(ctx, serviceHL, backstage); err != nil {
-		return err
+		return fmt.Errorf("failed to delete headless database service, reason: %s", err)
 	}
 
 	secret := &v1.Secret{
@@ -265,7 +263,7 @@ func (r *BackstageReconciler) cleanupLocalDbResources(ctx context.Context, backs
 		},
 	}
 	if _, err := r.cleanupResource(ctx, secret, backstage); err != nil {
-		return err
+		return fmt.Errorf("failed to delete generated database secret, reason: %s", err)
 	}
 	return nil
 }

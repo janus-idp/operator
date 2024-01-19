@@ -155,7 +155,7 @@ func (r *BackstageReconciler) reconcileBackstageDeployment(ctx context.Context, 
 		if errors.IsConflict(err) {
 			return fmt.Errorf("retry sync needed: %v", err)
 		}
-		msg := fmt.Sprintf("failed to sync Backstage Deployment: %s", err.Error())
+		msg := fmt.Sprintf("failed to sync Backstage Deployment: %s", err)
 		setStatusCondition(backstage, bs.ConditionSynced, metav1.ConditionFalse, bs.SyncFailed, msg)
 		return fmt.Errorf(msg)
 	}

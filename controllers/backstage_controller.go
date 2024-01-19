@@ -128,13 +128,11 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		setStatusCondition(&backstage, bs.ConditionLocalDbSynced, v1.ConditionTrue, bs.SyncOK, "")
 	} else { // Clean up the deployed local db resources if any
 		if err := r.cleanupLocalDbResources(ctx, backstage); err != nil {
-			setStatusCondition(&backstage, bs.ConditionLocalDbSynced, v1.ConditionFalse, bs.SyncFailed, fmt.Sprintf("failed to delete Database Services:%s", err.Error()))
+			setStatusCondition(&backstage, bs.ConditionSynced, v1.ConditionFalse, bs.SyncFailed, fmt.Sprintf("failed to delete Database Services:%s", err.Error()))
 			return ctrl.Result{}, fmt.Errorf("failed to delete Database Service: %w", err)
 		}
-		setStatusCondition(&backstage, bs.ConditionLocalDbSynced, v1.ConditionTrue, bs.Deleted, "")
 	}
 
 	err := r.reconcileBackstageDeployment(ctx, &backstage, req.Namespace)
