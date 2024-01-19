@@ -111,6 +111,14 @@ fmt_license: addlicense ## Ensure the license header is set on all files
 	$(ADDLICENSE) -v -f license_header.txt $$(find . -not -path '*/\.*' -name '*.go')
 	$(ADDLICENSE) -v -f license_header.txt $$(find . -name '*ockerfile')
 
+.PHONY: gosec
+gosec: ## run the gosec scanner for non-test files in this repo
+  	ifeq ($(shell command -v gosec 2> /dev/null),)
+	  	$(error "gosec must be installed for this rule: go install github.com/securego/gosec/v2/cmd/gosec@v2.18.2" && exit 1)
+  	endif
+  	# we let the report content trigger a failure using the GitHub Security features.
+	gosec -no-fail -fmt sarif -out gosec.sarif  ./...
+
 .PHONY: lint
 lint: golangci-lint ## Run the linter on the codebase
 	$(GOLANGCI_LINT) run ./... --timeout 15m
