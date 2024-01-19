@@ -91,7 +91,7 @@ make undeploy-olm
 
 6. To deploy the operator to Openshift with OLM
 ```sh
-make deploy-openshift [IMG=<your-registry>/backstage-operator:tag] [BUNDLE_IMG=<your-registry>/<your-bundle-image>] [CATALOG_IMG=<your-registry>/<your-catalog-image>]
+make deploy-openshift [IMAGE_TAG_BASE=<your-registry>/backstage-operator]
 ```
 
 ### Modifying the API definitions
