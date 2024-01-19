@@ -318,8 +318,6 @@ catalog-build: bundle-push opm ## Generate operator-catalog dockerfile using the
     ## [GA] added '-d docker/index.Dockerfile' to avoid generating in the root
 	$(OPM) index add --container-tool $(CONTAINER_ENGINE) --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT) --generate -d docker/index.Dockerfile
 	$(CONTAINER_ENGINE) build --platform $(PLATFORM) -f docker/index.Dockerfile -t $(CATALOG_IMG) --label $(LABEL) .
-	## remove Sqlite db
-	rm -fr database
 
 .PHONY: catalog-push
 catalog-push: ## Push catalog image to registry
