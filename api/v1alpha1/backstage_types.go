@@ -18,11 +18,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Constants for status conditions
 const (
-	//RuntimeConditionRunning string = "RuntimeRunning"
-	ConditionSynced   string = "Synced"
-	SyncOK            string = "SyncOK"
-	SyncFailed        string = "SyncFailed"
+	// TODO: RuntimeConditionRunning string = "RuntimeRunning"
+	ConditionSynced string = "Synced"
+	SyncOK          string = "SyncOK"
+	SyncFailed      string = "SyncFailed"
+)
+
+// Constants for image placeholders
+const (
 	EnvPostGresImage  string = "RELATED_IMAGE_postgresql"
 	EnvBackstageImage string = "RELATED_IMAGE_backstage"
 )
