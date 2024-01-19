@@ -84,7 +84,7 @@ make catalog-update
 ```sh
 make deploy-olm
 ```
-5. To undeloy the operator with OLM
+5. To undeploy the operator with OLM
 ```sh
 make undeploy-olm
 ```
