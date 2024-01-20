@@ -110,6 +110,10 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}(&backstage)
 
+	if len(backstage.Status.Conditions) == 0 {
+		setStatusCondition(&backstage, bs.ConditionSynced, v1.ConditionFalse, bs.SyncInProgress, "Reconciliation started")
+	}
+
 	if pointer.BoolDeref(backstage.Spec.Database.EnableLocalDb, true) {
 
 		/* We use default strogeclass currently, and no PV is needed in that case.

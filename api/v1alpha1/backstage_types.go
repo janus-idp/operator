@@ -24,6 +24,7 @@ const (
 	ConditionSynced string = "Synced"
 	SyncOK          string = "SyncOK"
 	SyncFailed      string = "SyncFailed"
+	SyncInProgress  string = "SyncInProgress"
 )
 
 // Constants for image placeholders

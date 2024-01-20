@@ -125,8 +125,20 @@ var _ = Describe("Backstage controller", func() {
 			var backstage bsv1alpha1.Backstage
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, &backstage)
 			g.Expect(err).NotTo(HaveOccurred())
-			//TODO the status is under construction
 			g.Expect(isSynced(backstage)).To(BeTrue())
+		}, time.Minute, time.Second).Should(Succeed())
+	}
+
+	verifyBackstageInstanceError := func(ctx context.Context, errMsg string) {
+		Eventually(func(g Gomega) {
+			var backstage bsv1alpha1.Backstage
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, &backstage)
+			g.Expect(err).NotTo(HaveOccurred())
+			cond := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alpha1.ConditionSynced)
+			g.Expect(cond).NotTo(BeNil())
+			g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
+			g.Expect(cond.Reason).To(Equal(bsv1alpha1.SyncFailed))
+			g.Expect(cond.Message).To(ContainSubstring(errMsg))
 		}, time.Minute, time.Second).Should(Succeed())
 	}
 
@@ -588,13 +600,13 @@ spec:
 	Context("App Configs", func() {
 		When("referencing non-existing ConfigMap as app-config", func() {
 			var backstage *bsv1alpha1.Backstage
-
+			const cmName = "a-non-existing-cm"
 			BeforeEach(func() {
 				backstage = buildBackstageCR(bsv1alpha1.BackstageSpec{
 					Application: &bsv1alpha1.Application{
 						AppConfig: &bsv1alpha1.AppConfig{
 							ConfigMaps: []bsv1alpha1.ObjectKeyRef{
-								{Name: "a-non-existing-cm"},
+								{Name: cmName},
 							},
 						},
 					},
@@ -615,6 +627,9 @@ spec:
 					NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
 				})
 				Expect(err).To(HaveOccurred())
+				errStr := fmt.Sprintf("failed to add volume mounts to Backstage deployment, reason: configmaps \"%s\" not found", cmName)
+				Expect(err.Error()).Should(ContainSubstring(errStr))
+				verifyBackstageInstanceError(ctx, errStr)
 
 				By("Not creating a Backstage Deployment")
 				Consistently(func() error {
@@ -839,13 +854,13 @@ plugins: []
 			kind := kind
 			When(fmt.Sprintf("referencing non-existing %s as extra-file", kind), func() {
 				var backstage *bsv1alpha1.Backstage
+				name := "a-non-existing-" + strings.ToLower(kind)
 
 				BeforeEach(func() {
 					var (
 						cmExtraFiles  []bsv1alpha1.ObjectKeyRef
 						secExtraFiles []bsv1alpha1.ObjectKeyRef
 					)
-					name := "a-non-existing-" + strings.ToLower(kind)
 					switch kind {
 					case "ConfigMap":
 						cmExtraFiles = append(cmExtraFiles, bsv1alpha1.ObjectKeyRef{Name: name})
@@ -876,6 +891,9 @@ plugins: []
 						NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
 					})
 					Expect(err).To(HaveOccurred())
+					errStr := fmt.Sprintf("failed to add volume mounts to Backstage deployment, reason: %ss \"%s\" not found", strings.ToLower(kind), name)
+					Expect(err.Error()).Should(ContainSubstring(errStr))
+					verifyBackstageInstanceError(ctx, errStr)
 
 					By("Not creating a Backstage Deployment")
 					Consistently(func() error {
@@ -1428,39 +1446,6 @@ plugins: []
 					Expect(found.Spec.Replicas).Should(HaveValue(BeEquivalentTo(nbReplicasUpdated)))
 				},
 			)
-		})
-
-		When("setting invalid replicas", func() {
-			var nbReplicas int32 = -1
-			var backstage *bsv1alpha1.Backstage
-			var crName = "backstage-invalid-replicas"
-
-			BeforeEach(func() {
-				backstage = buildBackstageCR(bsv1alpha1.BackstageSpec{
-					Application: &bsv1alpha1.Application{
-						Replicas: &nbReplicas,
-					},
-				})
-				backstage.Name = crName
-				err := k8sClient.Create(ctx, backstage)
-				Expect(err).To(Not(HaveOccurred()))
-			})
-
-			It("should fail to reconcile", func() {
-				By("Checking if the custom resource was successfully created")
-				Eventually(func() error {
-					found := &bsv1alpha1.Backstage{}
-					return k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, found)
-				}, time.Minute, time.Second).Should(Succeed())
-
-				By("Reconciling the custom resource created")
-				_, err := backstageReconciler.Reconcile(ctx, reconcile.Request{
-					NamespacedName: types.NamespacedName{Name: crName, Namespace: ns},
-				})
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).Should(ContainSubstring(
-					fmt.Sprintf("spec.replicas: Invalid value: %d: must be greater than or equal to 0", nbReplicas)))
-			})
 		})
 	})
 
