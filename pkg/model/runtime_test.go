@@ -17,7 +17,6 @@ package model
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"testing"
 
 	"k8s.io/utils/pointer"
@@ -27,30 +26,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
-
-type TestRuntimeModel struct {
-	backstageDeployment *BackstageDeployment
-	backstageService    *BackstageService
-
-	localDbStatefulSet *DbStatefulSet
-	localDbService     *DbService
-	localDbSecret      *DbSecret
-	generateDbPassword bool
-
-	route *BackstageRoute
-
-	Objects []BackstageObject
-}
-
-func (t *TestRuntimeModel) setObject(object BackstageObject) {
-	for i, obj := range t.Objects {
-		if reflect.TypeOf(obj) == reflect.TypeOf(object) {
-			t.Objects[i] = object
-			return
-		}
-	}
-	t.Objects = append(t.Objects, object)
-}
 
 // NOTE: to make it work locally env var LOCALBIN should point to the directory where default-config folder located
 func TestInitDefaultDeploy(t *testing.T) {

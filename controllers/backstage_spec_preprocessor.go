@@ -123,15 +123,15 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.B
 
 	}
 
-	// check if local database disabled, respective objects have to deleted/unowned
-	if !bsSpec.IsLocalDbEnabled() {
-		//TODO
-	}
-
-	// check if route disabled, respective objects have to deleted/unowned
-	if !bsSpec.IsRouteEnabled() {
-		// TODO
-	}
+	//// check if local database disabled, respective objects have to deleted/unowned
+	//if !bsSpec.IsLocalDbEnabled() {
+	//	//TODO
+	//}
+	//
+	//// check if route disabled, respective objects have to deleted/unowned
+	//if !bsSpec.IsRouteEnabled() {
+	//	// TODO
+	//}
 
 	// if DB Secret should be generated
 	sec := corev1.Secret{}
@@ -146,13 +146,14 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.B
 				return nil, fmt.Errorf("failed to get DB Secret %s: %w", secretName, err)
 			}
 		}
-	} else {
-		// We do not check if secret exists?
-		//secretName := bsSpec.Database.AuthSecretName
-		//if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: ns}, &sec); err != nil {
-		//	return nil, fmt.Errorf("failed to get DB Secret %s: %w", secretName, err)
-		//}
 	}
+	//else {
+	//	// We do not check if secret exists?
+	//	//secretName := bsSpec.Database.AuthSecretName
+	//	//if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: ns}, &sec); err != nil {
+	//	//	return nil, fmt.Errorf("failed to get DB Secret %s: %w", secretName, err)
+	//	//}
+	//}
 
 	return result, nil
 }
