@@ -72,8 +72,8 @@ var _ = Describe("Backstage controller", func() {
 			Scheme:      k8sClient.Scheme(),
 			Namespace:   ns,
 			OwnsRuntime: true,
-			//PsqlImage:      "test-postgresql-15:latest",
-			//BackstageImage: "test-backstage-showcase:next",
+			// let's set it explicitly to avoid misunderstanding
+			IsOpenShift: false,
 		}
 	})
 
@@ -1369,7 +1369,7 @@ spec:
 		When("disabling PostgreSQL in the CR", func() {
 			It("should successfully reconcile a custom resource for default Backstage with existing secret", func() {
 				backstage := buildBackstageCR(bsv1alpha1.BackstageSpec{
-					Database: bsv1alpha1.Database{
+					Database: &bsv1alpha1.Database{
 						EnableLocalDb:  pointer.Bool(false),
 						AuthSecretName: "existing-secret",
 					},
@@ -1411,7 +1411,7 @@ spec:
 
 		It("should fail to reconcile a custom resource for default Backstage without existing secret", func() {
 			backstage := buildBackstageCR(bsv1alpha1.BackstageSpec{
-				Database: bsv1alpha1.Database{
+				Database: &bsv1alpha1.Database{
 					EnableLocalDb: pointer.Bool(false),
 				},
 			})

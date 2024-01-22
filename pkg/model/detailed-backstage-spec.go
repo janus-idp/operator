@@ -21,8 +21,10 @@ import (
 // extension of Backstage.Spec to make it possible to work on model package level
 type DetailedBackstageSpec struct {
 	bs.BackstageSpec
-	RawConfigContent map[string]string
-	ConfigObjects    backstageConfigs
+	RawConfigContent   map[string]string
+	ConfigObjects      backstageConfigs
+	LocalDbSecret      map[string]string
+	GenerateDbPassword bool
 }
 
 // array of BackstagePodContributor interfaces

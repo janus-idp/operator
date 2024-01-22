@@ -42,7 +42,7 @@ var simpleTestBackstage = bsv1alpha1.Backstage{
 		Namespace: "ns123",
 	},
 	Spec: bsv1alpha1.BackstageSpec{
-		Database: bsv1alpha1.Database{
+		Database: &bsv1alpha1.Database{
 			EnableLocalDb: pointer.Bool(false),
 		},
 	},
@@ -56,8 +56,9 @@ func createBackstageTest(bs bsv1alpha1.Backstage) *testBackstageObject {
 }
 
 // enables LocalDB
-func (b *testBackstageObject) withLocalDb() *testBackstageObject {
+func (b *testBackstageObject) withLocalDb(generatePassword bool) *testBackstageObject {
 	b.detailedSpec.Database.EnableLocalDb = pointer.Bool(true)
+	b.detailedSpec.GenerateDbPassword = generatePassword
 	return b
 }
 

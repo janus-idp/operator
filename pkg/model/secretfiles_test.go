@@ -33,7 +33,7 @@ func TestDefaultSecretFiles(t *testing.T) {
 
 	bs := simpleTestBackstage
 
-	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("secret-files.yaml", "s-files.yaml")
+	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("secret-files.yaml", "raw-secret-files.yaml")
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
@@ -90,7 +90,7 @@ func TestDefaultAndSpecifiedSecretFiles(t *testing.T) {
 
 	bs := simpleTestBackstage
 
-	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("secret-files.yaml", "s-files.yaml")
+	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("secret-files.yaml", "raw-secret-files.yaml")
 
 	sec := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

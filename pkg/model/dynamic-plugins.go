@@ -49,19 +49,17 @@ func (p *DynamicPlugins) Object() client.Object {
 }
 
 // implementation of BackstageObject interface
-func (p *DynamicPlugins) initMetainfo(backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
-	initMetainfo(p, backstageMeta, ownsRuntime)
-	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-dynamic-plugins"))
-}
-
-// implementation of BackstageObject interface
 func (p *DynamicPlugins) EmptyObject() client.Object {
 	return &corev1.ConfigMap{}
 }
 
 // implementation of BackstageObject interface
-func (p *DynamicPlugins) addToModel(model *RuntimeModel) {
-	// nothing
+func (p *DynamicPlugins) addToModel(model *RuntimeModel, backstageMeta v1alpha1.Backstage, name string, ownsRuntime bool) {
+	model.setObject(p)
+
+	initMetainfo(p, backstageMeta, ownsRuntime)
+	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-dynamic-plugins"))
+
 }
 
 // implementation of BackstagePodContributor interface
@@ -69,7 +67,7 @@ func (p *DynamicPlugins) updateBackstagePod(pod *backstagePod) {
 
 	//it relies on implementation where dynamic-plugin initContainer
 	//uses specified ConfigMap for producing app-config with dynamic-plugins
-	//For this:
+	//For this implementation:
 	//- backstage contaier and dynamic-plugin initContainer must share a volume
 	//  where initContainer writes and backstage container reads produced app-config
 	//- app-config path should be set as a --config parameter of backstage container

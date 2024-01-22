@@ -29,7 +29,7 @@ func TestDefaultAppConfig(t *testing.T) {
 
 	bs := simpleTestBackstage
 
-	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("app-config.yaml", "app-config1.yaml")
+	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("app-config.yaml", "raw-app-config.yaml")
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
@@ -88,7 +88,7 @@ func TestDefaultAndSpecifiedAppConfig(t *testing.T) {
 
 	bs := simpleTestBackstage
 
-	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("app-config.yaml", "app-config1.yaml")
+	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("app-config.yaml", "raw-app-config.yaml")
 
 	cm := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

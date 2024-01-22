@@ -47,19 +47,17 @@ func (p *SecretFiles) Object() client.Object {
 }
 
 // implementation of BackstageObject interface
-func (p *SecretFiles) initMetainfo(backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
-	initMetainfo(p, backstageMeta, ownsRuntime)
-	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretfiles"))
-}
-
-// implementation of BackstageObject interface
 func (p *SecretFiles) EmptyObject() client.Object {
 	return &corev1.Secret{}
 }
 
 // implementation of BackstageObject interface
-func (p *SecretFiles) addToModel(model *RuntimeModel) {
-	// nothing
+func (p *SecretFiles) addToModel(model *RuntimeModel, backstageMeta v1alpha1.Backstage, name string, ownsRuntime bool) {
+	model.setObject(p)
+
+	initMetainfo(p, backstageMeta, ownsRuntime)
+	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretfiles"))
+
 }
 
 // implementation of BackstageObject interface

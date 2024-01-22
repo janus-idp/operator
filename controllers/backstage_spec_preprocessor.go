@@ -18,6 +18,9 @@ import (
 	"context"
 	"fmt"
 
+	"janus-idp.io/backstage-operator/pkg/utils"
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	bs "janus-idp.io/backstage-operator/api/v1alpha1"
 	"janus-idp.io/backstage-operator/pkg/model"
 	corev1 "k8s.io/api/core/v1"
@@ -26,9 +29,11 @@ import (
 
 // Add additional details to the Backstage Spec helping in making Bakstage Objects Model
 // Validates Backstage Spec and fails fast if something not correct
-func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.BackstageSpec, ns string) (*model.DetailedBackstageSpec, error) {
+func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.Backstage) (*model.DetailedBackstageSpec, error) {
 	//lg := log.FromContext(ctx)
 
+	bsSpec := backstage.Spec
+	ns := backstage.Namespace
 	result := &model.DetailedBackstageSpec{
 		BackstageSpec:    bsSpec,
 		RawConfigContent: map[string]string{},
@@ -118,19 +123,36 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, bsSpec bs.Back
 
 	}
 
-	// PreProcess Database
-	//if bsSpec.Database != nil {
-	//
-	//	if authSecret := bsSpec.Database.AuthSecretName; authSecret != "" {
-	//		//TODO do we need this kind of check?
-	//		//sec := corev1.Secret{}
-	//		//if err := r.Get(ctx, types.NamespacedName{Name: authSecret, Namespace: ns}, &sec); err != nil {
-	//		//	return nil, fmt.Errorf("failed to get DB AuthSecret %s: %w", authSecret, err)
-	//		//}
-	//	}
-	//
-	//}
+	// check if local database disabled, respective objects have to deleted/unowned
+	if !bsSpec.IsLocalDbEnabled() {
+		//TODO
+	}
 
-	// TODO PreProcess Network
+	// check if route disabled, respective objects have to deleted/unowned
+	if !bsSpec.IsRouteEnabled() {
+		// TODO
+	}
+
+	// if DB Secret should be generated
+	sec := corev1.Secret{}
+	result.GenerateDbPassword = false
+	if !bsSpec.IsAuthSecretSpecified() {
+		secretName := utils.GenerateRuntimeObjectName(backstage.Name, "dbsecret")
+		if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: ns}, &sec); err != nil {
+			if errors.IsNotFound(err) {
+				// generate secret
+				result.GenerateDbPassword = true
+			} else {
+				return nil, fmt.Errorf("failed to get DB Secret %s: %w", secretName, err)
+			}
+		}
+	} else {
+		// We do not check if secret exists?
+		//secretName := bsSpec.Database.AuthSecretName
+		//if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: ns}, &sec); err != nil {
+		//	return nil, fmt.Errorf("failed to get DB Secret %s: %w", secretName, err)
+		//}
+	}
+
 	return result, nil
 }

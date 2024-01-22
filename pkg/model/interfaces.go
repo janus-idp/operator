@@ -55,11 +55,11 @@ type BackstageObject interface {
 	// underlying Kubernetes object
 	Object() client.Object
 	// Inits metadata. Typically used to set/change object name, labels, selectors to ensure integrity
-	initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool)
+	//initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool)
 	// needed only for check if Object exists to call KubeClient.Get() and it should be garbage collected right away
 	EmptyObject() client.Object
 	// (For some types Backstage objects), adds it to the model
-	addToModel(model *RuntimeModel)
+	addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, name string, ownsRuntime bool)
 	// at this stage all the information is updated
 	// set the final references validates the object at the end of initialization (after 3 phases)
 	validate(model *RuntimeModel) error
@@ -72,7 +72,7 @@ type BackstagePodContributor interface {
 }
 
 // BackstageObject contributing to Local DB pod
-type LocalDbPodContributor interface {
-	BackstageObject
-	updateLocalDbPod(model *RuntimeModel)
-}
+//type LocalDbPodContributor interface {
+//	BackstageObject
+//	updateLocalDbPod(model *RuntimeModel)
+//}

@@ -53,16 +53,15 @@ func (b *BackstageDeployment) EmptyObject() client.Object {
 }
 
 // implementation of BackstageObject interface
-func (b *BackstageDeployment) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
+func (b *BackstageDeployment) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, name string, ownsRuntime bool) {
+	model.backstageDeployment = b
+	model.setObject(b)
+
 	initMetainfo(b, backstageMeta, ownsRuntime)
 	b.deployment.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "deployment"))
 	utils.GenerateLabel(&b.deployment.Spec.Template.ObjectMeta.Labels, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageMeta.Name))
 	utils.GenerateLabel(&b.deployment.Spec.Selector.MatchLabels, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageMeta.Name))
-}
 
-// implementation of BackstageObject interface
-func (b *BackstageDeployment) addToModel(model *RuntimeModel) {
-	model.backstageDeployment = b
 }
 
 // implementation of BackstageObject interface

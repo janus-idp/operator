@@ -42,19 +42,15 @@ func (p *ConfigMapEnvs) Object() client.Object {
 }
 
 // implementation of BackstageObject interface
-func (p *ConfigMapEnvs) initMetainfo(backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
-	initMetainfo(p, backstageMeta, ownsRuntime)
-	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-configmapenvs"))
-}
-
-// implementation of BackstageObject interface
 func (p *ConfigMapEnvs) EmptyObject() client.Object {
 	return &corev1.ConfigMap{}
 }
 
 // implementation of BackstageObject interface
-func (p *ConfigMapEnvs) addToModel(model *RuntimeModel) {
-	// nothing
+func (p *ConfigMapEnvs) addToModel(model *RuntimeModel, backstageMeta v1alpha1.Backstage, name string, ownsRuntime bool) {
+	model.setObject(p)
+	initMetainfo(p, backstageMeta, ownsRuntime)
+	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-configmapenvs"))
 }
 
 // implementation of BackstageObject interface

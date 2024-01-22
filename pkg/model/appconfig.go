@@ -49,19 +49,15 @@ func (b *AppConfig) Object() client.Object {
 }
 
 // implementation of BackstageObject interface
-func (b *AppConfig) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
-	initMetainfo(b, backstageMeta, ownsRuntime)
-	b.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-appconfig"))
-}
-
-// implementation of BackstageObject interface
 func (b *AppConfig) EmptyObject() client.Object {
 	return &corev1.ConfigMap{}
 }
 
 // implementation of BackstageObject interface
-func (b *AppConfig) addToModel(model *RuntimeModel) {
-	// nothing to add
+func (b *AppConfig) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, name string, ownsRuntime bool) {
+	model.setObject(b)
+	initMetainfo(b, backstageMeta, ownsRuntime)
+	b.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-appconfig"))
 }
 
 // implementation of BackstageObject interface

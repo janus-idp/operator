@@ -43,15 +43,13 @@ func (s *DbService) Object() client.Object {
 }
 
 // implementation of BackstageObject interface
-func (s *DbService) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
-	initMetainfo(s, backstageMeta, ownsRuntime)
-	s.service.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "db-service"))
-	utils.GenerateLabel(&s.service.Spec.Selector, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
-}
-
-// implementation of BackstageObject interface
-func (b *DbService) addToModel(model *RuntimeModel) {
+func (b *DbService) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, name string, ownsRuntime bool) {
 	model.localDbService = b
+	model.setObject(b)
+
+	initMetainfo(b, backstageMeta, ownsRuntime)
+	b.service.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "db-service"))
+	utils.GenerateLabel(&b.service.Spec.Selector, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
 }
 
 // implementation of BackstageObject interface

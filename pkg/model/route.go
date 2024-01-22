@@ -31,6 +31,53 @@ type BackstageRoute struct {
 	route *openshift.Route
 }
 
+func newBackstageRoute(specified bsv1alpha1.Route) *BackstageRoute {
+
+	osroute := openshift.Route{}
+	bsroute := &BackstageRoute{route: &osroute}
+
+	if len(specified.Host) > 0 {
+		osroute.Spec.Host = specified.Host
+	}
+	if len(specified.Subdomain) > 0 {
+		osroute.Spec.Subdomain = specified.Subdomain
+	}
+	if specified.TLS == nil {
+		return bsroute
+	}
+	if osroute.Spec.TLS == nil {
+		osroute.Spec.TLS = &openshift.TLSConfig{
+			Termination:                   openshift.TLSTerminationEdge,
+			InsecureEdgeTerminationPolicy: openshift.InsecureEdgeTerminationPolicyRedirect,
+			Certificate:                   specified.TLS.Certificate,
+			Key:                           specified.TLS.Key,
+			CACertificate:                 specified.TLS.CACertificate,
+			ExternalCertificate: &openshift.LocalObjectReference{
+				Name: specified.TLS.ExternalCertificateSecretName,
+			},
+		}
+		return bsroute
+	}
+	if len(specified.TLS.Certificate) > 0 {
+		osroute.Spec.TLS.Certificate = specified.TLS.Certificate
+	}
+	if len(specified.TLS.Key) > 0 {
+		osroute.Spec.TLS.Key = specified.TLS.Key
+	}
+	if len(specified.TLS.Certificate) > 0 {
+		osroute.Spec.TLS.Certificate = specified.TLS.Certificate
+	}
+	if len(specified.TLS.CACertificate) > 0 {
+		osroute.Spec.TLS.CACertificate = specified.TLS.CACertificate
+	}
+	if len(specified.TLS.ExternalCertificateSecretName) > 0 {
+		osroute.Spec.TLS.ExternalCertificate = &openshift.LocalObjectReference{
+			Name: specified.TLS.ExternalCertificateSecretName,
+		}
+	}
+	return bsroute
+}
+
 func init() {
 	registerConfig("route.yaml", BackstageRouteFactory{}, ForOpenshift)
 }
@@ -46,15 +93,12 @@ func (b *BackstageRoute) EmptyObject() client.Object {
 }
 
 // implementation of BackstageObject interface
-func (b *BackstageRoute) initMetainfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
+func (b *BackstageRoute) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, name string, ownsRuntime bool) {
+	model.route = b
+	model.setObject(b)
+
 	initMetainfo(b, backstageMeta, ownsRuntime)
 	b.route.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "route"))
-	//b.route.Spec.To.Name = b.route.Name
-}
-
-// implementation of BackstageObject interface
-func (b *BackstageRoute) addToModel(model *RuntimeModel) {
-	model.route = b
 }
 
 // implementation of BackstageObject interface

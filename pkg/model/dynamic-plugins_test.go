@@ -29,7 +29,7 @@ func TestDynamicPluginsValidationFailed(t *testing.T) {
 	bs := simpleTestBackstage
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).
-		addToDefaultConfig("dynamic-plugins.yaml", "dynamic-plugins1.yaml")
+		addToDefaultConfig("dynamic-plugins.yaml", "raw-dynamic-plugins.yaml")
 
 	_, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
@@ -43,7 +43,7 @@ func TestDefaultDynamicPlugins(t *testing.T) {
 	bs := simpleTestBackstage
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).
-		addToDefaultConfig("dynamic-plugins.yaml", "dynamic-plugins1.yaml").
+		addToDefaultConfig("dynamic-plugins.yaml", "raw-dynamic-plugins.yaml").
 		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
@@ -68,7 +68,7 @@ func TestSpecifiedDynamicPlugins(t *testing.T) {
 	bs := simpleTestBackstage
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).
-		addToDefaultConfig("dynamic-plugins.yaml", "dynamic-plugins1.yaml").
+		addToDefaultConfig("dynamic-plugins.yaml", "raw-dynamic-plugins.yaml").
 		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")
 
 	cm := corev1.ConfigMap{

@@ -18,19 +18,73 @@ import (
 	"context"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
+	"k8s.io/utils/pointer"
+
+	"janus-idp.io/backstage-operator/pkg/utils"
+
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRouteSpec(t *testing.T) {
+func TestDefaultRoute(t *testing.T) {
 	bs := simpleTestBackstage
 
-	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("route.yaml", "route.yaml")
+	assert.False(t, bs.Spec.IsRouteEnabled())
+
+	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("route.yaml", "raw-route.yaml")
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, true)
 
 	assert.NoError(t, err)
 
 	assert.NotNil(t, model.route)
+
+	assert.Equal(t, utils.GenerateRuntimeObjectName(bs.Name, "route"), model.route.route.Name)
 	assert.Equal(t, model.backstageService.service.Name, model.route.route.Spec.To.Name)
 
+	assert.Empty(t, model.route.route.Spec.Host)
+}
+
+func TestSpecifiedRoute(t *testing.T) {
+	bs := bsv1alpha1.Backstage{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "TestSpecifiedRoute",
+			Namespace: "ns123",
+		},
+		Spec: bsv1alpha1.BackstageSpec{
+			Application: &bsv1alpha1.Application{
+				Route: &bsv1alpha1.Route{
+					Enabled: pointer.Bool(true),
+					Host:    "TestSpecifiedRoute",
+					TLS:     nil,
+				},
+			},
+		},
+	}
+
+	assert.True(t, bs.Spec.IsRouteEnabled())
+
+	// Test w/o default route configured
+	testObjNoDef := createBackstageTest(bs).withDefaultConfig(true)
+	model, err := InitObjects(context.TODO(), bs, testObjNoDef.detailedSpec, true, true)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, model.route)
+
+	// check if what we have is what we specified in bs
+	assert.Equal(t, utils.GenerateRuntimeObjectName(bs.Name, "route"), model.route.route.Name)
+	assert.Equal(t, bs.Spec.Application.Route.Host, model.route.route.Spec.Host)
+
+	// Test with default route configured
+	testObjWithDef := testObjNoDef.addToDefaultConfig("route.yaml", "raw-route.yaml")
+	model, err = InitObjects(context.TODO(), bs, testObjWithDef.detailedSpec, true, true)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, model.route)
+
+	// check if what we have is what we specified in bs
+	assert.Equal(t, utils.GenerateRuntimeObjectName(bs.Name, "route"), model.route.route.Name)
+	assert.Equal(t, bs.Spec.Application.Route.Host, model.route.route.Spec.Host)
 }

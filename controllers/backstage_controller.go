@@ -91,10 +91,9 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, fmt.Errorf("failed to load backstage deployment from the cluster: %w", err)
 	}
 
-	// This helps to:
-	// 1. Preliminary read and prepare some config objects from the specs (configMaps, Secrets...)
+	// 1. Preliminary read and prepare external config objects from the specs (configMaps, Secrets)
 	// 2. Make some validation to fail fast
-	spec, err := r.preprocessSpec(ctx, backstage.Spec, req.Namespace)
+	spec, err := r.preprocessSpec(ctx, backstage)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to preprocess backstage spec: %w", err)
 	}

@@ -17,6 +17,7 @@ package model
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"k8s.io/utils/pointer"
@@ -27,10 +28,32 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type TestRuntimeModel struct {
+	backstageDeployment *BackstageDeployment
+	backstageService    *BackstageService
+
+	localDbStatefulSet *DbStatefulSet
+	localDbService     *DbService
+	localDbSecret      *DbSecret
+	generateDbPassword bool
+
+	route *BackstageRoute
+
+	Objects []BackstageObject
+}
+
+func (t *TestRuntimeModel) setObject(object BackstageObject) {
+	for i, obj := range t.Objects {
+		if reflect.TypeOf(obj) == reflect.TypeOf(object) {
+			t.Objects[i] = object
+			return
+		}
+	}
+	t.Objects = append(t.Objects, object)
+}
+
 // NOTE: to make it work locally env var LOCALBIN should point to the directory where default-config folder located
 func TestInitDefaultDeploy(t *testing.T) {
-
-	//setTestEnv()
 
 	bs := v1alpha1.Backstage{
 		ObjectMeta: metav1.ObjectMeta{
@@ -38,7 +61,7 @@ func TestInitDefaultDeploy(t *testing.T) {
 			Namespace: "ns123",
 		},
 		Spec: v1alpha1.BackstageSpec{
-			Database: v1alpha1.Database{
+			Database: &v1alpha1.Database{
 				EnableLocalDb: pointer.Bool(false),
 			},
 		},
@@ -79,37 +102,50 @@ func TestIfEmptyObjectIsValid(t *testing.T) {
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 	assert.NoError(t, err)
 
-	assert.Equal(t, len(model.Objects), 2)
+	assert.Equal(t, 5, len(model.Objects))
 
 }
 
-// [GA]Can be helpful to explore new model features (for example for Db and Route removing
-// Do not remove it.
+func TestAddToModel(t *testing.T) {
 
-//func TestIfModelObjectAndArrayElementIsTheSame(t *testing.T) {
-//
-//	bs := simpleTestBackstage
-//	testObj := createBackstageTest(bs).withDefaultConfig(true)
-//
-//	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
-//	assert.NoError(t, err)
-//
-//	bs.Spec.Application = &v1alpha1.Application{
-//		Route: &v1alpha1.Route{
-//			Enabled: pointer.Bool(false),
-//		},
-//	}
-//
-//	route := BackstageRouteFactory{}.newBackstageObject()
-//	model.Objects = append(model.Objects, route)
-//	for _, o := range model.Objects {
-//
-//		if _, ok := o.(*BackstageRoute); ok {
-//			t.Log(">>>>>>>>>>>OB>>>>>>>>>>>>>> ", o.Object())
-//			assert.Nil(t, o.Object())
-//			break
-//		}
-//	}
-//	//t.Error("Model does not contain BackstageRoute")
-//
-//}
+	bs := v1alpha1.Backstage{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bs",
+			Namespace: "ns123",
+		},
+		Spec: v1alpha1.BackstageSpec{
+			Database: &v1alpha1.Database{
+				EnableLocalDb: pointer.Bool(false),
+			},
+		},
+	}
+	testObj := createBackstageTest(bs).withDefaultConfig(true)
+
+	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
+	assert.NoError(t, err)
+	assert.NotNil(t, model)
+	assert.NotNil(t, model.Objects)
+	assert.Equal(t, 2, len(model.Objects))
+
+	found := false
+	for _, bd := range model.Objects {
+		if bd, ok := bd.(*BackstageDeployment); ok {
+			found = true
+			assert.Equal(t, bd, model.backstageDeployment)
+		}
+	}
+	assert.True(t, found)
+
+	// another empty model to test
+	rm := RuntimeModel{Objects: []BackstageObject{}}
+	assert.Equal(t, 0, len(rm.Objects))
+	testService := *model.backstageService
+
+	// add to rm
+	testService.addToModel(&rm, bs, "", true)
+	assert.Equal(t, 1, len(rm.Objects))
+	assert.NotNil(t, rm.backstageService)
+	assert.Nil(t, rm.backstageDeployment)
+	assert.Equal(t, testService, *rm.backstageService)
+	assert.Equal(t, testService, *rm.Objects[0].(*BackstageService))
+}

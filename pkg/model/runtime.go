@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -44,10 +45,21 @@ type RuntimeModel struct {
 	localDbStatefulSet *DbStatefulSet
 	localDbService     *DbService
 	localDbSecret      *DbSecret
+	//generateDbPassword bool
 
 	route *BackstageRoute
 
 	Objects []BackstageObject
+}
+
+func (t *RuntimeModel) setObject(object BackstageObject) {
+	for i, obj := range t.Objects {
+		if reflect.TypeOf(obj) == reflect.TypeOf(object) {
+			t.Objects[i] = object
+			return
+		}
+	}
+	t.Objects = append(t.Objects, object)
 }
 
 // Registers config object
@@ -67,7 +79,7 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 	lg := log.FromContext(ctx)
 
 	//objectList := make([]BackstageObject, 0)
-	model := &RuntimeModel{Objects: make([]BackstageObject, 0)}
+	model := &RuntimeModel{Objects: make([]BackstageObject, 0) /*, generateDbPassword: backstageSpec.GenerateDbPassword*/}
 
 	// looping through the registered runtimeConfig objects initializing the model
 	for _, conf := range runtimeConfig {
@@ -113,16 +125,16 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 		}
 
 		// do not add if ForOpenshift and cluster is not Openshift
-		if !isOpenshift && conf.need == ForOpenshift && backstageSpec.IsRouteEnabled() {
+		if !isOpenshift && conf.need == ForOpenshift {
 			continue
 		}
 
-		// populate BackstageObject metainfo (names, labels, selsctors etc)
-		backstageObject.initMetainfo(backstageMeta, ownsRuntime)
-
 		// finally add the object to the model and list
-		backstageObject.addToModel(model)
-		model.Objects = append(model.Objects, backstageObject)
+		backstageObject.addToModel(model, backstageMeta, "", ownsRuntime)
+	}
+
+	if model.backstageDeployment == nil {
+		return nil, fmt.Errorf("failed to identify Backstage Deployment by %s, it should not happen normally", "deployment.yaml")
 	}
 
 	// update local-db deployment with contributions
@@ -130,17 +142,14 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 		if model.localDbStatefulSet == nil {
 			return nil, fmt.Errorf("failed to identify Local DB StatefulSet by %s, it should not happen normally", "db-statefulset.yaml")
 		}
-		for _, bso := range model.Objects {
-			if ldco, ok := bso.(LocalDbPodContributor); ok {
-				ldco.updateLocalDbPod(model)
-			}
-		}
+		//for _, bso := range model.Objects {
+		//	if ldco, ok := bso.(LocalDbPodContributor); ok {
+		//		ldco.updateLocalDbPod(model)
+		//	}
+		//}
 	}
 
 	// create Backstage Pod object
-	if model.backstageDeployment == nil {
-		return nil, fmt.Errorf("failed to identify Backstage Deployment by %s, it should not happen normally", "deployment.yaml")
-	}
 	backstagePod, err := newBackstagePod(model.backstageDeployment)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Backstage Pod: %s", err)
@@ -164,24 +173,26 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 			}
 		}
 	}
+	// Route...
+	if isOpenshift && backstageSpec.IsRouteEnabled() {
+		newBackstageRoute(*backstageSpec.Application.Route).addToModel(model, backstageMeta, "", ownsRuntime)
+	}
+
+	// Local DB Secret...
+	if backstageSpec.IsLocalDbEnabled() {
+		if backstageSpec.IsAuthSecretSpecified() {
+			newDbSecretFromSpec(backstageSpec.Database.AuthSecretName).addToModel(model, backstageMeta, "", ownsRuntime)
+		}
+		model.localDbSecret.updateSecret(model, backstageSpec.IsAuthSecretSpecified(), backstageSpec.GenerateDbPassword)
+	}
+
 	// contribute to Backstage/LocalDb config
 	for _, v := range backstageSpec.ConfigObjects {
 		v.updateBackstagePod(backstagePod)
-		if dbc, ok := v.(LocalDbPodContributor); ok {
-			dbc.updateLocalDbPod(model)
-		}
+		//if dbc, ok := v.(LocalDbPodContributor); ok {
+		//	dbc.updateLocalDbPod(model)
+		//}
 	}
-
-	//TODO Network
-	//if Route disabled remove it from the model
-
-	//if backstageSpec.Application != nil && backstageSpec.Application.Route != nil {
-	//	for _, o := range model.Objects {
-	//		if _, ok := o.(*BackstageRoute); ok && !*backstageSpec.Application.Route.Enabled{
-	//			o.Object() = nil
-	//		}
-	//	}
-	//}
 
 	// validate all
 	for _, v := range model.Objects {

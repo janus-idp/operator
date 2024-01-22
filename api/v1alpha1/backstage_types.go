@@ -33,7 +33,7 @@ type BackstageSpec struct {
 	RawRuntimeConfig string `json:"rawRuntimeConfig,omitempty"`
 
 	// Configuration for database access. Optional.
-	Database Database `json:"database,omitempty"`
+	Database *Database `json:"database,omitempty"`
 }
 
 type Database struct {
@@ -260,12 +260,19 @@ func init() {
 }
 
 func (s BackstageSpec) IsLocalDbEnabled() bool {
+	if s.Database == nil {
+		return true
+	}
 	return pointer.BoolDeref(s.Database.EnableLocalDb, true)
 }
 
 func (s BackstageSpec) IsRouteEnabled() bool {
 	if s.Application == nil || s.Application.Route == nil {
-		return true
+		return false
 	}
 	return pointer.BoolDeref(s.Application.Route.Enabled, true)
+}
+
+func (s BackstageSpec) IsAuthSecretSpecified() bool {
+	return s.Database != nil && s.Database.AuthSecretName != ""
 }
