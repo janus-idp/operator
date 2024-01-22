@@ -42,4 +42,4 @@ jobs:
           go-version-file: 'go.mod'
       - name: ${{ matrix.engine }} build
         run: |
-          CONTAINER_ENGINE=${{ matrix.engine }} make operator-build
+          CONTAINER_ENGINE=${{ matrix.engine }} make test
