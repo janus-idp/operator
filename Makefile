@@ -318,8 +318,6 @@ catalog-build: bundle-push opm ## Generate operator-catalog dockerfile using the
     ## [GA] added '-d docker/index.Dockerfile' to avoid generating in the root
 	$(OPM) index add --container-tool $(CONTAINER_ENGINE) --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT) --generate -d docker/index.Dockerfile
 	$(CONTAINER_ENGINE) build --platform $(PLATFORM) -f docker/index.Dockerfile -t $(CATALOG_IMG) --label $(LABEL) .
-	## remove Sqlite db
-	rm -fr database
 
 .PHONY: catalog-push
 catalog-push: ## Push catalog image to registry
@@ -345,7 +343,7 @@ undeploy-olm: ## Un-deploy the operator with OLM
 DEFAULT_OLM_NAMESPACE ?= openshift-marketplace
 .PHONY: catalog-update
 catalog-update: ## Update catalog source in the default namespace for catalogsource
-	-kubectl delete catalogsource backstage-operator -n $(DEFAULT_OLM_NAMESPACE)
+	kubectl delete catalogsource backstage-operator -n $(DEFAULT_OLM_NAMESPACE)
 	sed "s/{{CATALOG_IMG}}/$(subst /,\/,$(CATALOG_IMG))/g" config/samples/catalog-source-template.yaml | kubectl apply -n $(DEFAULT_OLM_NAMESPACE) -f -
 
 .PHONY: deploy-openshift

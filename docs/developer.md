@@ -84,14 +84,14 @@ make catalog-update
 ```sh
 make deploy-olm
 ```
-5. To undeloy the operator with OLM
+5. To undeploy the operator with OLM
 ```sh
 make undeploy-olm
 ```
 
 6. To deploy the operator to Openshift with OLM
 ```sh
-make deploy-openshift [IMG=<your-registry>/backstage-operator:tag] [BUNDLE_IMG=<your-registry>/<your-bundle-image>] [CATALOG_IMG=<your-registry>/<your-catalog-image>]
+make deploy-openshift [IMAGE_TAG_BASE=<your-registry>/backstage-operator]
 ```
 
 ### Modifying the API definitions
