@@ -24,6 +24,15 @@ jobs:
     - name: Test
       run: make test
 
+    - name: Run Gosec Security Scanner
+      run: make gosec
+
+    - name: Upload SARIF file
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        # Path to SARIF file relative to the root of the repository
+        sarif_file: gosec.sarif
+
   container-image-build:
     runs-on: ubuntu-latest
 
@@ -42,4 +51,4 @@ jobs:
           go-version-file: 'go.mod'
       - name: ${{ matrix.engine }} build
         run: |
-          CONTAINER_ENGINE=${{ matrix.engine }} make test
+          CONTAINER_ENGINE=${{ matrix.engine }} make image-build
