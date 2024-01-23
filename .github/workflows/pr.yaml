@@ -1,14 +1,12 @@
 name: Test Operator
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
 jobs:
   operator-lint-and-test:
-    name: PR Lint and Test (operator only)
+    name: PR Validate
     runs-on: ubuntu-latest
 
     steps:
