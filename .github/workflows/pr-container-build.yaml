@@ -22,7 +22,10 @@ on:
   # will prevent the job from running until it's approved manually by human intervention.
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
-    branches: [ main ]
+    branches: 
+    - main
+    - rhdh-1.**
+    - 1.**.x
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number || github.event.pull_request.head.ref }}
@@ -67,6 +70,22 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
+      - name: Lint
+        run: make lint
+
+      # this is also done when building the operator, but this way we fail earlier
+      - name: Test
+        run: make test
+
+      - name: Run Gosec Security Scanner
+        run: make gosec
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          # Path to SARIF file relative to the root of the repository
+          sarif_file: gosec.sarif
+    
       - name: Get the last commit short SHA of the PR
         run: |
           SHORT_SHA=$(git rev-parse --short ${{ github.event.pull_request.head.sha }})
@@ -92,7 +111,7 @@ jobs:
           set -ex
 
           # build 3 container images with a 14d expiry
-          CONTAINER_ENGINE=${CONTAINER_ENGINE} VERSION=${VERSION} make lint release-build
+          CONTAINER_ENGINE=${CONTAINER_ENGINE} VERSION=${VERSION} make release-build
 
           # now copy images from local cache to quay, using 0.0.1-pr-123-f00cafe and 0.0.1-pr-123 tags
           for image in operator operator-bundle operator-catalog; do
