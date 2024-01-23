@@ -21,7 +21,7 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2024-01-18T08:07:00Z"
+    createdAt: "2024-01-12T14:31:03Z
     operators.operatorframework.io/builder: operator-sdk-v1.33.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
   name: backstage-operator.v0.0.1
@@ -206,7 +206,7 @@ spec:
                   value: quay.io/fedora/postgresql-15:latest
                 - name: RELATED_IMAGE_backstage
                   value: quay.io/janus-idp/backstage-showcase:next
-                image: gazarenkov/backstage-operator:latest
+                image: quay.io/janus-idp/operator:0.0.1
                 livenessProbe:
                   httpGet:
                     path: /healthz
