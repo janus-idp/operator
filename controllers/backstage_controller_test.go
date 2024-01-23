@@ -125,7 +125,7 @@ var _ = Describe("Backstage controller", func() {
 			var backstage bsv1alpha1.Backstage
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, &backstage)
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(isSynced(backstage)).To(BeTrue())
+			g.Expect(isDeployed(backstage)).To(BeTrue())
 		}, time.Minute, time.Second).Should(Succeed())
 	}
 
@@ -134,10 +134,10 @@ var _ = Describe("Backstage controller", func() {
 			var backstage bsv1alpha1.Backstage
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, &backstage)
 			g.Expect(err).NotTo(HaveOccurred())
-			cond := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alpha1.ConditionSynced)
+			cond := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alpha1.ConditionDeployed)
 			g.Expect(cond).NotTo(BeNil())
 			g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-			g.Expect(cond.Reason).To(Equal(bsv1alpha1.SyncFailed))
+			g.Expect(cond.Reason).To(Equal(bsv1alpha1.DeployFailed))
 			g.Expect(cond.Message).To(ContainSubstring(errMsg))
 		}, time.Minute, time.Second).Should(Succeed())
 	}
@@ -1527,8 +1527,8 @@ func findElementsByPredicate[T any](l []T, predicate func(t T) bool) (result []T
 	return result
 }
 
-func isSynced(backstage bsv1alpha1.Backstage) bool {
-	if cond := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alpha1.ConditionSynced); cond != nil {
+func isDeployed(backstage bsv1alpha1.Backstage) bool {
+	if cond := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alpha1.ConditionDeployed); cond != nil {
 		return cond.Status == metav1.ConditionTrue
 	}
 	return false

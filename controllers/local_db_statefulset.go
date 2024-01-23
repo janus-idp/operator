@@ -146,10 +146,10 @@ func (r *BackstageReconciler) reconcileLocalDbStatefulSet(ctx context.Context, b
 	}
 	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, statefulSet, r.localDBStatefulSetMutFun(ctx, statefulSet, *backstage, ns)); err != nil {
 		if errors.IsConflict(err) {
-			return fmt.Errorf("retry sync needed: %v", err)
+			return retryReconciliation(err)
 		}
-		msg := fmt.Sprintf("failed to sync Database StatefulSet: %s", err)
-		setStatusCondition(backstage, bs.ConditionSynced, metav1.ConditionFalse, bs.SyncFailed, msg)
+		msg := fmt.Sprintf("failed to deploy Database StatefulSet: %s", err)
+		setStatusCondition(backstage, bs.ConditionDeployed, metav1.ConditionFalse, bs.DeployFailed, msg)
 		return fmt.Errorf(msg)
 	}
 	return nil

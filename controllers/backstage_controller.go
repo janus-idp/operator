@@ -103,7 +103,7 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	defer func(bs *bs.Backstage) {
 		if err := r.Client.Status().Update(ctx, bs); err != nil {
 			if errors.IsConflict(err) {
-				lg.V(1).Info("Backstage object modified, retry syncing status", "Backstage Object", bs)
+				lg.V(1).Info("Backstage object modified, retry reconciliation", "Backstage Object", bs)
 				return
 			}
 			lg.Error(err, "Error updating the Backstage resource status", "Backstage Object", bs)
@@ -111,7 +111,7 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}(&backstage)
 
 	if len(backstage.Status.Conditions) == 0 {
-		setStatusCondition(&backstage, bs.ConditionSynced, v1.ConditionFalse, bs.SyncInProgress, "Reconciliation started")
+		setStatusCondition(&backstage, bs.ConditionDeployed, v1.ConditionFalse, bs.DeployInProgress, "Deployment process started")
 	}
 
 	if pointer.BoolDeref(backstage.Spec.Database.EnableLocalDb, true) {
@@ -134,7 +134,7 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	} else { // Clean up the deployed local db resources if any
 		if err := r.cleanupLocalDbResources(ctx, backstage); err != nil {
-			setStatusCondition(&backstage, bs.ConditionSynced, v1.ConditionFalse, bs.SyncFailed, fmt.Sprintf("failed to delete Database Services:%s", err.Error()))
+			setStatusCondition(&backstage, bs.ConditionDeployed, v1.ConditionFalse, bs.DeployFailed, fmt.Sprintf("failed to delete Database Services:%s", err.Error()))
 			return ctrl.Result{}, fmt.Errorf("failed to delete Database Service: %w", err)
 		}
 	}
@@ -154,7 +154,7 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
-	setStatusCondition(&backstage, bs.ConditionSynced, v1.ConditionTrue, bs.SyncOK, "")
+	setStatusCondition(&backstage, bs.ConditionDeployed, v1.ConditionTrue, bs.DeployOK, "")
 	return ctrl.Result{}, nil
 }
 
@@ -314,4 +314,8 @@ func (r *BackstageReconciler) SetupWithManager(mgr ctrl.Manager, log logr.Logger
 	}
 
 	return builder.Complete(r)
+}
+
+func retryReconciliation(err error) error {
+	return fmt.Errorf("reconciliation retry needed: %v", err)
 }

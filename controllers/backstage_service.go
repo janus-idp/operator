@@ -36,10 +36,10 @@ func (r *BackstageReconciler) reconcileBackstageService(ctx context.Context, bac
 	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, service, r.serviceObjectMutFun(ctx, service, *backstage,
 		backstage.Spec.RawRuntimeConfig.BackstageConfigName, "service.yaml", service.Name, service.Name)); err != nil {
 		if errors.IsConflict(err) {
-			return fmt.Errorf("retry sync needed: %v", err)
+			return retryReconciliation(err)
 		}
-		msg := fmt.Sprintf("failed to sync Backstage Service: %s", err)
-		setStatusCondition(backstage, bs.ConditionSynced, metav1.ConditionFalse, bs.SyncFailed, msg)
+		msg := fmt.Sprintf("failed to deploy Backstage Service: %s", err)
+		setStatusCondition(backstage, bs.ConditionDeployed, metav1.ConditionFalse, bs.DeployFailed, msg)
 	}
 	return nil
 }

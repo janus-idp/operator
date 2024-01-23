@@ -21,10 +21,10 @@ import (
 // Constants for status conditions
 const (
 	// TODO: RuntimeConditionRunning string = "RuntimeRunning"
-	ConditionSynced string = "Synced"
-	SyncOK          string = "SyncOK"
-	SyncFailed      string = "SyncFailed"
-	SyncInProgress  string = "SyncInProgress"
+	ConditionDeployed string = "Deployed"
+	DeployOK          string = "DeployOK"
+	DeployFailed      string = "DeployFailed"
+	DeployInProgress  string = "DeployInProgress"
 )
 
 // Constants for image placeholders

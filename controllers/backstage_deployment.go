@@ -153,10 +153,10 @@ func (r *BackstageReconciler) reconcileBackstageDeployment(ctx context.Context, 
 	}
 	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, deployment, r.deploymentObjectMutFun(ctx, deployment, *backstage, ns)); err != nil {
 		if errors.IsConflict(err) {
-			return fmt.Errorf("retry sync needed: %v", err)
+			return retryReconciliation(err)
 		}
-		msg := fmt.Sprintf("failed to sync Backstage Deployment: %s", err)
-		setStatusCondition(backstage, bs.ConditionSynced, metav1.ConditionFalse, bs.SyncFailed, msg)
+		msg := fmt.Sprintf("failed to deploy Backstage Deployment: %s", err)
+		setStatusCondition(backstage, bs.ConditionDeployed, metav1.ConditionFalse, bs.DeployFailed, msg)
 		return fmt.Errorf(msg)
 	}
 	return nil
