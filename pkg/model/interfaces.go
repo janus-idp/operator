@@ -59,7 +59,7 @@ type BackstageObject interface {
 	// needed only for check if Object exists to call KubeClient.Get() and it should be garbage collected right away
 	EmptyObject() client.Object
 	// (For some types Backstage objects), adds it to the model
-	addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, name string, ownsRuntime bool)
+	addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool)
 	// at this stage all the information is updated
 	// set the final references validates the object at the end of initialization (after 3 phases)
 	validate(model *RuntimeModel) error

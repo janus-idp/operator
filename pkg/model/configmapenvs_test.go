@@ -23,7 +23,7 @@ import (
 
 func TestDefaultConfigMapEnvs(t *testing.T) {
 
-	bs := simpleTestBackstage
+	bs := simpleTestBackstage()
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("configmap-envs.yaml", "raw-cm-envs.yaml")
 

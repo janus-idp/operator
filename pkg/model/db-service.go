@@ -43,7 +43,7 @@ func (s *DbService) Object() client.Object {
 }
 
 // implementation of BackstageObject interface
-func (b *DbService) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, name string, ownsRuntime bool) {
+func (b *DbService) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	model.localDbService = b
 	model.setObject(b)
 

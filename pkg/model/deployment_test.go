@@ -19,6 +19,10 @@ import (
 	"os"
 	"testing"
 
+	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,9 +34,19 @@ func TestImagePullSecrets(t *testing.T) {
 // [GA] if we need this (and like this) feature
 // we need to think about simple template engine
 // for substitution env vars instead.
-// Current implementation is not good
+// Janus image specific
 func TestOverrideBackstageImage(t *testing.T) {
-	bs := simpleTestBackstage
+	bs := bsv1alpha1.Backstage{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bs",
+			Namespace: "ns123",
+		},
+		Spec: bsv1alpha1.BackstageSpec{
+			Database: &bsv1alpha1.Database{
+				EnableLocalDb: pointer.Bool(false),
+			},
+		},
+	}
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).
 		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")

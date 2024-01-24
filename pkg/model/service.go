@@ -44,7 +44,7 @@ func (s *BackstageService) Object() client.Object {
 }
 
 // implementation of BackstageObject interface
-func (b *BackstageService) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, name string, ownsRuntime bool) {
+func (b *BackstageService) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	model.backstageService = b
 	model.setObject(b)
 

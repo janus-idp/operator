@@ -93,7 +93,7 @@ func (b *BackstageRoute) EmptyObject() client.Object {
 }
 
 // implementation of BackstageObject interface
-func (b *BackstageRoute) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, name string, ownsRuntime bool) {
+func (b *BackstageRoute) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	model.route = b
 	model.setObject(b)
 

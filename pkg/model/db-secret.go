@@ -37,22 +37,44 @@ func (f DbSecretFactory) newBackstageObject() BackstageObject {
 }
 
 type DbSecret struct {
-	secret      *corev1.Secret
-	nameUpdated bool
+	secret        *corev1.Secret
+	nameSpecified bool
 }
 
-func init() {
-	registerConfig("db-secret.yaml", DbSecretFactory{}, ForLocalDatabase)
-}
+//func init() {
+//	registerConfig("db-secret.yaml", DbSecretFactory{}, ForLocalDatabase)
+//}
 
-func newDbSecretFromSpec(name string) *DbSecret {
-	return &DbSecret{
+func NewDbSecretFromSpec(name string) DbSecret {
+	return DbSecret{
 		secret: &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
 		},
-		nameUpdated: true,
+		nameSpecified: true,
+	}
+}
+
+func ExistedDbSecret(sec corev1.Secret) DbSecret {
+	return DbSecret{
+		secret:        &sec,
+		nameSpecified: true,
+	}
+}
+
+func GenerateDbSecret() DbSecret {
+	// generate password
+	pswd, _ := generatePassword(24)
+	return DbSecret{
+		secret: &corev1.Secret{
+			StringData: map[string]string{
+				"POSTGRES_PASSWORD":         pswd,
+				"POSTGRESQL_ADMIN_PASSWORD": pswd,
+				"POSTGRES_USER":             "postgres",
+			},
+		},
+		nameSpecified: false,
 	}
 }
 
@@ -62,12 +84,17 @@ func (b *DbSecret) Object() client.Object {
 }
 
 // implementation of BackstageObject interface
-func (b *DbSecret) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, name string, ownsRuntime bool) {
+func (b *DbSecret) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	model.localDbSecret = b
 	model.setObject(b)
 
+	// it is a hack, should not happen
+	if b.secret == nil {
+		b.secret = GenerateDbSecret().secret
+	}
+
 	initMetainfo(b, backstageMeta, ownsRuntime)
-	if !b.nameUpdated {
+	if !b.nameSpecified {
 		b.secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-dbsecret"))
 	}
 }
@@ -82,24 +109,27 @@ func (b *DbSecret) validate(model *RuntimeModel) error {
 	return nil
 }
 
-func (b *DbSecret) updateSecret(model *RuntimeModel, fromSpecified bool, generateCredentials bool) {
-	if !fromSpecified {
-		// generate password if needed
-		if generateCredentials {
-			pswd, _ := generatePassword(24)
-			b.secret.StringData["POSTGRES_PASSWORD"] = pswd
-			b.secret.StringData["POSTGRESQL_ADMIN_PASSWORD"] = pswd
-			if b.secret.StringData["POSTGRES_USER"] == "" {
-				b.secret.StringData["POSTGRES_USER"] = pswd
-			}
-		}
+// implementation of BackstagePodContributor interface
+//func (b *DbSecret) updateBackstagePod(pod *backstagePod) {
+//	// populate backstage deployment
+//	pod.addContainerEnvFrom(corev1.EnvFromSource{
+//		SecretRef: &corev1.SecretEnvSource{
+//			LocalObjectReference: corev1.LocalObjectReference{Name: b.secret.Name},
+//		},
+//	})
+//}
 
-		dbservice := model.localDbService.service
-		// fill the host with localDb service name
-		b.secret.StringData["POSTGRES_HOST"] = dbservice.Name
-		// fill the port with localDb service port
-		b.secret.StringData["POSTGRES_PORT"] = strconv.FormatInt(int64(dbservice.Spec.Ports[0].Port), 10)
+func (b *DbSecret) updateSecret(model *RuntimeModel) {
+
+	dbservice := model.localDbService.service
+	if b.secret.StringData == nil {
+		b.secret.StringData = map[string]string{}
 	}
+	// fill the host with localDb service name
+	b.secret.StringData["POSTGRES_HOST"] = dbservice.Name
+
+	//// fill the port with localDb service port
+	b.secret.StringData["POSTGRES_PORT"] = strconv.FormatInt(int64(dbservice.Spec.Ports[0].Port), 10)
 
 	// populate db statefulset
 	model.localDbStatefulSet.setSecretNameEnvFrom(corev1.EnvFromSource{
@@ -108,43 +138,8 @@ func (b *DbSecret) updateSecret(model *RuntimeModel, fromSpecified bool, generat
 		},
 	})
 
-}
-
-// implementation of LocalDbPodContributor interface
-// contributes username, password, host and port to PostgreSQL container from the Secret EnvVars source
-// if "template" Secret does not contain password/username (or empty) random one will be generated
-//func (b *DbSecret) updateLocalDbPod(model *RuntimeModel) {
-//	dbservice := model.localDbService.service
-//
-//	// check
-//	if model.generateDbPassword {
-//		pswd, _ := generatePassword(24)
-//		b.secret.StringData["POSTGRES_PASSWORD"] = pswd
-//		b.secret.StringData["POSTGRESQL_ADMIN_PASSWORD"] = pswd
-//		if b.secret.StringData["POSTGRES_USER"] == "" {
-//			b.secret.StringData["POSTGRES_USER"] = pswd
-//		}
-//	}
-//
-//	// fill the host with localDb service name
-//	b.secret.StringData["POSTGRES_HOST"] = dbservice.Name
-//	b.secret.StringData["POSTGRES_PORT"] = strconv.FormatInt(int64(dbservice.Spec.Ports[0].Port), 10)
-//
-//	// populate db statefulset
-//	model.localDbStatefulSet.setSecretNameEnvFrom(corev1.EnvFromSource{
-//		SecretRef: &corev1.SecretEnvSource{
-//			LocalObjectReference: corev1.LocalObjectReference{Name: b.secret.Name},
-//		},
-//	})
-//
-//	model.localDbSecret.secret = b.secret
-//
-//}
-
-// implementation of BackstagePodContributor interface
-func (b *DbSecret) updateBackstagePod(pod *backstagePod) {
 	// populate backstage deployment
-	pod.addContainerEnvFrom(corev1.EnvFromSource{
+	model.backstageDeployment.pod.addContainerEnvFrom(corev1.EnvFromSource{
 		SecretRef: &corev1.SecretEnvSource{
 			LocalObjectReference: corev1.LocalObjectReference{Name: b.secret.Name},
 		},

@@ -53,7 +53,7 @@ func (b *BackstageDeployment) EmptyObject() client.Object {
 }
 
 // implementation of BackstageObject interface
-func (b *BackstageDeployment) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, name string, ownsRuntime bool) {
+func (b *BackstageDeployment) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	model.backstageDeployment = b
 	model.setObject(b)
 

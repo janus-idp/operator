@@ -54,7 +54,7 @@ func (b *AppConfig) EmptyObject() client.Object {
 }
 
 // implementation of BackstageObject interface
-func (b *AppConfig) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, name string, ownsRuntime bool) {
+func (b *AppConfig) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	model.setObject(b)
 	initMetainfo(b, backstageMeta, ownsRuntime)
 	b.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-appconfig"))

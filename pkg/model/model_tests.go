@@ -35,17 +35,20 @@ type testBackstageObject struct {
 	detailedSpec *DetailedBackstageSpec
 }
 
-// simeple bsv1alpha1.Backstage
-var simpleTestBackstage = bsv1alpha1.Backstage{
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "bs",
-		Namespace: "ns123",
-	},
-	Spec: bsv1alpha1.BackstageSpec{
-		Database: &bsv1alpha1.Database{
-			EnableLocalDb: pointer.Bool(false),
+// simple bsv1alpha1.Backstage
+func simpleTestBackstage() bsv1alpha1.Backstage {
+	return bsv1alpha1.Backstage{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bs",
+			Namespace: "ns123",
 		},
-	},
+		Spec: bsv1alpha1.BackstageSpec{
+			Database: &bsv1alpha1.Database{
+				EnableLocalDb: pointer.Bool(false),
+			},
+		},
+	}
+
 }
 
 // initialises testBackstageObject object
@@ -56,9 +59,19 @@ func createBackstageTest(bs bsv1alpha1.Backstage) *testBackstageObject {
 }
 
 // enables LocalDB
-func (b *testBackstageObject) withLocalDb(generatePassword bool) *testBackstageObject {
+func (b *testBackstageObject) withLocalDb(dbSecret *DbSecret, name string) *testBackstageObject {
 	b.detailedSpec.Database.EnableLocalDb = pointer.Bool(true)
-	b.detailedSpec.GenerateDbPassword = generatePassword
+
+	if dbSecret == nil {
+		if name == "" {
+			b.detailedSpec.LocalDbSecret = GenerateDbSecret()
+		} else {
+			b.detailedSpec.LocalDbSecret = NewDbSecretFromSpec(name)
+		}
+		return b
+	}
+
+	b.detailedSpec.LocalDbSecret = *dbSecret
 	return b
 }
 

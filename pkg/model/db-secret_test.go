@@ -18,15 +18,17 @@ import (
 	"context"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestDefaultWithDefinedSecrets(t *testing.T) {
 
-	bs := simpleTestBackstage
+	bs := simpleTestBackstage()
 
 	// expected generatePassword = false (default db-secret defined) will come from preprocess
-	testObj := createBackstageTest(bs).withDefaultConfig(true).withLocalDb(false).addToDefaultConfig("db-secret.yaml", "db-defined-secret.yaml")
+	testObj := createBackstageTest(bs).withDefaultConfig(true).withLocalDb(nil, "").addToDefaultConfig("db-secret.yaml", "db-defined-secret.yaml")
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
@@ -44,10 +46,10 @@ func TestDefaultWithDefinedSecrets(t *testing.T) {
 
 func TestEmptyDbSecret(t *testing.T) {
 
-	bs := simpleTestBackstage
+	bs := simpleTestBackstage()
 
 	// expected generatePassword = false (default db-secret defined) will come from preprocess
-	testObj := createBackstageTest(bs).withDefaultConfig(true).withLocalDb(false).addToDefaultConfig("db-secret.yaml", "db-empty-secret.yaml")
+	testObj := createBackstageTest(bs).withDefaultConfig(true).withLocalDb(nil, "").addToDefaultConfig("db-secret.yaml", "db-empty-secret.yaml")
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
@@ -69,10 +71,10 @@ func TestEmptyDbSecret(t *testing.T) {
 }
 
 func TestDefaultWithGeneratedSecrets(t *testing.T) {
-	bs := simpleTestBackstage
+	bs := simpleTestBackstage()
 
 	// expected generatePassword = true (no db-secret defined) will come from preprocess
-	testObj := createBackstageTest(bs).withDefaultConfig(true).withLocalDb(true).addToDefaultConfig("db-secret.yaml", "db-generated-secret.yaml")
+	testObj := createBackstageTest(bs).withDefaultConfig(true).withLocalDb(nil, "").addToDefaultConfig("db-secret.yaml", "db-generated-secret.yaml")
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
@@ -88,11 +90,11 @@ func TestDefaultWithGeneratedSecrets(t *testing.T) {
 }
 
 func TestSpecifiedSecret(t *testing.T) {
-	bs := simpleTestBackstage
+	bs := simpleTestBackstage()
 	bs.Spec.Database.AuthSecretName = "custom-db-secret"
 
 	// expected generatePassword = false (db-secret defined in the spec) will come from preprocess
-	testObj := createBackstageTest(bs).withDefaultConfig(true).withLocalDb(false).addToDefaultConfig("db-secret.yaml", "db-generated-secret.yaml")
+	testObj := createBackstageTest(bs).withDefaultConfig(true).withLocalDb(nil, "custom-db-secret").addToDefaultConfig("db-secret.yaml", "db-generated-secret.yaml")
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 
@@ -104,5 +106,18 @@ func TestSpecifiedSecret(t *testing.T) {
 	//assert.Equal(t, sec1.StringData["POSTGRES_PASSWORD"], model.localDbSecret.secret.StringData["POSTGRES_PASSWORD"])
 	//assert.NotEmpty(t, model.localDbSecret.secret.StringData["POSTGRES_PASSWORD"])
 	//assert.Equal(t, model.localDbSecret.secret.Name, model.localDbStatefulSet.container().EnvFrom[0].SecretRef.Name)
+
+}
+
+func TestInitSecret(t *testing.T) {
+
+	sec := corev1.Secret{
+		StringData: map[string]string{
+			"key": "val",
+		},
+	}
+	dbs := ExistedDbSecret(sec)
+
+	t.Log(">>>>>>>>>>>>>>>", dbs.secret)
 
 }

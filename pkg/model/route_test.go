@@ -29,7 +29,7 @@ import (
 )
 
 func TestDefaultRoute(t *testing.T) {
-	bs := simpleTestBackstage
+	bs := simpleTestBackstage()
 
 	assert.False(t, bs.Spec.IsRouteEnabled())
 

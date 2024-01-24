@@ -18,6 +18,9 @@ import (
 	"context"
 	"testing"
 
+	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
+	"k8s.io/utils/pointer"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -26,7 +29,17 @@ import (
 
 func TestDynamicPluginsValidationFailed(t *testing.T) {
 
-	bs := simpleTestBackstage
+	bs := bsv1alpha1.Backstage{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bs",
+			Namespace: "ns123",
+		},
+		Spec: bsv1alpha1.BackstageSpec{
+			Database: &bsv1alpha1.Database{
+				EnableLocalDb: pointer.Bool(false),
+			},
+		},
+	}
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).
 		addToDefaultConfig("dynamic-plugins.yaml", "raw-dynamic-plugins.yaml")
@@ -40,7 +53,7 @@ func TestDynamicPluginsValidationFailed(t *testing.T) {
 
 func TestDefaultDynamicPlugins(t *testing.T) {
 
-	bs := simpleTestBackstage
+	bs := simpleTestBackstage()
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).
 		addToDefaultConfig("dynamic-plugins.yaml", "raw-dynamic-plugins.yaml").
@@ -65,7 +78,7 @@ func TestDefaultDynamicPlugins(t *testing.T) {
 
 func TestSpecifiedDynamicPlugins(t *testing.T) {
 
-	bs := simpleTestBackstage
+	bs := simpleTestBackstage()
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).
 		addToDefaultConfig("dynamic-plugins.yaml", "raw-dynamic-plugins.yaml").

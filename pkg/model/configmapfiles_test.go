@@ -27,7 +27,7 @@ import (
 
 func TestDefaultConfigMapFiles(t *testing.T) {
 
-	bs := simpleTestBackstage
+	bs := simpleTestBackstage()
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("configmap-files.yaml", "raw-cm-files.yaml")
 
@@ -45,7 +45,7 @@ func TestDefaultConfigMapFiles(t *testing.T) {
 
 func TestSpecifiedConfigMapFiles(t *testing.T) {
 
-	bs := simpleTestBackstage
+	bs := simpleTestBackstage()
 
 	cm := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -84,7 +84,7 @@ func TestSpecifiedConfigMapFiles(t *testing.T) {
 
 func TestDefaultAndSpecifiedConfigMapFiles(t *testing.T) {
 
-	bs := simpleTestBackstage
+	bs := simpleTestBackstage()
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("configmap-files.yaml", "raw-cm-files.yaml")
 

@@ -71,13 +71,15 @@ func TestInitDefaultDeploy(t *testing.T) {
 
 func TestIfEmptyObjectIsValid(t *testing.T) {
 
-	bs := simpleTestBackstage
+	bs := simpleTestBackstage()
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
+
+	assert.False(t, *testObj.detailedSpec.Database.EnableLocalDb)
 
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
 	assert.NoError(t, err)
 
-	assert.Equal(t, 5, len(model.Objects))
+	assert.Equal(t, 2, len(model.Objects))
 
 }
 
@@ -117,7 +119,7 @@ func TestAddToModel(t *testing.T) {
 	testService := *model.backstageService
 
 	// add to rm
-	testService.addToModel(&rm, bs, "", true)
+	testService.addToModel(&rm, bs, true)
 	assert.Equal(t, 1, len(rm.Objects))
 	assert.NotNil(t, rm.backstageService)
 	assert.Nil(t, rm.backstageDeployment)

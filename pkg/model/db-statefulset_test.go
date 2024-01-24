@@ -28,10 +28,10 @@ import (
 // for substitution env vars instead.
 // Current implementation is not good
 func TestOverrideDbImage(t *testing.T) {
-	bs := simpleTestBackstage
+	bs := simpleTestBackstage()
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).
-		addToDefaultConfig("db-statefulset.yaml", "janus-db-statefulset.yaml").withLocalDb(true)
+		addToDefaultConfig("db-statefulset.yaml", "janus-db-statefulset.yaml").withLocalDb(nil, "")
 
 	_ = os.Setenv(LocalDbImageEnvVar, "dummy")
 

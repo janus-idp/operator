@@ -54,7 +54,7 @@ func (p *DynamicPlugins) EmptyObject() client.Object {
 }
 
 // implementation of BackstageObject interface
-func (p *DynamicPlugins) addToModel(model *RuntimeModel, backstageMeta v1alpha1.Backstage, name string, ownsRuntime bool) {
+func (p *DynamicPlugins) addToModel(model *RuntimeModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
 	model.setObject(p)
 
 	initMetainfo(p, backstageMeta, ownsRuntime)

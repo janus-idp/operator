@@ -18,6 +18,11 @@ import (
 	"context"
 	"fmt"
 
+	"janus-idp.io/backstage-operator/pkg/utils"
+	corev1 "k8s.io/api/core/v1"
+
+	appsv1 "k8s.io/api/apps/v1"
+
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -118,6 +123,8 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, fmt.Errorf("failed to apply backstage objects: %w", err)
 	}
 
+	r.cleanObjects(ctx, backstage)
+
 	//TODO: it is just a placeholder for the time
 	r.setRunningStatus(&backstage)
 	r.setSyncStatus(&backstage)
@@ -136,16 +143,12 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 
 	for _, obj := range objects {
 
-		if err := r.Get(ctx, types.NamespacedName{Name: obj.Object().GetName(), Namespace: r.Namespace}, obj.EmptyObject()); err != nil {
+		if err := r.Get(ctx, types.NamespacedName{Name: obj.Object().GetName(), Namespace: obj.Object().GetNamespace()}, obj.EmptyObject()); err != nil {
 			if !errors.IsNotFound(err) {
 				return fmt.Errorf("failed to get object: %w", err)
 			}
 
 			if err := r.Create(ctx, obj.Object()); err != nil {
-				if errors.IsAlreadyExists(err) {
-					lg.V(1).Info("Already created by other reconcilation", "", obj.Object().GetName())
-					continue
-				}
 				return fmt.Errorf("failed to create object %s: %w", obj.Object().GetName(), err)
 			}
 
@@ -156,8 +159,36 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 		if err := r.Update(ctx, obj.Object()); err != nil {
 			return fmt.Errorf("failed to update object %s: %w", obj.Object().GetName(), err)
 		}
+
+		// [GA] do not remove it
+		//if obj, ok := obj.(*model.BackstageDeployment); ok {
+		//	depl := obj.Object().(*appsv1.Deployment)
+		//	str := fmt.Sprintf("%v", depl.Spec)
+		//	lg.V(1).Info("Update object ", "obj", str)
+		//	//obj.Object().GetName(), "resourceVersion", obj.Object().GetResourceVersion(), "generation", obj.Object().GetGeneration())
+		//
+		//}
+
 	}
 	return nil
+}
+
+func (r *BackstageReconciler) cleanObjects(ctx context.Context, backstage bs.Backstage) {
+	// check if local database disabled, respective objects have to deleted/unowned
+	if !backstage.Spec.IsLocalDbEnabled() {
+		ss := &appsv1.StatefulSet{}
+		if err := r.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstage.Name, "db-statefulset"), Namespace: backstage.Namespace}, ss); err == nil {
+			_ = r.Delete(ctx, ss)
+		}
+		dbService := &corev1.Service{}
+		if err := r.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstage.Name, "db-service"), Namespace: backstage.Namespace}, dbService); err == nil {
+			_ = r.Delete(ctx, dbService)
+		}
+		dbSecret := &corev1.Secret{}
+		if err := r.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstage.Name, "db-secret"), Namespace: backstage.Namespace}, dbSecret); err == nil {
+			_ = r.Delete(ctx, dbSecret)
+		}
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -166,6 +197,7 @@ func (r *BackstageReconciler) SetupWithManager(mgr ctrl.Manager, log logr.Logger
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&bs.Backstage{})
 
+	// [GA] do not remove it
 	//if r.OwnsRuntime {
 	//	builder.Owns(&appsv1.Deployment{}).
 	//		Owns(&corev1.Service{}).

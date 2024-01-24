@@ -52,7 +52,7 @@ func (p *ConfigMapFiles) EmptyObject() client.Object {
 }
 
 // implementation of BackstageObject interface
-func (p *ConfigMapFiles) addToModel(model *RuntimeModel, backstageMeta v1alpha1.Backstage, name string, ownsRuntime bool) {
+func (p *ConfigMapFiles) addToModel(model *RuntimeModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
 	model.setObject(p)
 	initMetainfo(p, backstageMeta, ownsRuntime)
 	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-configmapfiles"))

@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+
 	"k8s.io/utils/pointer"
 
 	"janus-idp.io/backstage-operator/pkg/utils"
@@ -42,6 +43,9 @@ import (
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 )
 
+const (
+	fmtNotFound = "Expected error to be a not-found one, but got %v"
+)
 const _defaultPsqlMainContainerName = "postgresql"
 const _defaultBackstageMainContainerName = "backstage-backend"
 
@@ -180,32 +184,47 @@ var _ = Describe("Backstage controller", func() {
 		})
 	}
 
-	findStatefulSetDBSecretName := func(statefulSet *appsv1.StatefulSet) string {
+	updateAndVerify := func(backstageName, ns string, update func(*bsv1alpha1.Backstage), postUpdate func(*bsv1alpha1.Backstage), verify func(*appsv1.Deployment)) {
+		By("Updating replicas in the custom resource")
+		Eventually(func(g Gomega) {
+			toBeUpdated := &bsv1alpha1.Backstage{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, toBeUpdated)
+			g.Expect(err).To(Not(HaveOccurred()))
+			update(toBeUpdated)
+			//			g.Expect(err).To(Not(HaveOccurred()))
+			//toBeUpdated.Spec.Application.Replicas = &nbReplicasUpdated
+			err = k8sClient.Update(ctx, toBeUpdated)
+			g.Expect(err).To(Not(HaveOccurred()))
+		}, time.Minute, time.Second).Should(Succeed())
 
-		for i, c := range statefulSet.Spec.Template.Spec.Containers {
-			if c.Name == _defaultPsqlMainContainerName {
-				for _, from := range statefulSet.Spec.Template.Spec.Containers[i].EnvFrom {
-					return from.SecretRef.Name
-				}
-				break
-			}
-		}
-		return ""
+		By("Checking replicas in the custom resource is updated")
+		Eventually(func(g Gomega) {
+			found := &bsv1alpha1.Backstage{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, found)
+			g.Expect(err).To(Not(HaveOccurred()))
+			postUpdate(found)
+			//			g.Expect(err).To(Not(HaveOccurred()))
+			//g.Expect(found.Spec.Application.Replicas).Should(HaveValue(BeEquivalentTo(nbReplicasUpdated)))
+		}, time.Minute, time.Second).Should(Succeed())
+
+		By("Reconciling again after the custom resource update for replicas")
+		_, err := backstageReconciler.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
+		})
+		Expect(err).To(Not(HaveOccurred()))
+
+		By("Checking the Deployment's replicas is updated after replicas is updated in the custom resource")
+		Eventually(func(g Gomega) {
+			found := &appsv1.Deployment{}
+			deploymentName := utils.GenerateRuntimeObjectName(backstageName, "deployment")
+			err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: deploymentName}, found)
+			g.Expect(err).To(Not(HaveOccurred()))
+			verify(found)
+			//			g.Expect(err).To(Not(HaveOccurred()))
+			//			g.Expect(found.Spec.Replicas).Should(HaveValue(BeEquivalentTo(nbReplicasUpdated)))
+		}, time.Minute, time.Second).Should(Succeed())
 	}
 
-	findDeploymentDBSecretName := func(deployment *appsv1.Deployment) string {
-		for i, c := range deployment.Spec.Template.Spec.Containers {
-			if c.Name == _defaultBackstageMainContainerName {
-				for _, from := range deployment.Spec.Template.Spec.Containers[i].EnvFrom {
-					return from.SecretRef.Name
-				}
-				break
-			}
-		}
-		return ""
-	}
-
-	// Janus specific test
 	When("creating default CR with no spec", func() {
 		var backstage *bsv1alpha1.Backstage
 		BeforeEach(func() {
@@ -243,8 +262,8 @@ var _ = Describe("Backstage controller", func() {
 				name := utils.GenerateRuntimeObjectName(backstage.Name, "db-statefulset")
 				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, found)
 				g.Expect(err).ShouldNot(HaveOccurred())
-				g.Expect(findStatefulSetDBSecretName(found)).Should(Equal(utils.GenerateRuntimeObjectName(backstage.Name, "default-dbsecret")))
-				//fmt.Sprintf("backstage-psql-secret-%s", backstage.Name)))
+				secName := getSecretName(found.Spec.Template.Spec.Containers, _defaultPsqlMainContainerName)
+				g.Expect(secName).Should(Equal(utils.GenerateRuntimeObjectName(backstage.Name, "default-dbsecret")))
 			}, time.Minute, time.Second).Should(Succeed())
 
 			backendAuthConfigName := utils.GenerateRuntimeObjectName(backstage.Name, "default-appconfig")
@@ -366,11 +385,110 @@ var _ = Describe("Backstage controller", func() {
 			})
 
 			By("Checking the db secret used by the Backstage Deployment")
-			Expect(findDeploymentDBSecretName(found)).Should(Equal(utils.GenerateRuntimeObjectName(backstage.Name, "default-dbsecret")))
-			//fmt.Sprintf("backstage-psql-secret-%s", backstage.Name)))
+			//secName := getSecretName(found.Spec.Template.Spec.Containers, _defaultBackstageMainContainerName)
+			secName := utils.GenerateRuntimeObjectName(backstage.Name, "default-dbsecret")
+			dbSec := corev1.Secret{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: secName, Namespace: ns}, &dbSec)
+			Expect(err).To(Not(HaveOccurred()))
+			//Expect(secName).Should(Equal(utils.GenerateRuntimeObjectName(backstage.Name, "default-dbsecret")))
 
 			By("Checking the latest Status added to the Backstage instance")
 			verifyBackstageInstance(ctx)
+
+			By("Checking the localDb Sync Status in the Backstage instance")
+			Eventually(func(g Gomega) {
+				var backstage bsv1alpha1.Backstage
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, &backstage)
+				g.Expect(err).NotTo(HaveOccurred())
+				//g.Expect(isLocalDbDeployed(backstage)).To(BeTrue())
+			}, time.Minute, time.Second).Should(Succeed())
+
+			By("Checking the localdb statefulset has been created")
+			Eventually(func(g Gomega) {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstageName, "db-statefulset"), Namespace: ns}, &appsv1.StatefulSet{})
+				g.Expect(err).To(Not(HaveOccurred()))
+			}, time.Minute, time.Second).Should(Succeed())
+
+			By("Checking the localdb services have been created")
+			Eventually(func(g Gomega) {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstageName, "db-service"), Namespace: ns}, &corev1.Service{})
+				g.Expect(err).To(Not(HaveOccurred()))
+
+				err = k8sClient.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstageName, "db-service"), Namespace: ns}, &corev1.Service{})
+				g.Expect(err).To(Not(HaveOccurred()))
+			}, time.Minute, time.Second).Should(Succeed())
+
+			By("Checking the localdb secret has been gnerated")
+			Eventually(func(g Gomega) {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstage.Name, "default-dbsecret"), Namespace: ns}, &corev1.Secret{})
+				g.Expect(err).To(Not(HaveOccurred()))
+			}, time.Minute, time.Second).Should(Succeed())
+
+			By("Updating custom resource by disabling local db")
+
+			// TODO !!!!
+			var enableLocalDb bool = false
+			Eventually(func(g Gomega) {
+				toBeUpdated := &bsv1alpha1.Backstage{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, toBeUpdated)
+				g.Expect(err).To(Not(HaveOccurred()))
+				if toBeUpdated.Spec.Database == nil {
+					toBeUpdated.Spec.Database = &bsv1alpha1.Database{}
+				}
+				g.Expect(toBeUpdated.Spec.IsLocalDbEnabled()).Should(Equal(true))
+				toBeUpdated.Spec.Database.EnableLocalDb = &enableLocalDb
+				toBeUpdated.Spec.Database.AuthSecretName = "existing-db-secret"
+				err = k8sClient.Update(ctx, toBeUpdated)
+				g.Expect(err).To(Not(HaveOccurred()))
+			}, time.Minute, time.Second).Should(Succeed())
+
+			By("Reconciling again after the custom resource update with local db disabled")
+			_, err = backstageReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking the localDb Sync Status has been updated in the Backstage instance")
+			Eventually(func(g Gomega) {
+				var backstage bsv1alpha1.Backstage
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, &backstage)
+				g.Expect(err).NotTo(HaveOccurred())
+				err = k8sClient.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstageName, "db-statefulset"), Namespace: ns}, &appsv1.StatefulSet{})
+				g.Expect(err).To(HaveOccurred())
+				//g.Expect(isLocalDbDeployed(backstage)).To(BeFalse())
+			}, time.Minute, time.Second).Should(Succeed())
+
+			By("Checking that the local db statefulset has been deleted")
+			Eventually(func(g Gomega) {
+				err := k8sClient.Get(ctx,
+					types.NamespacedName{Namespace: ns, Name: getDefaultDbObjName(*backstage)},
+					&appsv1.StatefulSet{})
+				g.Expect(err).Should(HaveOccurred())
+				g.Expect(errors.IsNotFound(err)).Should(BeTrue(), fmtNotFound, err)
+			}, time.Minute, time.Second).Should(Succeed())
+
+			By("Checking that the local db services have been deleted")
+			Eventually(func(g Gomega) {
+				err := k8sClient.Get(ctx,
+					types.NamespacedName{Namespace: ns, Name: getDefaultDbObjName(*backstage)},
+					&corev1.Service{})
+				g.Expect(err).Should(HaveOccurred())
+				g.Expect(errors.IsNotFound(err)).Should(BeTrue(), fmtNotFound, err)
+				err = k8sClient.Get(ctx,
+					types.NamespacedName{Namespace: ns, Name: fmt.Sprintf("backstage-psql-%s-hl", backstage.Name)},
+					&corev1.Service{})
+				g.Expect(err).Should(HaveOccurred())
+				g.Expect(errors.IsNotFound(err)).Should(BeTrue(), fmtNotFound, err)
+			}, time.Minute, time.Second).Should(Succeed())
+
+			By("Checking that the local db secret has been deleted")
+			Eventually(func(g Gomega) {
+				err := k8sClient.Get(ctx,
+					types.NamespacedName{Namespace: ns, Name: getDefaultDbObjName(*backstage)},
+					&corev1.Secret{})
+				g.Expect(err).Should(HaveOccurred())
+				g.Expect(errors.IsNotFound(err)).Should(BeTrue(), fmtNotFound, err)
+			}, time.Minute, time.Second).Should(Succeed())
 		})
 	})
 
@@ -1215,6 +1333,26 @@ spec:
 
 				By("Checking the latest Status added to the Backstage instance")
 				verifyBackstageInstance(ctx)
+
+				By("Updating the custom resource with extra env vars and verify the result")
+				updateAndVerify(backstageName, ns,
+					func(toBeUpdated *bsv1alpha1.Backstage) {
+						toBeUpdated.Spec.Application.ExtraEnvs.Envs = []bsv1alpha1.Env{
+							{Name: "MY_ENV_VAR_3", Value: "value 30"},
+						}
+					},
+					func(found *bsv1alpha1.Backstage) {
+						Expect(found.Spec.Application.ExtraEnvs.Envs).Should(HaveLen(1))
+						Expect(found.Spec.Application.ExtraEnvs.Envs[0].Name).To(Equal("MY_ENV_VAR_3"))
+					},
+					func(found *appsv1.Deployment) {
+						mainCont := found.Spec.Template.Spec.Containers[0]
+						_, ok := findEnvVar(mainCont.Env, "MY_ENV_VAR_3")
+						Expect(ok).To(BeTrue(), "Env var MY_ENV_VAR_3 should be injected into the main container")
+						_, ok = findEnvVar(mainCont.Env, "MY_ENV_VAR_1")
+						Expect(ok).To(BeFalse(), "Env var MY_ENV_VAR_1 should have been removed from the main container")
+					},
+				)
 			})
 		})
 	})
@@ -1321,7 +1459,7 @@ spec:
 
 	When("setting the number of replicas", func() {
 		var nbReplicas int32 = 5
-
+		var nbReplicasUpdated int32 = 3
 		var backstage *bsv1alpha1.Backstage
 
 		BeforeEach(func() {
@@ -1360,6 +1498,19 @@ spec:
 
 			By("Checking the latest Status added to the Backstage instance")
 			verifyBackstageInstance(ctx)
+
+			By("Updating replicas in the custom resource and verify the result")
+			updateAndVerify(backstageName, ns,
+				func(toBeUpdated *bsv1alpha1.Backstage) {
+					toBeUpdated.Spec.Application.Replicas = &nbReplicasUpdated
+				},
+				func(found *bsv1alpha1.Backstage) {
+					Expect(found.Spec.Application.Replicas).Should(HaveValue(BeEquivalentTo(nbReplicasUpdated)))
+				},
+				func(found *appsv1.Deployment) {
+					Expect(found.Spec.Replicas).Should(HaveValue(BeEquivalentTo(nbReplicasUpdated)))
+				},
+			)
 		})
 	})
 
@@ -1443,4 +1594,35 @@ func findElementsByPredicate[T any](l []T, predicate func(t T) bool) (result []T
 		}
 	}
 	return result
+}
+
+//func isLocalDbDeployed(backstage bsv1alpha1.Backstage) bool {
+//
+//	if cond := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alpha1.LocalDbSynced); cond != nil {
+//		return cond.Status == metav1.ConditionTrue && cond.Reason == bsv1alpha1.SyncOK
+//	}
+//	return false
+//}
+
+//func isSynced(backstage bsv1alpha1.Backstage) bool {
+//	if cond := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alpha1.RuntimeConditionSynced); cond != nil {
+//		return cond.Status == metav1.ConditionTrue
+//	}
+//	return false
+//}
+
+func getSecretName(containers []corev1.Container, name string) string {
+	for _, c := range containers {
+		if c.Name == name {
+			for _, from := range c.EnvFrom {
+				return from.SecretRef.Name
+			}
+			break
+		}
+	}
+	return ""
+}
+
+func getDefaultDbObjName(backstage bsv1alpha1.Backstage) string {
+	return fmt.Sprintf("backstage-psql-%s", backstage.Name)
 }

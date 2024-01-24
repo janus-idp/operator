@@ -45,7 +45,6 @@ type RuntimeModel struct {
 	localDbStatefulSet *DbStatefulSet
 	localDbService     *DbService
 	localDbSecret      *DbSecret
-	//generateDbPassword bool
 
 	route *BackstageRoute
 
@@ -77,6 +76,7 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 	// At the end there should be an array of runtime Objects to apply (order optimized)
 
 	lg := log.FromContext(ctx)
+	lg.V(1)
 
 	//objectList := make([]BackstageObject, 0)
 	model := &RuntimeModel{Objects: make([]BackstageObject, 0) /*, generateDbPassword: backstageSpec.GenerateDbPassword*/}
@@ -114,7 +114,7 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 			if conf.need == Mandatory || (conf.need == ForLocalDatabase && backstageSpec.IsLocalDbEnabled()) {
 				return nil, errors.Join(defaultErr, overlayErr)
 			} else {
-				lg.V(1).Info("failed to read default value for optional key. Ignored \n", conf.Key, errors.Join(defaultErr, overlayErr))
+				//lg.V(1).Info("failed to read default value for optional key. Ignored \n", conf.Key, errors.Join(defaultErr, overlayErr))
 				continue
 			}
 		}
@@ -130,7 +130,7 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 		}
 
 		// finally add the object to the model and list
-		backstageObject.addToModel(model, backstageMeta, "", ownsRuntime)
+		backstageObject.addToModel(model, backstageMeta, ownsRuntime)
 	}
 
 	if model.backstageDeployment == nil {
@@ -142,11 +142,6 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 		if model.localDbStatefulSet == nil {
 			return nil, fmt.Errorf("failed to identify Local DB StatefulSet by %s, it should not happen normally", "db-statefulset.yaml")
 		}
-		//for _, bso := range model.Objects {
-		//	if ldco, ok := bso.(LocalDbPodContributor); ok {
-		//		ldco.updateLocalDbPod(model)
-		//	}
-		//}
 	}
 
 	// create Backstage Pod object
@@ -175,23 +170,24 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 	}
 	// Route...
 	if isOpenshift && backstageSpec.IsRouteEnabled() {
-		newBackstageRoute(*backstageSpec.Application.Route).addToModel(model, backstageMeta, "", ownsRuntime)
+		newBackstageRoute(*backstageSpec.Application.Route).addToModel(model, backstageMeta, ownsRuntime)
 	}
 
 	// Local DB Secret...
+	// if exists - initiated from existed
+	// otherwise:
+	//  if specified - get from spec
+	//  if not specified - generate
 	if backstageSpec.IsLocalDbEnabled() {
-		if backstageSpec.IsAuthSecretSpecified() {
-			newDbSecretFromSpec(backstageSpec.Database.AuthSecretName).addToModel(model, backstageMeta, "", ownsRuntime)
-		}
-		model.localDbSecret.updateSecret(model, backstageSpec.IsAuthSecretSpecified(), backstageSpec.GenerateDbPassword)
+
+		backstageSpec.LocalDbSecret.addToModel(model, backstageMeta, ownsRuntime)
+		backstageSpec.LocalDbSecret.updateSecret(model)
+
 	}
 
-	// contribute to Backstage/LocalDb config
+	// contribute to Backstage config
 	for _, v := range backstageSpec.ConfigObjects {
 		v.updateBackstagePod(backstagePod)
-		//if dbc, ok := v.(LocalDbPodContributor); ok {
-		//	dbc.updateLocalDbPod(model)
-		//}
 	}
 
 	// validate all

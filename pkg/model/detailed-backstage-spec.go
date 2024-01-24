@@ -21,10 +21,9 @@ import (
 // extension of Backstage.Spec to make it possible to work on model package level
 type DetailedBackstageSpec struct {
 	bs.BackstageSpec
-	RawConfigContent   map[string]string
-	ConfigObjects      backstageConfigs
-	LocalDbSecret      map[string]string
-	GenerateDbPassword bool
+	RawConfigContent map[string]string
+	ConfigObjects    backstageConfigs
+	LocalDbSecret    DbSecret
 }
 
 // array of BackstagePodContributor interfaces
@@ -33,3 +32,7 @@ type backstageConfigs []BackstagePodContributor
 func (a *DetailedBackstageSpec) AddConfigObject(obj BackstagePodContributor) {
 	a.ConfigObjects = append(a.ConfigObjects, obj)
 }
+
+//func (a *DetailedBackstageSpec) SetDbSecret(secret *corev1.Secret) {
+//	a.LocalDbSecret = DbSecret{secret: secret}
+//}

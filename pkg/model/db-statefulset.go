@@ -49,7 +49,7 @@ func (b *DbStatefulSet) Object() client.Object {
 }
 
 // implementation of BackstageObject interface
-func (b *DbStatefulSet) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, name string, ownsRuntime bool) {
+func (b *DbStatefulSet) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	model.localDbStatefulSet = b
 	model.setObject(b)
 
