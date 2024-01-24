@@ -19,7 +19,7 @@ on:
   push:
     branches: 
     - main
-    - rhdh-1.**
+    - rhdh-1.[0.9]+
     - 1.**.x
 
 concurrency:
