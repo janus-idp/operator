@@ -18,6 +18,10 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"janus-idp.io/backstage-operator/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 
@@ -96,17 +100,34 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, fmt.Errorf("failed to load backstage deployment from the cluster: %w", err)
 	}
 
+	// This update will make sure the status is always updated in case of any errors or successful result
+	defer func(bs *bs.Backstage) {
+		if err := r.Client.Status().Update(ctx, bs); err != nil {
+			if errors.IsConflict(err) {
+				lg.V(1).Info("Backstage object modified, retry syncing status", "Backstage Object", bs)
+				return
+			}
+			lg.Error(err, "Error updating the Backstage resource status", "Backstage Object", bs)
+		}
+	}(&backstage)
+
+	if len(backstage.Status.Conditions) == 0 {
+		setStatusCondition(&backstage, bs.BackstageConditionTypeDeployed, metav1.ConditionFalse, bs.BackstageConditionReasonInProgress, "Deployment process started")
+	}
+
 	// 1. Preliminary read and prepare external config objects from the specs (configMaps, Secrets)
 	// 2. Make some validation to fail fast
 	spec, err := r.preprocessSpec(ctx, backstage)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to preprocess backstage spec: %w", err)
+		setStatusCondition(&backstage, bs.BackstageConditionTypeDeployed, metav1.ConditionFalse, bs.BackstageConditionReasonFailed, fmt.Sprintf("failed to preprocess backstage spec %s", err))
+		return ctrl.Result{}, fmt.Errorf("failed to preprocess backstage spec %w", err)
 	}
 
 	// This creates array of model objects to be reconsiled
 	bsModel, err := model.InitObjects(ctx, backstage, spec, r.OwnsRuntime, r.IsOpenShift)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to initialize backstage model: %w", err)
+		setStatusCondition(&backstage, bs.BackstageConditionTypeDeployed, metav1.ConditionFalse, bs.BackstageConditionReasonFailed, fmt.Sprintf("failed to initialize backstage model %s", err))
+		return ctrl.Result{}, fmt.Errorf("failed to initialize backstage model %w", err)
 	}
 
 	//TODO, do it on model? (need to send Scheme to InitObjects just for this)
@@ -120,19 +141,16 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	err = r.applyObjects(ctx, bsModel.Objects)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to apply backstage objects: %w", err)
+		setStatusCondition(&backstage, bs.BackstageConditionTypeDeployed, metav1.ConditionFalse, bs.BackstageConditionReasonFailed, fmt.Sprintf("failed to apply backstage objects %s", err))
+		return ctrl.Result{}, fmt.Errorf("failed to apply backstage objects %w", err)
 	}
 
-	r.cleanObjects(ctx, backstage)
-
-	//TODO: it is just a placeholder for the time
-	r.setRunningStatus(&backstage)
-	r.setSyncStatus(&backstage)
-	err = r.Status().Update(ctx, &backstage)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to set status: %w", err)
-		//log.FromContext(ctx).Error(err, "unable to update backstage.status")
+	if err := r.cleanObjects(ctx, backstage); err != nil {
+		setStatusCondition(&backstage, bs.BackstageConditionTypeDeployed, metav1.ConditionFalse, bs.BackstageConditionReasonFailed, fmt.Sprintf("failed to clean backstage objects %s", err))
+		return ctrl.Result{}, fmt.Errorf("failed to clean backstage objects %w", err)
 	}
+
+	setStatusCondition(&backstage, bs.BackstageConditionTypeDeployed, metav1.ConditionTrue, bs.BackstageConditionReasonDeployed, "")
 
 	return ctrl.Result{}, nil
 }
@@ -149,7 +167,7 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 			}
 
 			if err := r.Create(ctx, obj.Object()); err != nil {
-				return fmt.Errorf("failed to create object %s: %w", obj.Object().GetName(), err)
+				return fmt.Errorf("failed to create object %w", err)
 			}
 
 			lg.V(1).Info("Create object ", "obj", obj.Object().GetName())
@@ -173,22 +191,39 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 	return nil
 }
 
-func (r *BackstageReconciler) cleanObjects(ctx context.Context, backstage bs.Backstage) {
+func (r *BackstageReconciler) cleanObjects(ctx context.Context, backstage bs.Backstage) error {
 	// check if local database disabled, respective objects have to deleted/unowned
 	if !backstage.Spec.IsLocalDbEnabled() {
 		ss := &appsv1.StatefulSet{}
 		if err := r.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstage.Name, "db-statefulset"), Namespace: backstage.Namespace}, ss); err == nil {
-			_ = r.Delete(ctx, ss)
+			if err := r.Delete(ctx, ss); err != nil {
+				return fmt.Errorf("failed to delete %s: %w", ss.Name, err)
+			}
 		}
 		dbService := &corev1.Service{}
 		if err := r.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstage.Name, "db-service"), Namespace: backstage.Namespace}, dbService); err == nil {
-			_ = r.Delete(ctx, dbService)
+			if err := r.Delete(ctx, dbService); err != nil {
+				return fmt.Errorf("failed to delete %s: %w", dbService.Name, err)
+			}
 		}
 		dbSecret := &corev1.Secret{}
 		if err := r.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstage.Name, "db-secret"), Namespace: backstage.Namespace}, dbSecret); err == nil {
-			_ = r.Delete(ctx, dbSecret)
+			if err := r.Delete(ctx, dbSecret); err != nil {
+				return fmt.Errorf("failed to delete %s: %w", dbSecret.Name, err)
+			}
 		}
 	}
+	return nil
+}
+
+func setStatusCondition(backstage *bs.Backstage, condType bs.BackstageConditionType, status metav1.ConditionStatus, reason bs.BackstageConditionReason, msg string) {
+	meta.SetStatusCondition(&backstage.Status.Conditions, metav1.Condition{
+		Type:               string(condType),
+		Status:             status,
+		LastTransitionTime: metav1.Time{},
+		Reason:             string(reason),
+		Message:            msg,
+	})
 }
 
 // SetupWithManager sets up the controller with the Manager.

@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 
 	"k8s.io/utils/pointer"
 
@@ -47,7 +48,8 @@ const (
 	fmtNotFound = "Expected error to be a not-found one, but got %v"
 )
 const _defaultPsqlMainContainerName = "postgresql"
-const _defaultBackstageMainContainerName = "backstage-backend"
+
+//const _defaultBackstageMainContainerName = "backstage-backend"
 
 var _ = Describe("Backstage controller", func() {
 	var (
@@ -145,10 +147,10 @@ var _ = Describe("Backstage controller", func() {
 			var backstage bsv1alpha1.Backstage
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, &backstage)
 			g.Expect(err).NotTo(HaveOccurred())
-			cond := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alpha1.ConditionDeployed)
+			cond := meta.FindStatusCondition(backstage.Status.Conditions, string(bsv1alpha1.BackstageConditionTypeDeployed))
 			g.Expect(cond).NotTo(BeNil())
 			g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-			g.Expect(cond.Reason).To(Equal(bsv1alpha1.DeployFailed))
+			g.Expect(cond.Reason).To(Equal(string(bsv1alpha1.BackstageConditionReasonFailed)))
 			g.Expect(cond.Message).To(ContainSubstring(errMsg))
 		}, time.Minute, time.Second).Should(Succeed())
 	}
@@ -471,7 +473,7 @@ var _ = Describe("Backstage controller", func() {
 			By("Checking that the local db statefulset has been deleted")
 			Eventually(func(g Gomega) {
 				err := k8sClient.Get(ctx,
-					types.NamespacedName{Namespace: ns, Name: getDefaultDbObjName(*backstage)},
+					types.NamespacedName{Namespace: ns, Name: utils.GenerateRuntimeObjectName(backstageName, "db-statefulset")},
 					&appsv1.StatefulSet{})
 				g.Expect(err).Should(HaveOccurred())
 				g.Expect(errors.IsNotFound(err)).Should(BeTrue(), fmtNotFound, err)
@@ -480,12 +482,12 @@ var _ = Describe("Backstage controller", func() {
 			By("Checking that the local db services have been deleted")
 			Eventually(func(g Gomega) {
 				err := k8sClient.Get(ctx,
-					types.NamespacedName{Namespace: ns, Name: getDefaultDbObjName(*backstage)},
+					types.NamespacedName{Namespace: ns, Name: utils.GenerateRuntimeObjectName(backstageName, "db-service")},
 					&corev1.Service{})
 				g.Expect(err).Should(HaveOccurred())
 				g.Expect(errors.IsNotFound(err)).Should(BeTrue(), fmtNotFound, err)
 				err = k8sClient.Get(ctx,
-					types.NamespacedName{Namespace: ns, Name: fmt.Sprintf("backstage-psql-%s-hl", backstage.Name)},
+					types.NamespacedName{Namespace: ns, Name: utils.GenerateRuntimeObjectName(backstageName, "db-service")},
 					&corev1.Service{})
 				g.Expect(err).Should(HaveOccurred())
 				g.Expect(errors.IsNotFound(err)).Should(BeTrue(), fmtNotFound, err)
@@ -494,7 +496,7 @@ var _ = Describe("Backstage controller", func() {
 			By("Checking that the local db secret has been deleted")
 			Eventually(func(g Gomega) {
 				err := k8sClient.Get(ctx,
-					types.NamespacedName{Namespace: ns, Name: getDefaultDbObjName(*backstage)},
+					types.NamespacedName{Namespace: ns, Name: utils.GenerateRuntimeObjectName(backstageName, "default-db-secret")},
 					&corev1.Secret{})
 				g.Expect(err).Should(HaveOccurred())
 				g.Expect(errors.IsNotFound(err)).Should(BeTrue(), fmtNotFound, err)
@@ -679,7 +681,7 @@ spec:
 					NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
 				})
 				Expect(err).To(HaveOccurred())
-				errStr := fmt.Sprintf("failed to add volume mounts to Backstage deployment, reason: configmaps \"%s\" not found", cmName)
+				errStr := fmt.Sprintf("configmaps \"%s\" not found", cmName)
 				Expect(err.Error()).Should(ContainSubstring(errStr))
 				verifyBackstageInstanceError(ctx, errStr)
 
@@ -969,7 +971,7 @@ plugins: []
 						NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
 					})
 					Expect(err).To(HaveOccurred())
-					errStr := fmt.Sprintf("failed to add volume mounts to Backstage deployment, reason: %ss \"%s\" not found", strings.ToLower(kind), name)
+					errStr := fmt.Sprintf("%ss \"%s\" not found", strings.ToLower(kind), name)
 					Expect(err.Error()).Should(ContainSubstring(errStr))
 					verifyBackstageInstanceError(ctx, errStr)
 
@@ -1432,7 +1434,7 @@ plugins: []
 		BeforeEach(func() {
 			backstage = buildBackstageCR(bsv1alpha1.BackstageSpec{
 				Application: &bsv1alpha1.Application{
-					ImagePullSecrets: &[]string{ips1, ips2},
+					ImagePullSecrets: []string{ips1, ips2},
 				},
 			})
 			err := k8sClient.Create(ctx, backstage)
@@ -1610,7 +1612,7 @@ func findElementsByPredicate[T any](l []T, predicate func(t T) bool) (result []T
 }
 
 func isDeployed(backstage bsv1alpha1.Backstage) bool {
-	if cond := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alpha1.ConditionDeployed); cond != nil {
+	if cond := meta.FindStatusCondition(backstage.Status.Conditions, string(bsv1alpha1.BackstageConditionTypeDeployed)); cond != nil {
 		return cond.Status == metav1.ConditionTrue
 	}
 	return false

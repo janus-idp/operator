@@ -19,9 +19,16 @@ import (
 	"k8s.io/utils/pointer"
 )
 
+type BackstageConditionReason string
+
+type BackstageConditionType string
+
 const (
-	RuntimeConditionRunning string = "RuntimeRunning"
-	RuntimeConditionSynced  string = "RuntimeSyncedWithConfig"
+	BackstageConditionTypeDeployed BackstageConditionType = "Deployed"
+
+	BackstageConditionReasonDeployed   BackstageConditionReason = "DeployOK"
+	BackstageConditionReasonFailed     BackstageConditionReason = "DeployFailed"
+	BackstageConditionReasonInProgress BackstageConditionReason = "DeployInProgress"
 )
 
 // BackstageSpec defines the desired state of Backstage
