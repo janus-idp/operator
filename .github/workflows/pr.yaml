@@ -1,13 +1,29 @@
-name: Makefile CI
+# Copyright 2023 The Janus IDP Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: PR Test operator
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches: 
+    - main
+    - rhdh-1.[0-9]+
+    - 1.[0-9]+.x
 
 jobs:
-  build:
+  pr-validate:
+    name: PR Validate
     runs-on: ubuntu-latest
 
     steps:
@@ -32,23 +48,3 @@ jobs:
       with:
         # Path to SARIF file relative to the root of the repository
         sarif_file: gosec.sarif
-
-  container-image-build:
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        # See ../Makefile for value of single arch PLATFORM used with target image-build
-        # NOTE: to build multiple arches, see ../Makefile and use target docker-buildx with PLATFORMS
-        # only run this with docker since we have podman builds in pr-container-build.yaml
-        # TODO: do we really even need this check?
-        engine: [docker, podman]
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup Go
-        uses: actions/setup-go@v4
-        with:
-          go-version-file: 'go.mod'
-      - name: ${{ matrix.engine }} build
-        run: |
-          CONTAINER_ENGINE=${{ matrix.engine }} make image-build

@@ -136,8 +136,20 @@ var _ = Describe("Backstage controller", func() {
 			var backstage bsv1alpha1.Backstage
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, &backstage)
 			g.Expect(err).NotTo(HaveOccurred())
-			//TODO the status is under construction
-			g.Expect(len(backstage.Status.Conditions)).To(Equal(2))
+			g.Expect(isDeployed(backstage)).To(BeTrue())
+		}, time.Minute, time.Second).Should(Succeed())
+	}
+
+	verifyBackstageInstanceError := func(ctx context.Context, errMsg string) {
+		Eventually(func(g Gomega) {
+			var backstage bsv1alpha1.Backstage
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, &backstage)
+			g.Expect(err).NotTo(HaveOccurred())
+			cond := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alpha1.ConditionDeployed)
+			g.Expect(cond).NotTo(BeNil())
+			g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
+			g.Expect(cond.Reason).To(Equal(bsv1alpha1.DeployFailed))
+			g.Expect(cond.Message).To(ContainSubstring(errMsg))
 		}, time.Minute, time.Second).Should(Succeed())
 	}
 
@@ -425,8 +437,6 @@ var _ = Describe("Backstage controller", func() {
 			}, time.Minute, time.Second).Should(Succeed())
 
 			By("Updating custom resource by disabling local db")
-
-			// TODO !!!!
 			var enableLocalDb bool = false
 			Eventually(func(g Gomega) {
 				toBeUpdated := &bsv1alpha1.Backstage{}
@@ -504,22 +514,23 @@ var _ = Describe("Backstage controller", func() {
 apiVersion: apps/v1
 kind: Deployment
 metadata:
- name: bs1-deployment
- labels:
-   app: bs1
+  name: bs1-deployment
+  labels:
+    app: bs1
 spec:
- replicas: 1
- selector:
-   matchLabels:
-     app: bs1
- template:
-   metadata:
-     labels:
-       app: bs1
-   spec:
-     containers:
-       - name: bs1
-         image: busybox	`,
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bs1
+  template:
+    metadata:
+      labels:
+        app: bs1
+    spec:
+      containers:
+        - name: bs1
+          image: busybox
+`,
 					})
 				err := k8sClient.Create(ctx, backstageConfigMap)
 				Expect(err).To(Not(HaveOccurred()))
@@ -641,13 +652,13 @@ spec:
 	Context("App Configs", func() {
 		When("referencing non-existing ConfigMap as app-config", func() {
 			var backstage *bsv1alpha1.Backstage
-
+			const cmName = "a-non-existing-cm"
 			BeforeEach(func() {
 				backstage = buildBackstageCR(bsv1alpha1.BackstageSpec{
 					Application: &bsv1alpha1.Application{
 						AppConfig: &bsv1alpha1.AppConfig{
 							ConfigMaps: []bsv1alpha1.ObjectKeyRef{
-								{Name: "a-non-existing-cm"},
+								{Name: cmName},
 							},
 						},
 					},
@@ -668,6 +679,9 @@ spec:
 					NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
 				})
 				Expect(err).To(HaveOccurred())
+				errStr := fmt.Sprintf("failed to add volume mounts to Backstage deployment, reason: configmaps \"%s\" not found", cmName)
+				Expect(err.Error()).Should(ContainSubstring(errStr))
+				verifyBackstageInstanceError(ctx, errStr)
 
 				By("Not creating a Backstage Deployment")
 				Consistently(func() error {
@@ -695,21 +709,21 @@ spec:
 						BeforeEach(func() {
 							appConfig1Cm := buildConfigMap(appConfig1CmName, map[string]string{
 								"my-app-config-11.yaml": `
-			# my-app-config-11.yaml
-			`,
+# my-app-config-11.yaml
+`,
 								"my-app-config-12.yaml": `
-			# my-app-config-12.yaml
-			`,
+# my-app-config-12.yaml
+`,
 							})
 							err := k8sClient.Create(ctx, appConfig1Cm)
 							Expect(err).To(Not(HaveOccurred()))
 
 							dynamicPluginsCm := buildConfigMap(dynamicPluginsConfigName, map[string]string{
 								"dynamic-plugins.yaml": `
-			# dynamic-plugins.yaml (configmap)
-			includes: [dynamic-plugins.default.yaml]
-			plugins: []
-			`,
+# dynamic-plugins.yaml (configmap)
+includes: [dynamic-plugins.default.yaml]
+plugins: []
+`,
 							})
 							err = k8sClient.Create(ctx, dynamicPluginsCm)
 							Expect(err).To(Not(HaveOccurred()))
@@ -847,7 +861,6 @@ spec:
 								for i := 0; i <= nbArgs-2; i += 2 {
 									Expect(mainCont.Args[i]).To(Equal("--config"))
 								}
-
 								if key == "" {
 									//TODO(rm3l): the order of the rest of the --config args should be the same as the order in
 									// which the keys are listed in the ConfigMap/Secrets
@@ -885,9 +898,9 @@ spec:
 
 								// TODO Key
 								if key != "" {
-									//Expect(appConfig1CmMounts).To(HaveLen(1), "Wrong number of volume mounts found with name: %s", appConfig1CmName)
-									//Expect(appConfig1CmMounts[0].MountPath).To(Equal(fmt.Sprintf("%s/%s", expectedMountPath, key)))
-									//Expect(appConfig1CmMounts[0].SubPath).To(Equal(key))
+									Expect(appConfig1CmMounts).To(HaveLen(1), "Wrong number of volume mounts found with name: %s", appConfig1CmName)
+									Expect(appConfig1CmMounts[0].MountPath).To(Equal(fmt.Sprintf("%s/%s", expectedMountPath, key)))
+									Expect(appConfig1CmMounts[0].SubPath).To(Equal(key))
 								} else {
 									Expect(appConfig1CmMounts).To(HaveLen(2), "Wrong number of volume mounts found with name: %s", appConfig1CmName)
 									Expect(appConfig1CmMounts[0].MountPath).ToNot(Equal(appConfig1CmMounts[1].MountPath))
@@ -918,6 +931,7 @@ spec:
 			kind := kind
 			When(fmt.Sprintf("referencing non-existing %s as extra-file", kind), func() {
 				var backstage *bsv1alpha1.Backstage
+				name := "a-non-existing-" + strings.ToLower(kind)
 
 				BeforeEach(func() {
 					var (
@@ -955,6 +969,9 @@ spec:
 						NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
 					})
 					Expect(err).To(HaveOccurred())
+					errStr := fmt.Sprintf("failed to add volume mounts to Backstage deployment, reason: %ss \"%s\" not found", strings.ToLower(kind), name)
+					Expect(err.Error()).Should(ContainSubstring(errStr))
+					verifyBackstageInstanceError(ctx, errStr)
 
 					By("Not creating a Backstage Deployment")
 					Consistently(func() error {
@@ -981,44 +998,44 @@ spec:
 				BeforeEach(func() {
 					extraConfig1CmAll := buildConfigMap(extraConfig1CmNameAll, map[string]string{
 						"my-extra-config-11.yaml": `
-			# my-extra-config-11.yaml
-			`,
+# my-extra-config-11.yaml
+`,
 						"my-extra-config-12.yaml": `
-			# my-extra-config-12.yaml
-			`,
+# my-extra-config-12.yaml
+`,
 					})
 					err := k8sClient.Create(ctx, extraConfig1CmAll)
 					Expect(err).To(Not(HaveOccurred()))
 
 					extraConfig2SecretAll := buildSecret(extraConfig2SecretNameAll, map[string][]byte{
 						"my-extra-config-21.yaml": []byte(`
-			# my-extra-config-21.yaml
-			`),
+# my-extra-config-21.yaml
+`),
 						"my-extra-config-22.yaml": []byte(`
-			# my-extra-config-22.yaml
-			`),
+# my-extra-config-22.yaml
+`),
 					})
 					err = k8sClient.Create(ctx, extraConfig2SecretAll)
 					Expect(err).To(Not(HaveOccurred()))
 
 					extraConfig1CmSingle := buildConfigMap(extraConfig1CmNameSingle, map[string]string{
 						"my-extra-file-11-single.yaml": `
-			# my-extra-file-11-single.yaml
-			`,
+# my-extra-file-11-single.yaml
+`,
 						"my-extra-file-12-single.yaml": `
-			# my-extra-file-12-single.yaml
-			`,
+# my-extra-file-12-single.yaml
+`,
 					})
 					err = k8sClient.Create(ctx, extraConfig1CmSingle)
 					Expect(err).To(Not(HaveOccurred()))
 
 					extraConfig2SecretSingle := buildSecret(extraConfig2SecretNameSingle, map[string][]byte{
 						"my-extra-file-21-single.yaml": []byte(`
-			# my-extra-file-21-single.yaml
-			`),
+# my-extra-file-21-single.yaml
+`),
 						"my-extra-file-22-single.yaml": []byte(`
-			# my-extra-file-22-single.yaml
-			`),
+# my-extra-file-22-single.yaml
+`),
 					})
 					err = k8sClient.Create(ctx, extraConfig2SecretSingle)
 					Expect(err).To(Not(HaveOccurred()))
@@ -1121,7 +1138,6 @@ spec:
 					mainCont := found.Spec.Template.Spec.Containers[0]
 
 					By("Checking the main container Volume Mounts in the Backstage Deployment", func() {
-
 						Expect(mainCont.VolumeMounts).To(HaveLen(8))
 
 						expectedMountPath := mountPath
@@ -1265,7 +1281,6 @@ spec:
 
 				mainCont := found.Spec.Template.Spec.Containers[0]
 				By(fmt.Sprintf("Checking Env in the Backstage Deployment - container: %q", mainCont.Name), func() {
-
 					Expect(len(mainCont.Env)).To(BeNumerically(">=", 4),
 						"Expected at least 4 items in Env for container %q, fot %d", mainCont.Name, len(mainCont.Env))
 
@@ -1276,6 +1291,7 @@ spec:
 					envVar, ok = findEnvVar(mainCont.Env, "MY_ENV_VAR_2")
 					Expect(ok).To(BeTrue(), "No env var with name MY_ENV_VAR_2 in main container")
 					Expect(envVar.Value).Should(Equal("value 20"))
+
 					envVar, ok = findEnvVar(mainCont.Env, "MY_ENV_VAR_2_FROM_CM_SINGLE")
 					Expect(ok).To(BeTrue(), "No env var with name MY_ENV_VAR_2_FROM_CM_SINGLE in main container")
 					Expect(envVar.Value).Should(BeEmpty())
@@ -1416,7 +1432,7 @@ spec:
 		BeforeEach(func() {
 			backstage = buildBackstageCR(bsv1alpha1.BackstageSpec{
 				Application: &bsv1alpha1.Application{
-					ImagePullSecrets: []string{ips1, ips2},
+					ImagePullSecrets: &[]string{ips1, ips2},
 				},
 			})
 			err := k8sClient.Create(ctx, backstage)
@@ -1579,10 +1595,7 @@ spec:
 			_, err = backstageReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
 			})
-
-			// As discussed, it is not required
-			Expect(err).ShouldNot(HaveOccurred())
-			//			Expect(err.Error()).Should(ContainSubstring("existingDbSerect is required if enableLocalDb is false"))
+			Expect(err).Should(Not(HaveOccurred()))
 		})
 	})
 })
@@ -1596,20 +1609,12 @@ func findElementsByPredicate[T any](l []T, predicate func(t T) bool) (result []T
 	return result
 }
 
-//func isLocalDbDeployed(backstage bsv1alpha1.Backstage) bool {
-//
-//	if cond := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alpha1.LocalDbSynced); cond != nil {
-//		return cond.Status == metav1.ConditionTrue && cond.Reason == bsv1alpha1.SyncOK
-//	}
-//	return false
-//}
-
-//func isSynced(backstage bsv1alpha1.Backstage) bool {
-//	if cond := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alpha1.RuntimeConditionSynced); cond != nil {
-//		return cond.Status == metav1.ConditionTrue
-//	}
-//	return false
-//}
+func isDeployed(backstage bsv1alpha1.Backstage) bool {
+	if cond := meta.FindStatusCondition(backstage.Status.Conditions, bsv1alpha1.ConditionDeployed); cond != nil {
+		return cond.Status == metav1.ConditionTrue
+	}
+	return false
+}
 
 func getSecretName(containers []corev1.Container, name string) string {
 	for _, c := range containers {
@@ -1621,8 +1626,4 @@ func getSecretName(containers []corev1.Container, name string) string {
 		}
 	}
 	return ""
-}
-
-func getDefaultDbObjName(backstage bsv1alpha1.Backstage) string {
-	return fmt.Sprintf("backstage-psql-%s", backstage.Name)
 }
