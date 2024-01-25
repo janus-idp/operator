@@ -102,7 +102,7 @@ func (b *testBackstageObject) addToDefaultConfig(key string, fileName string) *t
 // reads file from ./testdata
 func readTestYamlFile(name string) ([]byte, error) {
 
-	b, err := os.ReadFile(filepath.Join("testdata", name))
+	b, err := os.ReadFile(filepath.Join("testdata", name)) // #nosec G304, path is constructed internally
 	if err != nil {
 		return nil, fmt.Errorf("failed to read YAML file: %w", err)
 	}

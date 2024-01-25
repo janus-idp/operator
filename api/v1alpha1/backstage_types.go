@@ -26,7 +26,7 @@ type BackstageConditionType string
 const (
 	BackstageConditionTypeDeployed BackstageConditionType = "Deployed"
 
-	BackstageConditionReasonDeployed   BackstageConditionReason = "DeployOK"
+	BackstageConditionReasonDeployed   BackstageConditionReason = "Deployed"
 	BackstageConditionReasonFailed     BackstageConditionReason = "DeployFailed"
 	BackstageConditionReasonInProgress BackstageConditionReason = "DeployInProgress"
 )
