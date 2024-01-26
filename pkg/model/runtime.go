@@ -115,12 +115,8 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 
 		backstagePod.addExtraEnvs(backstageSpec.Application.ExtraEnvs)
 
-		//if backstageSpec.Application.ExtraEnvs != nil {
-		//	for _, e := range backstageSpec.Application.ExtraEnvs.Envs {
-		//		backstagePod.addContainerEnvVar(e)
-		//	}
-		//}
 	}
+
 	// Route...
 	if isOpenshift && backstageSpec.IsRouteEnabled() {
 		newBackstageRoute(*backstageSpec.Application.Route).addToModel(model, backstageMeta, ownsRuntime)
@@ -196,8 +192,8 @@ func (model *RuntimeModel) addDefaultsAndRaw(backstageMeta bsv1alpha1.Backstage,
 			continue
 		}
 
-		// do not add if ForOpenshift and cluster is not Openshift
-		if !isOpenshift && conf.need == ForOpenshift {
+		// do not add if ForOpenshift and (cluster is not Openshift OR route is not enabled in CR)
+		if conf.need == ForOpenshift && (!isOpenshift || !backstageSpec.IsRouteEnabled()) {
 			continue
 		}
 

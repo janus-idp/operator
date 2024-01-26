@@ -141,7 +141,8 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 
 	for _, obj := range objects {
 
-		if err := r.Get(ctx, types.NamespacedName{Name: obj.Object().GetName(), Namespace: obj.Object().GetNamespace()}, obj.EmptyObject()); err != nil {
+		old := obj.EmptyObject()
+		if err := r.Get(ctx, types.NamespacedName{Name: obj.Object().GetName(), Namespace: obj.Object().GetNamespace()}, old); err != nil {
 			if !errors.IsNotFound(err) {
 				return fmt.Errorf("failed to get object: %w", err)
 			}
@@ -154,8 +155,11 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 			continue
 		}
 
+		if _, ok := obj.(*model.BackstageRoute); ok {
+			lg.V(1).Info("Updating object ", "", old.GetResourceVersion(), "anno", old.GetAnnotations())
+		}
 		if err := r.Update(ctx, obj.Object()); err != nil {
-			return fmt.Errorf("failed to update object %s: %w", obj.Object().GetName(), err)
+			return fmt.Errorf("failed to update object %s: %w", obj.Object().GetResourceVersion(), err)
 		}
 
 		// [GA] do not remove it
@@ -189,7 +193,7 @@ func (r *BackstageReconciler) cleanObjects(ctx context.Context, backstage bs.Bac
 
 	//// check if route disabled, respective objects have to deleted/unowned
 	if r.IsOpenShift && !backstage.Spec.IsRouteEnabled() {
-		if err := r.tryToDelete(ctx, &openshift.Route{}, model.DbStatefulSetName(backstage.Name), backstage.Namespace); err != nil {
+		if err := r.tryToDelete(ctx, &openshift.Route{}, model.RouteName(backstage.Name), backstage.Namespace); err != nil {
 			return fmt.Errorf("%s %w", failedToCleanup, err)
 		}
 	}

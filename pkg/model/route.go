@@ -31,6 +31,10 @@ type BackstageRoute struct {
 	route *openshift.Route
 }
 
+func RouteName(backstageName string) string {
+	return utils.GenerateRuntimeObjectName(backstageName, "route")
+}
+
 func newBackstageRoute(specified bsv1alpha1.Route) *BackstageRoute {
 
 	osroute := openshift.Route{}
