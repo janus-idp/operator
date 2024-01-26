@@ -55,7 +55,6 @@ func (p *SecretFiles) EmptyObject() client.Object {
 func (p *SecretFiles) addToModel(model *RuntimeModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
 	model.setObject(p)
 
-	initMetainfo(p, backstageMeta, ownsRuntime)
 	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretfiles"))
 
 }

@@ -41,9 +41,14 @@ type DbSecret struct {
 	nameSpecified bool
 }
 
+// TODO: consider to get it back
 //func init() {
 //	registerConfig("db-secret.yaml", DbSecretFactory{}, ForLocalDatabase)
 //}
+
+func DbSecretDefaultName(backstageName string) string {
+	return utils.GenerateRuntimeObjectName(backstageName, "default-dbsecret")
+}
 
 func NewDbSecretFromSpec(name string) DbSecret {
 	return DbSecret{
@@ -88,14 +93,13 @@ func (b *DbSecret) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Back
 	model.localDbSecret = b
 	model.setObject(b)
 
-	// it is a hack, should not happen
+	// TODO refactor it: b.secret should not be nil at this stage
 	if b.secret == nil {
 		b.secret = GenerateDbSecret().secret
 	}
 
-	initMetainfo(b, backstageMeta, ownsRuntime)
 	if !b.nameSpecified {
-		b.secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-dbsecret"))
+		b.secret.SetName(DbSecretDefaultName(backstageMeta.Name))
 	}
 }
 

@@ -30,7 +30,7 @@ func TestDefaultWithDefinedSecrets(t *testing.T) {
 	// expected generatePassword = false (default db-secret defined) will come from preprocess
 	testObj := createBackstageTest(bs).withDefaultConfig(true).withLocalDb(nil, "").addToDefaultConfig("db-secret.yaml", "db-defined-secret.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
+	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model.localDbSecret)
@@ -51,7 +51,7 @@ func TestEmptyDbSecret(t *testing.T) {
 	// expected generatePassword = false (default db-secret defined) will come from preprocess
 	testObj := createBackstageTest(bs).withDefaultConfig(true).withLocalDb(nil, "").addToDefaultConfig("db-secret.yaml", "db-empty-secret.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
+	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model.localDbSecret)
@@ -76,7 +76,7 @@ func TestDefaultWithGeneratedSecrets(t *testing.T) {
 	// expected generatePassword = true (no db-secret defined) will come from preprocess
 	testObj := createBackstageTest(bs).withDefaultConfig(true).withLocalDb(nil, "").addToDefaultConfig("db-secret.yaml", "db-generated-secret.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
+	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "bs-default-dbsecret", model.localDbSecret.secret.Name)
@@ -96,7 +96,7 @@ func TestSpecifiedSecret(t *testing.T) {
 	// expected generatePassword = false (db-secret defined in the spec) will come from preprocess
 	testObj := createBackstageTest(bs).withDefaultConfig(true).withLocalDb(nil, "custom-db-secret").addToDefaultConfig("db-secret.yaml", "db-generated-secret.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
+	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "custom-db-secret", model.localDbSecret.secret.Name)

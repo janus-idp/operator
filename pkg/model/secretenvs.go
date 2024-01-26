@@ -42,8 +42,8 @@ func (p *SecretEnvs) Object() client.Object {
 }
 
 // implementation of BackstageObject interface
-//func (p *SecretEnvs) initMetainfo(backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
-//	initMetainfo(p, backstageMeta, ownsRuntime)
+//func (p *SecretEnvs) setMetaInfo(backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
+//	setMetaInfo(p, backstageMeta, ownsRuntime)
 //	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretenvs"))
 //}
 
@@ -56,7 +56,6 @@ func (p *SecretEnvs) EmptyObject() client.Object {
 func (p *SecretEnvs) addToModel(model *RuntimeModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
 	model.setObject(p)
 
-	initMetainfo(p, backstageMeta, ownsRuntime)
 	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretenvs"))
 }
 

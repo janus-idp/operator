@@ -35,7 +35,7 @@ func TestDefaultSecretFiles(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("secret-files.yaml", "raw-secret-files.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
+	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 
@@ -64,7 +64,7 @@ func TestSpecifiedSecretFiles(t *testing.T) {
 			Name:      "secret2",
 			Namespace: "ns123",
 		},
-		Data: map[string][]byte{"conf2.yaml": []byte{}},
+		Data: map[string][]byte{"conf2.yaml": {}},
 	}
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
@@ -72,7 +72,7 @@ func TestSpecifiedSecretFiles(t *testing.T) {
 	testObj.detailedSpec.AddConfigObject(&SecretFiles{Secret: &sec1, MountPath: "/my/path"})
 	testObj.detailedSpec.AddConfigObject(&SecretFiles{Secret: &sec2, MountPath: "/my/path"})
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
+	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.Objects) > 0)
@@ -103,7 +103,7 @@ func TestDefaultAndSpecifiedSecretFiles(t *testing.T) {
 	//testObj.detailedSpec.Details.AddAppConfig(cm, "/my/path")
 	testObj.detailedSpec.AddConfigObject(&SecretFiles{Secret: &sec, MountPath: "/my/path"})
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
+	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.Objects) > 0)

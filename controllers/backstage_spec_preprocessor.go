@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 
-	"janus-idp.io/backstage-operator/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	bs "janus-idp.io/backstage-operator/api/v1alpha1"
@@ -27,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// Add additional details to the Backstage Spec helping in making Bakstage Objects Model
+// Add additional details to the Backstage Spec helping in making Backstage Objects Model
 // Validates Backstage Spec and fails fast if something not correct
 func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.Backstage) (*model.DetailedBackstageSpec, error) {
 	//lg := log.FromContext(ctx)
@@ -123,38 +122,42 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.B
 
 	}
 
-	//// check if route disabled, respective objects have to deleted/unowned
-	//if !bsSpec.IsRouteEnabled() {
-	//	// TODO
-	//}
+	if err := r.preprocessDbSecret(ctx, backstage, result); err != nil {
+		return nil, fmt.Errorf("failed to preprocess DbSecret %w", err)
+	}
 
+	return result, nil
+}
+
+func (r *BackstageReconciler) preprocessDbSecret(ctx context.Context, backstage bs.Backstage, result *model.DetailedBackstageSpec) error {
+
+	bsSpec := backstage.Spec
 	// if DB Secret should be generated
 	sec := corev1.Secret{}
 	//result.GenerateDbPassword = false
 	if !bsSpec.IsAuthSecretSpecified() {
-		secretName := utils.GenerateRuntimeObjectName(backstage.Name, "default-dbsecret")
-		if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: ns}, &sec); err != nil {
+		secretName := model.DbSecretDefaultName(backstage.Name)
+		if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: backstage.Namespace}, &sec); err != nil {
 			if errors.IsNotFound(err) {
 				result.LocalDbSecret = model.GenerateDbSecret()
 			} else {
-				return nil, fmt.Errorf("failed to get DB Secret %s: %w", secretName, err)
+				return fmt.Errorf("failed to get DB Secret %s: %w", secretName, err)
 			}
 		} else {
 			result.LocalDbSecret = model.ExistedDbSecret(sec)
 		}
 	} else {
 		secretName := bsSpec.Database.AuthSecretName
-		if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: ns}, &sec); err != nil {
+		if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: backstage.Namespace}, &sec); err != nil {
 			if errors.IsNotFound(err) {
 				result.LocalDbSecret = model.NewDbSecretFromSpec(secretName)
 			} else {
-				return nil, fmt.Errorf("failed to get DB Secret %s: %w", secretName, err)
+				return fmt.Errorf("failed to get DB Secret %s: %w", secretName, err)
 			}
 		} else {
 			result.LocalDbSecret = model.ExistedDbSecret(sec)
 			//result.SetDbSecret(&sec)
 		}
 	}
-
-	return result, nil
+	return nil
 }

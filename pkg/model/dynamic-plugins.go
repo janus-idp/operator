@@ -57,7 +57,6 @@ func (p *DynamicPlugins) EmptyObject() client.Object {
 func (p *DynamicPlugins) addToModel(model *RuntimeModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
 	model.setObject(p)
 
-	initMetainfo(p, backstageMeta, ownsRuntime)
 	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-dynamic-plugins"))
 
 }

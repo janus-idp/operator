@@ -27,7 +27,7 @@ func TestDefaultConfigMapEnvs(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("configmap-envs.yaml", "raw-cm-envs.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
+	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model)

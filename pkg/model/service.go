@@ -39,8 +39,8 @@ func init() {
 }
 
 // implementation of BackstageObject interface
-func (s *BackstageService) Object() client.Object {
-	return s.service
+func (b *BackstageService) Object() client.Object {
+	return b.service
 }
 
 // implementation of BackstageObject interface
@@ -48,7 +48,6 @@ func (b *BackstageService) addToModel(model *RuntimeModel, backstageMeta bsv1alp
 	model.backstageService = b
 	model.setObject(b)
 
-	initMetainfo(b, backstageMeta, ownsRuntime)
 	b.service.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "service"))
 	utils.GenerateLabel(&b.service.Spec.Selector, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageMeta.Name))
 

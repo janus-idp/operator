@@ -19,6 +19,10 @@ import (
 	"os"
 	"path/filepath"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
+	"k8s.io/apimachinery/pkg/runtime"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
@@ -33,6 +37,7 @@ import (
 type testBackstageObject struct {
 	backstage    bsv1alpha1.Backstage
 	detailedSpec *DetailedBackstageSpec
+	scheme       *runtime.Scheme
 }
 
 // simple bsv1alpha1.Backstage
@@ -53,7 +58,8 @@ func simpleTestBackstage() bsv1alpha1.Backstage {
 
 // initialises testBackstageObject object
 func createBackstageTest(bs bsv1alpha1.Backstage) *testBackstageObject {
-	b := &testBackstageObject{backstage: bs, detailedSpec: &DetailedBackstageSpec{BackstageSpec: bs.Spec}}
+	b := &testBackstageObject{backstage: bs, detailedSpec: &DetailedBackstageSpec{BackstageSpec: bs.Spec}, scheme: runtime.NewScheme()}
+	utilruntime.Must(bsv1alpha1.AddToScheme(b.scheme))
 	b.detailedSpec.RawConfigContent = map[string]string{}
 	return b
 }

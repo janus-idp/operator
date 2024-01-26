@@ -43,6 +43,10 @@ func init() {
 	registerConfig("db-statefulset.yaml", DbStatefulSetFactory{}, ForLocalDatabase)
 }
 
+func DbStatefulSetName(backstageName string) string {
+	return utils.GenerateRuntimeObjectName(backstageName, "db-statefulset")
+}
+
 // implementation of BackstageObject interface
 func (b *DbStatefulSet) Object() client.Object {
 	return b.statefulSet
@@ -53,7 +57,7 @@ func (b *DbStatefulSet) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1
 	model.localDbStatefulSet = b
 	model.setObject(b)
 
-	initMetainfo(b, backstageMeta, ownsRuntime)
+	//setMetaInfo(b, backstageMeta, ownsRuntime)
 	b.statefulSet.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "db-statefulset"))
 	utils.GenerateLabel(&b.statefulSet.Spec.Template.ObjectMeta.Labels, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
 	utils.GenerateLabel(&b.statefulSet.Spec.Selector.MatchLabels, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))

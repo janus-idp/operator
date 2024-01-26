@@ -42,6 +42,10 @@ func init() {
 	registerConfig("deployment.yaml", BackstageDeploymentFactory{}, Mandatory)
 }
 
+func DeploymentName(backstageName string) string {
+	return utils.GenerateRuntimeObjectName(backstageName, "deployment")
+}
+
 // implementation of BackstageObject interface
 func (b *BackstageDeployment) Object() client.Object {
 	return b.deployment
@@ -57,7 +61,6 @@ func (b *BackstageDeployment) addToModel(model *RuntimeModel, backstageMeta bsv1
 	model.backstageDeployment = b
 	model.setObject(b)
 
-	initMetainfo(b, backstageMeta, ownsRuntime)
 	b.deployment.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "deployment"))
 	utils.GenerateLabel(&b.deployment.Spec.Template.ObjectMeta.Labels, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageMeta.Name))
 	utils.GenerateLabel(&b.deployment.Spec.Selector.MatchLabels, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageMeta.Name))

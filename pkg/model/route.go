@@ -97,7 +97,6 @@ func (b *BackstageRoute) addToModel(model *RuntimeModel, backstageMeta bsv1alpha
 	model.route = b
 	model.setObject(b)
 
-	initMetainfo(b, backstageMeta, ownsRuntime)
 	b.route.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "route"))
 }
 

@@ -37,9 +37,13 @@ func init() {
 	registerConfig("db-service.yaml", DbServiceFactory{}, ForLocalDatabase)
 }
 
+func DbServiceName(backstageName string) string {
+	return utils.GenerateRuntimeObjectName(backstageName, "db-service")
+}
+
 // implementation of BackstageObject interface
-func (s *DbService) Object() client.Object {
-	return s.service
+func (b *DbService) Object() client.Object {
+	return b.service
 }
 
 // implementation of BackstageObject interface
@@ -47,7 +51,6 @@ func (b *DbService) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Bac
 	model.localDbService = b
 	model.setObject(b)
 
-	initMetainfo(b, backstageMeta, ownsRuntime)
 	b.service.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "db-service"))
 	utils.GenerateLabel(&b.service.Spec.Selector, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
 }

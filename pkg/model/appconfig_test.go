@@ -31,7 +31,7 @@ func TestDefaultAppConfig(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("app-config.yaml", "raw-app-config.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
+	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.Objects) > 0)
@@ -70,7 +70,7 @@ func TestSpecifiedAppConfig(t *testing.T) {
 	testObj.detailedSpec.AddConfigObject(&AppConfig{ConfigMap: &cm, MountPath: "/my/path"})
 	testObj.detailedSpec.AddConfigObject(&AppConfig{ConfigMap: &cm2, MountPath: "/my/path"})
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
+	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.Objects) > 0)
@@ -100,7 +100,7 @@ func TestDefaultAndSpecifiedAppConfig(t *testing.T) {
 
 	testObj.detailedSpec.AddConfigObject(&AppConfig{ConfigMap: &cm, MountPath: "/my/path"})
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false)
+	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.Objects) > 0)

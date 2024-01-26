@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"strings"
 
+	"janus-idp.io/backstage-operator/pkg/model"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 
@@ -230,7 +232,7 @@ var _ = Describe("Backstage controller", func() {
 		By("Checking the Deployment's replicas is updated after replicas is updated in the custom resource")
 		Eventually(func(g Gomega) {
 			found := &appsv1.Deployment{}
-			deploymentName := utils.GenerateRuntimeObjectName(backstageName, "deployment")
+			deploymentName := model.DeploymentName(backstageName)
 			err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: deploymentName}, found)
 			g.Expect(err).To(Not(HaveOccurred()))
 			verify(found)
@@ -264,20 +266,27 @@ var _ = Describe("Backstage controller", func() {
 			Eventually(func(g Gomega) {
 				found := &corev1.Secret{}
 				//name := fmt.Sprintf("backstage-psql-secret-%s", backstage.Name)
-				name := utils.GenerateRuntimeObjectName(backstage.Name, "default-dbsecret")
+				name := model.DbSecretDefaultName(backstageName)
 				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, found)
 				g.Expect(err).ShouldNot(HaveOccurred())
+				if backstageReconciler.OwnsRuntime {
+					g.Expect(found.GetOwnerReferences()).To(HaveLen(1))
+				}
+
 			}, time.Minute, time.Second).Should(Succeed())
 
 			By("creating a StatefulSet for the Database")
 			Eventually(func(g Gomega) {
 				found := &appsv1.StatefulSet{}
 				//name := fmt.Sprintf("backstage-psql-%s", backstage.Name)
-				name := utils.GenerateRuntimeObjectName(backstage.Name, "db-statefulset")
+				name := model.DbStatefulSetName(backstageName)
 				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, found)
 				g.Expect(err).ShouldNot(HaveOccurred())
 				secName := getSecretName(found.Spec.Template.Spec.Containers, _defaultPsqlMainContainerName)
-				g.Expect(secName).Should(Equal(utils.GenerateRuntimeObjectName(backstage.Name, "default-dbsecret")))
+				g.Expect(secName).Should(Equal(model.DbSecretDefaultName(backstageName)))
+				if backstageReconciler.OwnsRuntime {
+					g.Expect(found.GetOwnerReferences()).To(HaveLen(1))
+				}
 			}, time.Minute, time.Second).Should(Succeed())
 
 			backendAuthConfigName := utils.GenerateRuntimeObjectName(backstage.Name, "default-appconfig")
@@ -305,13 +314,16 @@ var _ = Describe("Backstage controller", func() {
 				g.Expect(found.Data).To(HaveKey("dynamic-plugins.yaml"))
 				g.Expect(found.Data["dynamic-plugins.yaml"]).To(Not(BeEmpty()),
 					"default ConfigMap for dynamic plugins should contain a non-empty 'dynamic-plugins.yaml' in its data")
+				if backstageReconciler.OwnsRuntime {
+					g.Expect(found.GetOwnerReferences()).To(HaveLen(1))
+				}
 			}, time.Minute, time.Second).Should(Succeed())
 
 			By("Checking if Deployment was successfully created in the reconciliation")
 			found := &appsv1.Deployment{}
 			Eventually(func() error {
 				// TODO to get name from default
-				name := utils.GenerateRuntimeObjectName(backstage.Name, "deployment")
+				name := model.DeploymentName(backstageName)
 				return k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, found)
 			}, time.Minute, time.Second).Should(Succeed())
 
@@ -400,7 +412,7 @@ var _ = Describe("Backstage controller", func() {
 
 			By("Checking the db secret used by the Backstage Deployment")
 			//secName := getSecretName(found.Spec.Template.Spec.Containers, _defaultBackstageMainContainerName)
-			secName := utils.GenerateRuntimeObjectName(backstage.Name, "default-dbsecret")
+			secName := model.DbSecretDefaultName(backstageName)
 			dbSec := corev1.Secret{}
 			err = k8sClient.Get(ctx, types.NamespacedName{Name: secName, Namespace: ns}, &dbSec)
 			Expect(err).To(Not(HaveOccurred()))
@@ -419,27 +431,27 @@ var _ = Describe("Backstage controller", func() {
 
 			By("Checking the localdb statefulset has been created")
 			Eventually(func(g Gomega) {
-				err := k8sClient.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstageName, "db-statefulset"), Namespace: ns}, &appsv1.StatefulSet{})
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: model.DbStatefulSetName(backstageName), Namespace: ns}, &appsv1.StatefulSet{})
 				g.Expect(err).To(Not(HaveOccurred()))
 			}, time.Minute, time.Second).Should(Succeed())
 
 			By("Checking the localdb services have been created")
 			Eventually(func(g Gomega) {
-				err := k8sClient.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstageName, "db-service"), Namespace: ns}, &corev1.Service{})
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: model.DbServiceName(backstageName), Namespace: ns}, &corev1.Service{})
 				g.Expect(err).To(Not(HaveOccurred()))
 
-				err = k8sClient.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstageName, "db-service"), Namespace: ns}, &corev1.Service{})
+				err = k8sClient.Get(ctx, types.NamespacedName{Name: model.DbServiceName(backstageName), Namespace: ns}, &corev1.Service{})
 				g.Expect(err).To(Not(HaveOccurred()))
 			}, time.Minute, time.Second).Should(Succeed())
 
 			By("Checking the localdb secret has been gnerated")
 			Eventually(func(g Gomega) {
-				err := k8sClient.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstage.Name, "default-dbsecret"), Namespace: ns}, &corev1.Secret{})
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: model.DbSecretDefaultName(backstageName), Namespace: ns}, &corev1.Secret{})
 				g.Expect(err).To(Not(HaveOccurred()))
 			}, time.Minute, time.Second).Should(Succeed())
 
 			By("Updating custom resource by disabling local db")
-			var enableLocalDb bool = false
+			var enableLocalDb = false
 			Eventually(func(g Gomega) {
 				toBeUpdated := &bsv1alpha1.Backstage{}
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, toBeUpdated)
@@ -465,7 +477,7 @@ var _ = Describe("Backstage controller", func() {
 				var backstage bsv1alpha1.Backstage
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, &backstage)
 				g.Expect(err).NotTo(HaveOccurred())
-				err = k8sClient.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstageName, "db-statefulset"), Namespace: ns}, &appsv1.StatefulSet{})
+				err = k8sClient.Get(ctx, types.NamespacedName{Name: model.DbStatefulSetName(backstageName), Namespace: ns}, &appsv1.StatefulSet{})
 				g.Expect(err).To(HaveOccurred())
 				//g.Expect(isLocalDbDeployed(backstage)).To(BeFalse())
 			}, time.Minute, time.Second).Should(Succeed())
@@ -473,7 +485,7 @@ var _ = Describe("Backstage controller", func() {
 			By("Checking that the local db statefulset has been deleted")
 			Eventually(func(g Gomega) {
 				err := k8sClient.Get(ctx,
-					types.NamespacedName{Namespace: ns, Name: utils.GenerateRuntimeObjectName(backstageName, "db-statefulset")},
+					types.NamespacedName{Namespace: ns, Name: model.DbStatefulSetName(backstageName)},
 					&appsv1.StatefulSet{})
 				g.Expect(err).Should(HaveOccurred())
 				g.Expect(errors.IsNotFound(err)).Should(BeTrue(), fmtNotFound, err)
@@ -482,12 +494,12 @@ var _ = Describe("Backstage controller", func() {
 			By("Checking that the local db services have been deleted")
 			Eventually(func(g Gomega) {
 				err := k8sClient.Get(ctx,
-					types.NamespacedName{Namespace: ns, Name: utils.GenerateRuntimeObjectName(backstageName, "db-service")},
+					types.NamespacedName{Namespace: ns, Name: model.DbServiceName(backstageName)},
 					&corev1.Service{})
 				g.Expect(err).Should(HaveOccurred())
 				g.Expect(errors.IsNotFound(err)).Should(BeTrue(), fmtNotFound, err)
 				err = k8sClient.Get(ctx,
-					types.NamespacedName{Namespace: ns, Name: utils.GenerateRuntimeObjectName(backstageName, "db-service")},
+					types.NamespacedName{Namespace: ns, Name: model.DbServiceName(backstageName)},
 					&corev1.Service{})
 				g.Expect(err).Should(HaveOccurred())
 				g.Expect(errors.IsNotFound(err)).Should(BeTrue(), fmtNotFound, err)
@@ -496,7 +508,7 @@ var _ = Describe("Backstage controller", func() {
 			By("Checking that the local db secret has been deleted")
 			Eventually(func(g Gomega) {
 				err := k8sClient.Get(ctx,
-					types.NamespacedName{Namespace: ns, Name: utils.GenerateRuntimeObjectName(backstageName, "default-db-secret")},
+					types.NamespacedName{Namespace: ns, Name: model.DbSecretDefaultName(backstageName)},
 					&corev1.Secret{})
 				g.Expect(err).Should(HaveOccurred())
 				g.Expect(errors.IsNotFound(err)).Should(BeTrue(), fmtNotFound, err)
@@ -564,7 +576,7 @@ spec:
 				By("Checking if Deployment was successfully created in the reconciliation")
 				Eventually(func() error {
 					found := &appsv1.Deployment{}
-					return k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: utils.GenerateRuntimeObjectName(backstageName, "deployment")}, found)
+					return k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, found)
 				}, time.Minute, time.Second).Should(Succeed())
 
 				By("Checking the latest Status added to the Backstage instance")
@@ -629,7 +641,7 @@ spec:
 				Eventually(func(g Gomega) {
 					found := &appsv1.StatefulSet{}
 					//name := fmt.Sprintf("backstage-psql-%s", backstage.Name)
-					name := utils.GenerateRuntimeObjectName(backstage.Name, "db-statefulset")
+					name := model.DbStatefulSetName(backstageName)
 					err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, found)
 					g.Expect(err).ShouldNot(HaveOccurred())
 					g.Expect(found.Spec.Replicas).Should(HaveValue(BeEquivalentTo(3)))
@@ -765,7 +777,7 @@ plugins: []
 							found := &appsv1.Deployment{}
 							Eventually(func(g Gomega) {
 								// TODO to get name from default
-								err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: utils.GenerateRuntimeObjectName(backstageName, "deployment")}, found)
+								err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, found)
 								g.Expect(err).To(Not(HaveOccurred()))
 							}, time.Minute, time.Second).Should(Succeed())
 
@@ -1078,7 +1090,7 @@ plugins: []
 					found := &appsv1.Deployment{}
 					Eventually(func(g Gomega) {
 						// TODO to get name from default
-						err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: utils.GenerateRuntimeObjectName(backstageName, "deployment")}, found)
+						err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, found)
 						g.Expect(err).To(Not(HaveOccurred()))
 					}, time.Minute, time.Second).Should(Succeed())
 
@@ -1277,7 +1289,7 @@ plugins: []
 				found := &appsv1.Deployment{}
 				Eventually(func(g Gomega) {
 					// TODO to get name from default
-					err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: utils.GenerateRuntimeObjectName(backstageName, "deployment")}, found)
+					err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, found)
 					g.Expect(err).To(Not(HaveOccurred()))
 				}, time.Minute, time.Second).Should(Succeed())
 
@@ -1407,7 +1419,7 @@ plugins: []
 			found := &appsv1.Deployment{}
 			Eventually(func(g Gomega) {
 				// TODO to get name from default
-				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: utils.GenerateRuntimeObjectName(backstageName, "deployment")}, found)
+				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, found)
 				g.Expect(err).To(Not(HaveOccurred()))
 			}, time.Minute, time.Second).Should(Succeed())
 
@@ -1458,7 +1470,7 @@ plugins: []
 			found := &appsv1.Deployment{}
 			Eventually(func(g Gomega) {
 				// TODO to get name from default
-				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: utils.GenerateRuntimeObjectName(backstageName, "deployment")}, found)
+				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, found)
 				g.Expect(err).To(Not(HaveOccurred()))
 			}, time.Minute, time.Second).Should(Succeed())
 
@@ -1507,7 +1519,7 @@ plugins: []
 			found := &appsv1.Deployment{}
 			Eventually(func(g Gomega) {
 				// TODO to get name from default
-				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: utils.GenerateRuntimeObjectName(backstageName, "deployment")}, found)
+				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, found)
 				g.Expect(err).To(Not(HaveOccurred()))
 			}, time.Minute, time.Second).Should(Succeed())
 
@@ -1570,7 +1582,7 @@ plugins: []
 				By("Checking if Deployment was successfully created in the reconciliation")
 				Eventually(func() error {
 					// TODO to get name from default
-					return k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: utils.GenerateRuntimeObjectName(backstageName, "deployment")}, &appsv1.Deployment{})
+					return k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, &appsv1.Deployment{})
 				}, time.Minute, time.Second).Should(Succeed())
 
 				By("Checking the latest Status added to the Backstage instance")

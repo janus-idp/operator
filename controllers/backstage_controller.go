@@ -18,17 +18,15 @@ import (
 	"context"
 	"fmt"
 
+	openshift "github.com/openshift/api/route/v1"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"janus-idp.io/backstage-operator/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 
 	appsv1 "k8s.io/api/apps/v1"
-
-	"github.com/go-logr/logr"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"janus-idp.io/backstage-operator/pkg/model"
 
@@ -40,10 +38,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-)
-
-const (
-	BackstageAppLabel = "janus-idp.io/app"
 )
 
 // BackstageReconciler reconciles a Backstage object
@@ -72,11 +66,6 @@ type BackstageReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the Backstage object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.4/pkg/reconcile
 func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -124,19 +113,10 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// This creates array of model objects to be reconsiled
-	bsModel, err := model.InitObjects(ctx, backstage, spec, r.OwnsRuntime, r.IsOpenShift)
+	bsModel, err := model.InitObjects(ctx, backstage, spec, r.OwnsRuntime, r.IsOpenShift, r.Scheme)
 	if err != nil {
 		setStatusCondition(&backstage, bs.BackstageConditionTypeDeployed, metav1.ConditionFalse, bs.BackstageConditionReasonFailed, fmt.Sprintf("failed to initialize backstage model %s", err))
 		return ctrl.Result{}, fmt.Errorf("failed to initialize backstage model %w", err)
-	}
-
-	//TODO, do it on model? (need to send Scheme to InitObjects just for this)
-	if r.OwnsRuntime {
-		for _, obj := range bsModel.Objects {
-			if err = controllerutil.SetControllerReference(&backstage, obj.Object(), r.Scheme); err != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to set owner reference: %s", err)
-			}
-		}
 	}
 
 	err = r.applyObjects(ctx, bsModel.Objects)
@@ -192,26 +172,37 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 }
 
 func (r *BackstageReconciler) cleanObjects(ctx context.Context, backstage bs.Backstage) error {
+
+	const failedToCleanup = "failed to cleanup runtime"
 	// check if local database disabled, respective objects have to deleted/unowned
 	if !backstage.Spec.IsLocalDbEnabled() {
-		ss := &appsv1.StatefulSet{}
-		if err := r.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstage.Name, "db-statefulset"), Namespace: backstage.Namespace}, ss); err == nil {
-			if err := r.Delete(ctx, ss); err != nil {
-				return fmt.Errorf("failed to delete %s: %w", ss.Name, err)
-			}
+		if err := r.tryToDelete(ctx, &appsv1.StatefulSet{}, model.DbStatefulSetName(backstage.Name), backstage.Namespace); err != nil {
+			return fmt.Errorf("%s %w", failedToCleanup, err)
 		}
-		dbService := &corev1.Service{}
-		if err := r.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstage.Name, "db-service"), Namespace: backstage.Namespace}, dbService); err == nil {
-			if err := r.Delete(ctx, dbService); err != nil {
-				return fmt.Errorf("failed to delete %s: %w", dbService.Name, err)
-			}
+		if err := r.tryToDelete(ctx, &corev1.Service{}, model.DbServiceName(backstage.Name), backstage.Namespace); err != nil {
+			return fmt.Errorf("%s %w", failedToCleanup, err)
 		}
-		dbSecret := &corev1.Secret{}
-		if err := r.Get(ctx, types.NamespacedName{Name: utils.GenerateRuntimeObjectName(backstage.Name, "db-secret"), Namespace: backstage.Namespace}, dbSecret); err == nil {
-			if err := r.Delete(ctx, dbSecret); err != nil {
-				return fmt.Errorf("failed to delete %s: %w", dbSecret.Name, err)
-			}
+		if err := r.tryToDelete(ctx, &corev1.Secret{}, model.DbSecretDefaultName(backstage.Name), backstage.Namespace); err != nil {
+			return fmt.Errorf("%s %w", failedToCleanup, err)
 		}
+	}
+
+	//// check if route disabled, respective objects have to deleted/unowned
+	if r.IsOpenShift && !backstage.Spec.IsRouteEnabled() {
+		if err := r.tryToDelete(ctx, &openshift.Route{}, model.DbStatefulSetName(backstage.Name), backstage.Namespace); err != nil {
+			return fmt.Errorf("%s %w", failedToCleanup, err)
+		}
+	}
+
+	return nil
+}
+
+// tryToDelete tries to delete the object by name and namespace, does not throw error if object not found
+func (r *BackstageReconciler) tryToDelete(ctx context.Context, obj client.Object, name string, ns string) error {
+	obj.SetName(name)
+	obj.SetNamespace(ns)
+	if err := r.Delete(ctx, obj); err != nil && !errors.IsNotFound(err) {
+		return fmt.Errorf("failed to delete %s: %w", name, err)
 	}
 	return nil
 }
@@ -227,7 +218,7 @@ func setStatusCondition(backstage *bs.Backstage, condType bs.BackstageConditionT
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *BackstageReconciler) SetupWithManager(mgr ctrl.Manager, log logr.Logger) error {
+func (r *BackstageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&bs.Backstage{})

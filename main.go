@@ -108,7 +108,7 @@ func main() {
 		Scheme:      mgr.GetScheme(),
 		OwnsRuntime: ownRuntime,
 		IsOpenShift: isOpenShift,
-	}).SetupWithManager(mgr, setupLog); err != nil {
+	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Backstage")
 		os.Exit(1)
 	}
