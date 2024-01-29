@@ -18,9 +18,9 @@ name: Build and push operator, bundle, and catalog images
 on:
   push:
     branches: 
-    - main
-    - rhdh-1.[0-9]+
-    - 1.[0-9]+.x
+      - main
+      - rhdh-1.[0-9]+
+      - 1.[0-9]+.x
     paths:
       - '**/docker/**'
       - '!**/.rhdh/**' # don't build for .rhdh folder changes
