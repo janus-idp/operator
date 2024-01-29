@@ -78,7 +78,6 @@ func (b *BackstageRoute) patchRoute(specified bsv1alpha1.Route) {
 			Name: specified.TLS.ExternalCertificateSecretName,
 		}
 	}
-	return
 }
 
 func init() {
