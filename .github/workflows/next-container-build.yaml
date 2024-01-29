@@ -21,18 +21,6 @@ on:
       - main
       - rhdh-1.[0-9]+
       - 1.[0-9]+.x
-    paths:
-      - '**/docker/**'
-      - '!**/.rhdh/**' # don't build for .rhdh folder changes
-      - '**/.dockerignore'
-      - '**/*.go'
-      - '!**/*_test.go' # exclude test file changes
-      - '**/go.mod'
-      - '**/go.sum'
-      - '**/Makefile'
-      - '**/workflows/*-container-build.yaml'
-      - '**/bundle/**'
-      - '**/config/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -42,9 +30,24 @@ env:
   REGISTRY: quay.io
 
 jobs:
+  check-changes:
+    # check if the change for this PR necessitates a rebuild of containers
+    runs-on: ubuntu-latest
+    steps:
+      - name: check-changes
+        # check changes in this commit for regex include and exclude matches; pipe to an env var
+        run: |
+          CHANGES="$(git diff --name-only | \
+          grep -E "/docker/|\.dockerignore|workflows/.+-container-build.yaml|Makefile|/bundle/|/config/|go.mod|go.sum|.+\.go" | \
+          grep -v -E ".+_test.go|/.rhdh/")" \
+          >> $GITHUB_ENV
+
   next-build:
     name: Next build
     runs-on: ubuntu-latest
+    needs: check-changes
+    # run this stage only if there are changes that match the includes and not the excludes
+    if: ${{ env.CHANGES != '' }}
     permissions:
       contents: read
       packages: write
