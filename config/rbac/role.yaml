@@ -9,8 +9,6 @@ rules:
   - ""
   resources:
   - configmaps
-  - persistentvolumeclaims
-  - persistentvolumes
   - services
   verbs:
   - create
@@ -18,6 +16,15 @@ rules:
   - get
   - list
   - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  - persistentvolumes
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - ""
