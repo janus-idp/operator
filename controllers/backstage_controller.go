@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/types"
+
 	openshift "github.com/openshift/api/route/v1"
 
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -29,8 +31,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 
 	"janus-idp.io/backstage-operator/pkg/model"
-
-	"k8s.io/apimachinery/pkg/types"
 
 	bs "janus-idp.io/backstage-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -59,10 +59,10 @@ type BackstageReconciler struct {
 //+kubebuilder:rbac:groups=janus-idp.io,resources=backstages,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=janus-idp.io,resources=backstages/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=janus-idp.io,resources=backstages/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",resources=configmaps;secrets;persistentvolumes;persistentvolumeclaims;services,verbs=get;watch;create;update;list;delete
-//+kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;watch;create;update;list;delete
-//+kubebuilder:rbac:groups="apps",resources=statefulsets,verbs=get;watch;create;update;list;delete
-//+kubebuilder:rbac:groups="route.openshift.io",resources=routes;routes/custom-host,verbs=get;watch;create;update;list;delete
+//+kubebuilder:rbac:groups="",resources=configmaps;secrets;persistentvolumes;persistentvolumeclaims;services,verbs=get;watch;create;update;list;delete;patch
+//+kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;watch;create;update;list;delete;patch
+//+kubebuilder:rbac:groups="apps",resources=statefulsets,verbs=get;watch;create;update;list;delete;patch
+//+kubebuilder:rbac:groups="route.openshift.io",resources=routes;routes/custom-host,verbs=get;watch;create;update;list;delete;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -141,8 +141,8 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 
 	for _, obj := range objects {
 
-		old := obj.EmptyObject()
-		if err := r.Get(ctx, types.NamespacedName{Name: obj.Object().GetName(), Namespace: obj.Object().GetNamespace()}, old); err != nil {
+		baseObject := obj.EmptyObject()
+		if err := r.Get(ctx, types.NamespacedName{Name: obj.Object().GetName(), Namespace: obj.Object().GetNamespace()}, baseObject); err != nil {
 			if !errors.IsNotFound(err) {
 				return fmt.Errorf("failed to get object: %w", err)
 			}
@@ -155,21 +155,14 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 			continue
 		}
 
-		if _, ok := obj.(*model.BackstageRoute); ok {
-			lg.V(1).Info("Updating object ", "", old.GetResourceVersion(), "anno", old.GetAnnotations())
-		}
-		if err := r.Update(ctx, obj.Object()); err != nil {
-			return fmt.Errorf("failed to update object %s: %w", obj.Object().GetResourceVersion(), err)
+		// needed for openshift.Route only
+		obj.Object().SetResourceVersion(baseObject.GetResourceVersion())
+
+		if err := r.Patch(ctx, obj.Object(), client.MergeFrom(baseObject)); err != nil {
+			return fmt.Errorf("failed to patch object %s: %w", obj.Object().GetResourceVersion(), err)
 		}
 
-		// [GA] do not remove it
-		//if obj, ok := obj.(*model.BackstageDeployment); ok {
-		//	depl := obj.Object().(*appsv1.Deployment)
-		//	str := fmt.Sprintf("%v", depl.Spec)
-		//	lg.V(1).Info("Update object ", "obj", str)
-		//	//obj.Object().GetName(), "resourceVersion", obj.Object().GetResourceVersion(), "generation", obj.Object().GetGeneration())
-		//
-		//}
+		lg.V(1).Info("Patch object ", "", obj.Object().GetName())
 
 	}
 	return nil

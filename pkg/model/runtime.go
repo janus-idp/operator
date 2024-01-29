@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"reflect"
 
+	openshift "github.com/openshift/api/route/v1"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -118,8 +120,13 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 	}
 
 	// Route...
-	if isOpenshift && backstageSpec.IsRouteEnabled() {
-		newBackstageRoute(*backstageSpec.Application.Route).addToModel(model, backstageMeta, ownsRuntime)
+	// TODO: nicer proccessing
+	if isOpenshift && backstageSpec.IsRouteEnabled() && !backstageSpec.IsRouteEmpty() {
+		if model.route == nil {
+			br := BackstageRoute{route: &openshift.Route{}}
+			br.addToModel(model, backstageMeta, ownsRuntime)
+		}
+		model.route.patchRoute(*backstageSpec.Application.Route)
 	}
 
 	// Local DB Secret...

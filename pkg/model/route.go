@@ -35,10 +35,9 @@ func RouteName(backstageName string) string {
 	return utils.GenerateRuntimeObjectName(backstageName, "route")
 }
 
-func newBackstageRoute(specified bsv1alpha1.Route) *BackstageRoute {
+func (b *BackstageRoute) patchRoute(specified bsv1alpha1.Route) {
 
-	osroute := openshift.Route{}
-	bsroute := &BackstageRoute{route: &osroute}
+	osroute := b.route
 
 	if len(specified.Host) > 0 {
 		osroute.Spec.Host = specified.Host
@@ -47,7 +46,7 @@ func newBackstageRoute(specified bsv1alpha1.Route) *BackstageRoute {
 		osroute.Spec.Subdomain = specified.Subdomain
 	}
 	if specified.TLS == nil {
-		return bsroute
+		return
 	}
 	if osroute.Spec.TLS == nil {
 		osroute.Spec.TLS = &openshift.TLSConfig{
@@ -60,7 +59,7 @@ func newBackstageRoute(specified bsv1alpha1.Route) *BackstageRoute {
 				Name: specified.TLS.ExternalCertificateSecretName,
 			},
 		}
-		return bsroute
+		return
 	}
 	if len(specified.TLS.Certificate) > 0 {
 		osroute.Spec.TLS.Certificate = specified.TLS.Certificate
@@ -79,7 +78,7 @@ func newBackstageRoute(specified bsv1alpha1.Route) *BackstageRoute {
 			Name: specified.TLS.ExternalCertificateSecretName,
 		}
 	}
-	return bsroute
+	return
 }
 
 func init() {
@@ -101,7 +100,7 @@ func (b *BackstageRoute) addToModel(model *RuntimeModel, backstageMeta bsv1alpha
 	model.route = b
 	model.setObject(b)
 
-	b.route.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "route"))
+	b.route.SetName(RouteName(backstageMeta.Name))
 }
 
 // implementation of BackstageObject interface

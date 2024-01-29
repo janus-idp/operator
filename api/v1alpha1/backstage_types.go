@@ -280,6 +280,14 @@ func (s BackstageSpec) IsRouteEnabled() bool {
 	return pointer.BoolDeref(s.Application.Route.Enabled, true)
 }
 
+func (s BackstageSpec) IsRouteEmpty() bool {
+	route := s.Application.Route
+	if route.Host != "" && route.Subdomain != "" && route.TLS != nil && *route.TLS != (TLS{}) {
+		return true
+	}
+	return false
+}
+
 func (s BackstageSpec) IsAuthSecretSpecified() bool {
 	return s.Database != nil && s.Database.AuthSecretName != ""
 }
