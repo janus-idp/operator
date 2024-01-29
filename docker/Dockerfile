@@ -25,7 +25,7 @@ RUN dnf -q -y update
 ENV EXTERNAL_SOURCE=.
 ENV CONTAINER_SOURCE=/opt/app-root/src
 WORKDIR /workspace
-#/ Downstream comment
+#/ Downstream comment 
 
 # Downstream sources
 # Downstream uncomment
