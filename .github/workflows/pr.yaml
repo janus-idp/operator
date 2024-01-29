@@ -37,6 +37,8 @@ jobs:
         # check changes in this commit for regex include and exclude matches; pipe to an env var
         # note regexes are different for the PR check than for *-container-build.yaml
         run: |
+          # don't fail if nothing returned by grep
+          set +e 
           CHANGES="$(git diff --name-only | \
           grep -E "workflows/pr.yaml|Makefile|bundle/|config/|go.mod|go.sum|.+\.go" | \
           grep -v -E "/.rhdh/")";
