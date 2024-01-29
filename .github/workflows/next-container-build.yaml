@@ -21,6 +21,18 @@ on:
     - main
     - rhdh-1.[0-9]+
     - 1.[0-9]+.x
+    paths:
+      - '**/docker/**'
+      - '!**/.rhdh/**' # don't build for .rhdh folder changes
+      - '**/.dockerignore'
+      - '**/*.go'
+      - '!**/*_test.go' # exclude test file changes
+      - '**/go.mod'
+      - '**/go.sum'
+      - '**/Makefile'
+      - '**/workflows/*-container-build.yaml'
+      - '**/bundle/**'
+      - '**/config/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

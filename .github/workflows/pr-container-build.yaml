@@ -23,9 +23,21 @@ on:
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
     branches: 
-    - main
-    - rhdh-1.[0-9]+
-    - 1.[0-9]+.x
+      - main
+      - rhdh-1.[0-9]+
+      - 1.[0-9]+.x
+    paths:
+      - '**/docker/**'
+      - '!**/.rhdh/**' # don't build for .rhdh folder changes
+      - '**/.dockerignore'
+      - '**/*.go'
+      - '!**/*_test.go' # exclude test file changes
+      - '**/go.mod'
+      - '**/go.sum'
+      - '**/Makefile'
+      - '**/workflows/*-container-build.yaml'
+      - '**/bundle/**'
+      - '**/config/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number || github.event.pull_request.head.ref }}
