@@ -15,37 +15,39 @@
 package controller
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
-	"k8s.io/apimachinery/pkg/types"
-
-	openshift "github.com/openshift/api/route/v1"
-
-	"k8s.io/apimachinery/pkg/api/meta"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	corev1 "k8s.io/api/core/v1"
-
+	"github.com/go-logr/logr"
+	bs "janus-idp.io/backstage-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
-
-	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
-
-	bs "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
-
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var recNumber = 0
+const (
+	BackstageAppLabel = "janus-idp.io/app"
+)
 
 // BackstageReconciler reconciles a Backstage object
 type BackstageReconciler struct {
 	client.Client
+
+	Clientset *kubernetes.Clientset
+
 	Scheme *runtime.Scheme
 	// If true, Backstage Controller always sync the state of runtime objects created
 	// otherwise, runtime objects can be re-configured independently
@@ -57,25 +59,35 @@ type BackstageReconciler struct {
 	Namespace string
 
 	IsOpenShift bool
+
+	PsqlImage string
+
+	BackstageImage string
 }
 
 //+kubebuilder:rbac:groups=janus-idp.io,resources=backstages,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=janus-idp.io,resources=backstages/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=janus-idp.io,resources=backstages/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",resources=configmaps;secrets;persistentvolumes;persistentvolumeclaims;services,verbs=get;watch;create;update;list;delete;patch
-//+kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;watch;create;update;list;delete;patch
-//+kubebuilder:rbac:groups="apps",resources=statefulsets,verbs=get;watch;create;update;list;delete;patch
-//+kubebuilder:rbac:groups="route.openshift.io",resources=routes;routes/custom-host,verbs=get;watch;create;update;list;delete;patch
+//+kubebuilder:rbac:groups="",resources=configmaps;services,verbs=get;list;watch;create;update;delete
+//+kubebuilder:rbac:groups="",resources=persistentvolumes;persistentvolumeclaims,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=create;delete
+//+kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;list;watch;create;update;delete
+//+kubebuilder:rbac:groups="apps",resources=statefulsets,verbs=get;list;watch;create;update;delete
+//+kubebuilder:rbac:groups="route.openshift.io",resources=routes;routes/custom-host,verbs=get;list;watch;create;update;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
+// TODO(user): Modify the Reconcile function to compare the state specified by
+// the Backstage object against the actual cluster state, and then
+// perform operations to make the cluster state reflect the state specified by
+// the user.
+//
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.4/pkg/reconcile
 func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	lg := log.FromContext(ctx)
 
-	recNumber = recNumber + 1
-	lg.V(1).Info(fmt.Sprintf("starting reconciliation (namespace: %q), number %d", req.NamespacedName, recNumber))
+	lg.V(1).Info(fmt.Sprintf("starting reconciliation (namespace: %q)", req.NamespacedName))
 
 	// Ignore requests for other namespaces, if specified.
 	// This is mostly useful for our tests, to overcome a limitation of EnvTest about namespace deletion.
@@ -97,7 +109,7 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	defer func(bs *bs.Backstage) {
 		if err := r.Client.Status().Update(ctx, bs); err != nil {
 			if errors.IsConflict(err) {
-				lg.V(1).Info("Backstage object modified, retry syncing status", "Backstage Object", bs)
+				lg.V(1).Info("Backstage object modified, retry reconciliation", "Backstage Object", bs)
 				return
 			}
 			lg.Error(err, "Error updating the Backstage resource status", "Backstage Object", bs)
@@ -105,181 +117,218 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}(&backstage)
 
 	if len(backstage.Status.Conditions) == 0 {
-		setStatusCondition(&backstage, bs.BackstageConditionTypeDeployed, metav1.ConditionFalse, bs.BackstageConditionReasonInProgress, "Deployment process started")
+		setStatusCondition(&backstage, bs.ConditionDeployed, v1.ConditionFalse, bs.DeployInProgress, "Deployment process started")
 	}
 
-	// 1. Preliminary read and prepare external config objects from the specs (configMaps, Secrets)
-	// 2. Make some validation to fail fast
-	externalConfig, err := r.preprocessSpec(ctx, backstage)
+	if pointer.BoolDeref(backstage.Spec.Database.EnableLocalDb, true) {
+
+		/* We use default strogeclass currently, and no PV is needed in that case.
+		If we decide later on to support user provided storageclass we can enable pv creation.
+		if err := r.applyPV(ctx, backstage, req.Namespace); err != nil {
+			return ctrl.Result{}, err
+		}
+		*/
+
+		err := r.reconcileLocalDbStatefulSet(ctx, &backstage, req.Namespace)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		err = r.reconcileLocalDbServices(ctx, &backstage, req.Namespace)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	} else { // Clean up the deployed local db resources if any
+		if err := r.cleanupLocalDbResources(ctx, backstage); err != nil {
+			setStatusCondition(&backstage, bs.ConditionDeployed, v1.ConditionFalse, bs.DeployFailed, fmt.Sprintf("failed to delete Database Services:%s", err.Error()))
+			return ctrl.Result{}, fmt.Errorf("failed to delete Database Service: %w", err)
+		}
+	}
+
+	err := r.reconcileBackstageDeployment(ctx, &backstage, req.Namespace)
 	if err != nil {
-		return ctrl.Result{}, errorAndStatus(&backstage, "failed to preprocess backstage spec", err)
-	}
-	//rawConfig, err := r.rawConfigMap(ctx, backstage)
-	//if err != nil {
-	//	return ctrl.Result{}, errorAndStatus(&backstage, "failed to preprocess backstage raw spec", err)
-	//}
-	//
-	//appConfigs, err := r.appConfigMaps(ctx, backstage)
-	//if err != nil {
-	//	return ctrl.Result{}, errorAndStatus(&backstage, "failed to preprocess backstage spec app-configs", err)
-	//}
-
-	// This creates array of model objects to be reconsiled
-	bsModel, err := model.InitObjects(ctx, backstage, externalConfig, r.OwnsRuntime, r.IsOpenShift, r.Scheme)
-	if err != nil {
-		return ctrl.Result{}, errorAndStatus(&backstage, "failed to initialize backstage model", err)
+		return ctrl.Result{}, err
 	}
 
-	err = r.applyObjects(ctx, bsModel.RuntimeObjects)
-	if err != nil {
-		return ctrl.Result{}, errorAndStatus(&backstage, "failed to apply backstage objects", err)
+	if err := r.reconcileBackstageService(ctx, &backstage, req.Namespace); err != nil {
+		return ctrl.Result{}, err
 	}
 
-	if err := r.cleanObjects(ctx, backstage); err != nil {
-		return ctrl.Result{}, errorAndStatus(&backstage, "failed to clean backstage objects ", err)
+	if r.IsOpenShift {
+		if err := r.reconcileBackstageRoute(ctx, &backstage, req.Namespace); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
-	setStatusCondition(&backstage, bs.BackstageConditionTypeDeployed, metav1.ConditionTrue, bs.BackstageConditionReasonDeployed, "")
-
+	setStatusCondition(&backstage, bs.ConditionDeployed, v1.ConditionTrue, bs.DeployOK, "")
 	return ctrl.Result{}, nil
 }
 
-func errorAndStatus(backstage *bs.Backstage, msg string, err error) error {
-	setStatusCondition(backstage, bs.BackstageConditionTypeDeployed, metav1.ConditionFalse, bs.BackstageConditionReasonFailed, fmt.Sprintf("%s %s", msg, err))
-	return fmt.Errorf("%s %w", msg, err)
-}
-
-func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.RuntimeObject) error {
+func (r *BackstageReconciler) readConfigMapOrDefault(ctx context.Context, name string, key string, ns string, object v1.Object) error {
 
 	lg := log.FromContext(ctx)
 
-	for _, obj := range objects {
-
-		baseObject := obj.EmptyObject()
-		baseObject.SetName(obj.Object().GetName())
-		baseObject.SetNamespace(obj.Object().GetNamespace())
-
-		// do not read Secrets
-		if _, ok := obj.Object().(*corev1.Secret); ok {
-			// try to create
-			if err := r.Create(ctx, obj.Object()); err != nil {
-				if !errors.IsAlreadyExists(err) {
-					return fmt.Errorf("failed to create secret: %w", err)
-				}
-				//if DBSecret - nothing to do, it is not for update
-				if _, ok := obj.(*model.DbSecret); ok {
-					continue
-				}
-			} else {
-				lg.V(1).Info("Create secret ", "obj", obj.Object().GetName())
-				continue
-			}
-
-		} else {
-			if err := r.Get(ctx, types.NamespacedName{Name: obj.Object().GetName(), Namespace: obj.Object().GetNamespace()}, baseObject); err != nil {
-				if !errors.IsNotFound(err) {
-					return fmt.Errorf("failed to get object: %w", err)
-				}
-
-				if err := r.Create(ctx, obj.Object()); err != nil {
-					return fmt.Errorf("failed to create object %w", err)
-				}
-
-				lg.V(1).Info("Create object ", "obj", obj.Object().GetName())
-				continue
-			}
+	if name == "" {
+		err := readYamlFile(defFile(key), object)
+		if err != nil {
+			return fmt.Errorf("failed to read YAML file: %w", err)
 		}
+		object.SetNamespace(ns)
+		return nil
+	}
 
-		//baseObject := obj.EmptyObject()
-		//if err := r.Get(ctx, types.NamespacedName{Name: obj.Object().GetName(), Namespace: obj.Object().GetNamespace()}, baseObject); err != nil {
-		//	if !errors.IsNotFound(err) {
-		//		return fmt.Errorf("failed to get object: %w", err)
-		//	}
-		//
-		//	if err := r.Create(ctx, obj.Object()); err != nil {
-		//		return fmt.Errorf("failed to create object %w", err)
-		//	}
-		//
-		//	lg.V(1).Info("Create object ", "obj", obj.Object().GetName())
-		//	continue
-		//}
+	cm := corev1.ConfigMap{}
+	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, &cm); err != nil {
+		return err
+	}
 
-		// FIXME
-		if _, ok := obj.Object().(*appsv1.Deployment); ok {
-			obj.Object().SetAnnotations(baseObject.GetAnnotations())
+	val, ok := cm.Data[key]
+	if !ok {
+		// key not found, default
+		lg.V(1).Info("custom configuration configMap and data exists, trying to apply it", "configMap", cm.Name, "key", key)
+		err := readYamlFile(defFile(key), object)
+		if err != nil {
+			return fmt.Errorf("failed to read YAML file: %w", err)
 		}
-
-		// needed for openshift.Route only, it yells otherwise
-		obj.Object().SetResourceVersion(baseObject.GetResourceVersion())
-
-		if err := r.Patch(ctx, obj.Object(), client.MergeFrom(baseObject)); err != nil {
-			return fmt.Errorf("failed to patch object %s: %w", obj.Object().GetResourceVersion(), err)
+	} else {
+		lg.V(1).Info("custom configuration configMap exists but no such key, applying default config", "configMap", cm.Name, "key", key)
+		err := readYaml([]byte(val), object)
+		if err != nil {
+			return fmt.Errorf("failed to read YAML: %w", err)
 		}
+	}
+	object.SetNamespace(ns)
+	return nil
+}
 
-		lg.V(1).Info("Patch object ", "", obj.Object().GetName())
-
+func readYaml(manifest []byte, object interface{}) error {
+	dec := yaml.NewYAMLOrJSONDecoder(bytes.NewReader(manifest), 1000)
+	if err := dec.Decode(object); err != nil {
+		return fmt.Errorf("failed to decode YAML: %w", err)
 	}
 	return nil
 }
 
-func (r *BackstageReconciler) cleanObjects(ctx context.Context, backstage bs.Backstage) error {
+func readYamlFile(path string, object interface{}) error {
 
-	const failedToCleanup = "failed to cleanup runtime"
-	// check if local database disabled, respective objects have to deleted/unowned
-	if !backstage.Spec.IsLocalDbEnabled() {
-		if err := r.tryToDelete(ctx, &appsv1.StatefulSet{}, model.DbStatefulSetName(backstage.Name), backstage.Namespace); err != nil {
-			return fmt.Errorf("%s %w", failedToCleanup, err)
-		}
-		if err := r.tryToDelete(ctx, &corev1.Service{}, model.DbServiceName(backstage.Name), backstage.Namespace); err != nil {
-			return fmt.Errorf("%s %w", failedToCleanup, err)
-		}
-		if err := r.tryToDelete(ctx, &corev1.Secret{}, model.DbSecretDefaultName(backstage.Name), backstage.Namespace); err != nil {
-			return fmt.Errorf("%s %w", failedToCleanup, err)
-		}
+	b, err := os.ReadFile(path) // #nosec G304, path is constructed internally
+	if err != nil {
+		return fmt.Errorf("failed to read YAML file: %w", err)
 	}
-
-	//// check if route disabled, respective objects have to deleted/unowned
-	if r.IsOpenShift && !backstage.Spec.IsRouteEnabled() {
-		if err := r.tryToDelete(ctx, &openshift.Route{}, model.RouteName(backstage.Name), backstage.Namespace); err != nil {
-			return fmt.Errorf("%s %w", failedToCleanup, err)
-		}
-	}
-
-	return nil
+	return readYaml(b, object)
 }
 
-// tryToDelete tries to delete the object by name and namespace, does not throw error if object not found
-func (r *BackstageReconciler) tryToDelete(ctx context.Context, obj client.Object, name string, ns string) error {
-	obj.SetName(name)
-	obj.SetNamespace(ns)
-	if err := r.Delete(ctx, obj); err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("failed to delete %s: %w", name, err)
-	}
-	return nil
+func defFile(key string) string {
+	return filepath.Join(os.Getenv("LOCALBIN"), "default-config", key)
 }
 
-func setStatusCondition(backstage *bs.Backstage, condType bs.BackstageConditionType, status metav1.ConditionStatus, reason bs.BackstageConditionReason, msg string) {
-	meta.SetStatusCondition(&backstage.Status.Conditions, metav1.Condition{
-		Type:               string(condType),
+/* TODO
+sets the RuntimeRunning condition
+func (r *BackstageReconciler) setRunningStatus(ctx context.Context, backstage *bs.Backstage, ns string) {
+
+	meta.SetStatusCondition(&backstage.Status.Conditions, v1.Condition{
+		Type:               bs.RuntimeConditionRunning,
+		Status:             "Unknown",
+		LastTransitionTime: v1.Time{},
+		Reason:             "Unknown",
+		Message:            "Runtime in unknown status",
+	})
+}
+*/
+
+// sets status condition
+func setStatusCondition(backstage *bs.Backstage, condType string, status v1.ConditionStatus, reason, msg string) {
+	meta.SetStatusCondition(&backstage.Status.Conditions, v1.Condition{
+		Type:               condType,
 		Status:             status,
-		LastTransitionTime: metav1.Time{},
-		Reason:             string(reason),
+		LastTransitionTime: v1.Time{},
+		Reason:             reason,
 		Message:            msg,
 	})
 }
 
+// cleanupResource deletes the resource that was previously deployed by the operator from the cluster
+func (r *BackstageReconciler) cleanupResource(ctx context.Context, obj client.Object, backstage bs.Backstage) (bool, error) {
+	err := r.Get(ctx, types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}, obj)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil // Nothing to delete
+		}
+		return false, err // For retry
+	}
+	ownedByCR := false
+	for _, ownerRef := range obj.GetOwnerReferences() {
+		if ownerRef.APIVersion == bs.GroupVersion.String() && ownerRef.Kind == "Backstage" && ownerRef.Name == backstage.Name {
+			ownedByCR = true
+			break
+		}
+	}
+	if !ownedByCR { // The object is not owned by the backstage CR
+		return false, nil
+	}
+	err = r.Delete(ctx, obj)
+	if err == nil {
+		return true, nil // Deleted
+	}
+	return false, err
+}
+
+// sets backstage-{Id} for labels and selectors
+func setBackstageAppLabel(labels *map[string]string, backstage bs.Backstage) {
+	setLabel(labels, getDefaultObjName(backstage))
+}
+
+// sets backstage-psql-{Id} for labels and selectors
+func setLabel(labels *map[string]string, label string) {
+	if *labels == nil {
+		*labels = map[string]string{}
+	}
+	(*labels)[BackstageAppLabel] = label
+}
+
+// sets labels on Backstage's instance resources
+func (r *BackstageReconciler) labels(meta *v1.ObjectMeta, backstage bs.Backstage) {
+	if meta.Labels == nil {
+		meta.Labels = map[string]string{}
+	}
+	meta.Labels["app.kubernetes.io/name"] = "backstage"
+	meta.Labels["app.kubernetes.io/instance"] = backstage.Name
+	//meta.Labels[BackstageAppLabel] = getDefaultObjName(backstage)
+}
+
 // SetupWithManager sets up the controller with the Manager.
-func (r *BackstageReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *BackstageReconciler) SetupWithManager(mgr ctrl.Manager, log logr.Logger) error {
+
+	clientset, err := kubernetes.NewForConfig(mgr.GetConfig())
+	if err != nil {
+		log.Error(err, "unable to create clientset")
+		return err
+	}
+	r.Clientset = clientset
+
+	if len(r.PsqlImage) == 0 {
+		r.PsqlImage = "quay.io/fedora/postgresql-15:latest"
+		log.Info("Enviroment variable is not set, default is used", bs.EnvPostGresImage, r.PsqlImage)
+	}
+
+	if len(r.BackstageImage) == 0 {
+		r.BackstageImage = "quay.io/janus-idp/backstage-showcase:next"
+		log.Info("Enviroment variable is not set, default is used", bs.EnvBackstageImage, r.BackstageImage)
+	}
 
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&bs.Backstage{})
 
-	// [GA] do not remove it
-	//if r.OwnsRuntime {
-	//	builder.Owns(&appsv1.Deployment{}).
-	//		Owns(&corev1.Service{}).
-	//		Owns(&appsv1.StatefulSet{})
-	//}
+	if r.OwnsRuntime {
+		builder.Owns(&appsv1.Deployment{}).
+			Owns(&corev1.Service{}).
+			Owns(&corev1.PersistentVolume{}).
+			Owns(&corev1.PersistentVolumeClaim{})
+	}
 
 	return builder.Complete(r)
+}
+
+func retryReconciliation(err error) error {
+	return fmt.Errorf("reconciliation retry needed: %v", err)
 }
