@@ -27,7 +27,7 @@ import (
 type AppConfigFactory struct{}
 
 // factory method to create App Config object
-func (f AppConfigFactory) newBackstageObject() BackstageObject {
+func (f AppConfigFactory) newBackstageObject() RuntimeObject {
 	return &AppConfig{ConfigMap: &corev1.ConfigMap{}, MountPath: defaultDir}
 }
 
@@ -43,25 +43,25 @@ func init() {
 	registerConfig("app-config.yaml", AppConfigFactory{}, Optional)
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (b *AppConfig) Object() client.Object {
 	return b.ConfigMap
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (b *AppConfig) EmptyObject() client.Object {
 	return &corev1.ConfigMap{}
 }
 
-// implementation of BackstageObject interface
-func (b *AppConfig) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
-	model.setObject(b)
+// implementation of RuntimeObject interface
+func (b *AppConfig) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
+	model.setRuntimeObject(b)
 	//setMetaInfo(b, backstageMeta, ownsRuntime)
 	b.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-appconfig"))
 }
 
-// implementation of BackstageObject interface
-func (b *AppConfig) validate(model *RuntimeModel) error {
+// implementation of RuntimeObject interface
+func (b *AppConfig) validate(model *BackstageModel) error {
 	return nil
 }
 

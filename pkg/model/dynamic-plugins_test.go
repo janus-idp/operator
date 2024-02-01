@@ -107,7 +107,7 @@ func TestSpecifiedDynamicPlugins(t *testing.T) {
 	assert.Equal(t, 3, len(ic.VolumeMounts))
 }
 
-func initContainer(model *RuntimeModel) *corev1.Container {
+func initContainer(model *BackstageModel) *corev1.Container {
 	for _, v := range model.backstageDeployment.deployment.Spec.Template.Spec.InitContainers {
 		if v.Name == dynamicPluginInitContainerName {
 			return &v

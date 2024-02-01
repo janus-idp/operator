@@ -27,7 +27,7 @@ import (
 
 type SecretFilesFactory struct{}
 
-func (f SecretFilesFactory) newBackstageObject() BackstageObject {
+func (f SecretFilesFactory) newBackstageObject() RuntimeObject {
 	return &SecretFiles{Secret: &corev1.Secret{}, MountPath: defaultDir}
 }
 
@@ -41,26 +41,26 @@ func init() {
 	registerConfig("secret-files.yaml", SecretFilesFactory{}, Optional)
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (p *SecretFiles) Object() client.Object {
 	return p.Secret
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (p *SecretFiles) EmptyObject() client.Object {
 	return &corev1.Secret{}
 }
 
-// implementation of BackstageObject interface
-func (p *SecretFiles) addToModel(model *RuntimeModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
-	model.setObject(p)
+// implementation of RuntimeObject interface
+func (p *SecretFiles) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
+	model.setRuntimeObject(p)
 
 	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretfiles"))
 
 }
 
-// implementation of BackstageObject interface
-func (p *SecretFiles) validate(model *RuntimeModel) error {
+// implementation of RuntimeObject interface
+func (p *SecretFiles) validate(model *BackstageModel) error {
 	return nil
 }
 
@@ -81,24 +81,43 @@ func (p *SecretFiles) updateBackstagePod(pod *backstagePod) {
 		VolumeSource: volSource,
 	})
 
-	for file := range p.Secret.Data {
-		if p.Key == "" || (p.Key == file) {
-			pod.appendContainerVolumeMount(corev1.VolumeMount{
-				Name:      volName,
-				MountPath: filepath.Join(p.MountPath, file),
-				SubPath:   file,
-			})
-		}
-	}
+	//for file := range p.Secret.Data {
+	//	if p.Key == "" || (p.Key == file) {
+	//		pod.appendContainerVolumeMount(corev1.VolumeMount{
+	//			Name:      volName,
+	//			MountPath: filepath.Join(p.MountPath, file),
+	//			SubPath:   file,
+	//		})
+	//	}
+	//}
 
-	for file := range p.Secret.StringData {
-		if p.Key == "" || (p.Key == file) {
-			pod.appendContainerVolumeMount(corev1.VolumeMount{
-				Name:      volName,
-				MountPath: filepath.Join(p.MountPath, file),
-				SubPath:   file,
-			})
-		}
-	}
+	//if p.Key == "" || (p.Key == file) {
+	vm := corev1.VolumeMount{Name: volName, MountPath: filepath.Join(p.MountPath, p.Secret.Name, p.Key), SubPath: p.Key}
+	//if p.Key != "" {
+	//	vm.SubPath = p.Key
+	//	vm.MountPath = filepath.Join(p.MountPath, p.Secret.Name, p.Key)
+	//} else {
+	//	vm.MountPath = filepath.Join(p.MountPath, p.Secret.Name)
+	//}
+	pod.container.VolumeMounts = append(pod.container.VolumeMounts, vm)
+
+	//pod.appendContainerVolumeMount(corev1.VolumeMount{
+	//	Name:      volName,
+	//	MountPath: filepath.Join(p.MountPath, p.Secret.Name),
+	//	//SubPath:   file,
+	//})
+	//
+
+	//}
+
+	//for file := range p.Secret.StringData {
+	//	if p.Key == "" || (p.Key == file) {
+	//		pod.appendContainerVolumeMount(corev1.VolumeMount{
+	//			Name:      volName,
+	//			MountPath: filepath.Join(p.MountPath, file),
+	//			SubPath:   file,
+	//		})
+	//	}
+	//}
 
 }

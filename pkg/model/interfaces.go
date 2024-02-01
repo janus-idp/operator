@@ -47,11 +47,11 @@ type ObjectConfig struct {
 }
 
 type ObjectFactory interface {
-	newBackstageObject() BackstageObject
+	newBackstageObject() RuntimeObject
 }
 
 // Abstraction for the model Backstage object taking part in deployment
-type BackstageObject interface {
+type RuntimeObject interface {
 	// underlying Kubernetes object
 	Object() client.Object
 	// Inits metadata. Typically used to set/change object name, labels, selectors to ensure integrity
@@ -59,20 +59,20 @@ type BackstageObject interface {
 	// needed only for check if Object exists to call KubeClient.Get() and it should be garbage collected right away
 	EmptyObject() client.Object
 	// (For some types Backstage objects), adds it to the model
-	addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool)
+	addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool)
 	// at this stage all the information is updated
 	// set the final references validates the object at the end of initialization (after 3 phases)
-	validate(model *RuntimeModel) error
+	validate(model *BackstageModel) error
 }
 
-// BackstageObject contributing to Backstage pod. Usually app-config related
+// RuntimeObject contributing to Backstage pod. Usually app-config related
 type BackstagePodContributor interface {
-	BackstageObject
+	RuntimeObject
 	updateBackstagePod(pod *backstagePod)
 }
 
-// BackstageObject contributing to Local DB pod
+// RuntimeObject contributing to Local DB pod
 //type LocalDbPodContributor interface {
-//	BackstageObject
-//	updateLocalDbPod(model *RuntimeModel)
+//	RuntimeObject
+//	updateLocalDbPod(model *BackstageModel)
 //}

@@ -29,7 +29,7 @@ const BackstageImageEnvVar = "RELATED_IMAGE_backstage"
 
 type BackstageDeploymentFactory struct{}
 
-func (f BackstageDeploymentFactory) newBackstageObject() BackstageObject {
+func (f BackstageDeploymentFactory) newBackstageObject() RuntimeObject {
 	return &BackstageDeployment{deployment: &appsv1.Deployment{}}
 }
 
@@ -46,20 +46,20 @@ func DeploymentName(backstageName string) string {
 	return utils.GenerateRuntimeObjectName(backstageName, "deployment")
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (b *BackstageDeployment) Object() client.Object {
 	return b.deployment
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (b *BackstageDeployment) EmptyObject() client.Object {
 	return &appsv1.Deployment{}
 }
 
-// implementation of BackstageObject interface
-func (b *BackstageDeployment) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
+// implementation of RuntimeObject interface
+func (b *BackstageDeployment) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	model.backstageDeployment = b
-	model.setObject(b)
+	model.setRuntimeObject(b)
 
 	b.deployment.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "deployment"))
 	utils.GenerateLabel(&b.deployment.Spec.Template.ObjectMeta.Labels, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageMeta.Name))
@@ -67,8 +67,8 @@ func (b *BackstageDeployment) addToModel(model *RuntimeModel, backstageMeta bsv1
 
 }
 
-// implementation of BackstageObject interface
-func (b *BackstageDeployment) validate(model *RuntimeModel) error {
+// implementation of RuntimeObject interface
+func (b *BackstageDeployment) validate(model *BackstageModel) error {
 	// override image with env var
 	// [GA] TODO if we need this (and like this) feature
 	// we need to think about simple template engine

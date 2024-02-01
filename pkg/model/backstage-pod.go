@@ -140,3 +140,10 @@ func (p backstagePod) setImage(image *string) {
 		p.container.Image = *image
 	}
 }
+
+func (p backstagePod) setEnvsFromSecret(name string) {
+
+	p.addContainerEnvFrom(corev1.EnvFromSource{
+		SecretRef: &corev1.SecretEnvSource{
+			LocalObjectReference: corev1.LocalObjectReference{Name: name}}})
+}

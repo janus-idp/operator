@@ -31,7 +31,7 @@ const dynamicPluginInitContainerName = "install-dynamic-plugins"
 
 type DynamicPluginsFactory struct{}
 
-func (f DynamicPluginsFactory) newBackstageObject() BackstageObject {
+func (f DynamicPluginsFactory) newBackstageObject() RuntimeObject {
 	return &DynamicPlugins{ConfigMap: &corev1.ConfigMap{}}
 }
 
@@ -43,19 +43,19 @@ func init() {
 	registerConfig("dynamic-plugins.yaml", DynamicPluginsFactory{}, Optional)
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (p *DynamicPlugins) Object() client.Object {
 	return p.ConfigMap
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (p *DynamicPlugins) EmptyObject() client.Object {
 	return &corev1.ConfigMap{}
 }
 
-// implementation of BackstageObject interface
-func (p *DynamicPlugins) addToModel(model *RuntimeModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
-	model.setObject(p)
+// implementation of RuntimeObject interface
+func (p *DynamicPlugins) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
+	model.setRuntimeObject(p)
 
 	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-dynamic-plugins"))
 
@@ -103,9 +103,9 @@ func (p *DynamicPlugins) updateBackstagePod(pod *backstagePod) {
 	}
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 // ConfigMap name must be the same as (deployment.yaml).spec.template.spec.volumes.name.dynamic-plugins-conf.ConfigMap.name
-func (p *DynamicPlugins) validate(model *RuntimeModel) error {
+func (p *DynamicPlugins) validate(model *BackstageModel) error {
 
 	initContainer := dynamicPluginsInitContainer(model.backstageDeployment.deployment.Spec.Template.Spec.InitContainers)
 	if initContainer == nil {

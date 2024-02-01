@@ -23,7 +23,7 @@ import (
 
 type SecretEnvsFactory struct{}
 
-func (f SecretEnvsFactory) newBackstageObject() BackstageObject {
+func (f SecretEnvsFactory) newBackstageObject() RuntimeObject {
 	return &SecretEnvs{Secret: &corev1.Secret{}}
 }
 
@@ -36,31 +36,31 @@ func init() {
 	registerConfig("secret-envs.yaml", SecretEnvsFactory{}, Optional)
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (p *SecretEnvs) Object() client.Object {
 	return p.Secret
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 //func (p *SecretEnvs) setMetaInfo(backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
 //	setMetaInfo(p, backstageMeta, ownsRuntime)
 //	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretenvs"))
 //}
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (p *SecretEnvs) EmptyObject() client.Object {
 	return &corev1.Secret{}
 }
 
-// implementation of BackstageObject interface
-func (p *SecretEnvs) addToModel(model *RuntimeModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
-	model.setObject(p)
+// implementation of RuntimeObject interface
+func (p *SecretEnvs) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
+	model.setRuntimeObject(p)
 
 	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretenvs"))
 }
 
-// implementation of BackstageObject interface
-func (p *SecretEnvs) validate(model *RuntimeModel) error {
+// implementation of RuntimeObject interface
+func (p *SecretEnvs) validate(model *BackstageModel) error {
 	return nil
 }
 
@@ -70,7 +70,7 @@ func (p *SecretEnvs) updateBackstagePod(pod *backstagePod) {
 		pod.addContainerEnvFrom(corev1.EnvFromSource{
 			SecretRef: &corev1.SecretEnvSource{
 				LocalObjectReference: corev1.LocalObjectReference{Name: p.Secret.Name}}})
-	} else if _, ok := p.Secret.Data[p.Key]; ok {
+	} else {
 		pod.addContainerEnvVarSource(p.Key, &corev1.EnvVarSource{
 			SecretKeyRef: &corev1.SecretKeySelector{
 				LocalObjectReference: corev1.LocalObjectReference{

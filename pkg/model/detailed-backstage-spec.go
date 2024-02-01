@@ -23,7 +23,7 @@ type DetailedBackstageSpec struct {
 	bs.BackstageSpec
 	RawConfigContent map[string]string
 	ConfigObjects    backstageConfigs
-	LocalDbSecret    DbSecret
+	//LocalDbSecret    DbSecret
 }
 
 // array of BackstagePodContributor interfaces

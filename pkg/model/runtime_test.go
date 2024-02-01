@@ -47,7 +47,7 @@ func TestInitDefaultDeploy(t *testing.T) {
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
-	assert.True(t, len(model.Objects) > 0)
+	assert.True(t, len(model.RuntimeObjects) > 0)
 	assert.Equal(t, "bs-deployment", model.backstageDeployment.Object().GetName())
 	assert.Equal(t, "ns123", model.backstageDeployment.Object().GetNamespace())
 	assert.Equal(t, 2, len(model.backstageDeployment.Object().GetLabels()))
@@ -79,7 +79,7 @@ func TestIfEmptyObjectIsValid(t *testing.T) {
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
 	assert.NoError(t, err)
 
-	assert.Equal(t, 2, len(model.Objects))
+	assert.Equal(t, 2, len(model.RuntimeObjects))
 
 }
 
@@ -101,11 +101,11 @@ func TestAddToModel(t *testing.T) {
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
 	assert.NoError(t, err)
 	assert.NotNil(t, model)
-	assert.NotNil(t, model.Objects)
-	assert.Equal(t, 2, len(model.Objects))
+	assert.NotNil(t, model.RuntimeObjects)
+	assert.Equal(t, 2, len(model.RuntimeObjects))
 
 	found := false
-	for _, bd := range model.Objects {
+	for _, bd := range model.RuntimeObjects {
 		if bd, ok := bd.(*BackstageDeployment); ok {
 			found = true
 			assert.Equal(t, bd, model.backstageDeployment)
@@ -114,15 +114,15 @@ func TestAddToModel(t *testing.T) {
 	assert.True(t, found)
 
 	// another empty model to test
-	rm := RuntimeModel{Objects: []BackstageObject{}}
-	assert.Equal(t, 0, len(rm.Objects))
+	rm := BackstageModel{RuntimeObjects: []RuntimeObject{}}
+	assert.Equal(t, 0, len(rm.RuntimeObjects))
 	testService := *model.backstageService
 
 	// add to rm
 	testService.addToModel(&rm, bs, true)
-	assert.Equal(t, 1, len(rm.Objects))
+	assert.Equal(t, 1, len(rm.RuntimeObjects))
 	assert.NotNil(t, rm.backstageService)
 	assert.Nil(t, rm.backstageDeployment)
 	assert.Equal(t, testService, *rm.backstageService)
-	assert.Equal(t, testService, *rm.Objects[0].(*BackstageService))
+	assert.Equal(t, testService, *rm.RuntimeObjects[0].(*BackstageService))
 }

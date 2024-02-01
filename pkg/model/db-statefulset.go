@@ -30,7 +30,7 @@ const LocalDbImageEnvVar = "RELATED_IMAGE_postgresql"
 
 type DbStatefulSetFactory struct{}
 
-func (f DbStatefulSetFactory) newBackstageObject() BackstageObject {
+func (f DbStatefulSetFactory) newBackstageObject() RuntimeObject {
 	return &DbStatefulSet{statefulSet: &appsv1.StatefulSet{}}
 }
 
@@ -47,15 +47,15 @@ func DbStatefulSetName(backstageName string) string {
 	return utils.GenerateRuntimeObjectName(backstageName, "db-statefulset")
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (b *DbStatefulSet) Object() client.Object {
 	return b.statefulSet
 }
 
-// implementation of BackstageObject interface
-func (b *DbStatefulSet) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
+// implementation of RuntimeObject interface
+func (b *DbStatefulSet) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	model.localDbStatefulSet = b
-	model.setObject(b)
+	model.setRuntimeObject(b)
 
 	//setMetaInfo(b, backstageMeta, ownsRuntime)
 	b.statefulSet.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "db-statefulset"))
@@ -63,13 +63,13 @@ func (b *DbStatefulSet) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1
 	utils.GenerateLabel(&b.statefulSet.Spec.Selector.MatchLabels, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (b *DbStatefulSet) EmptyObject() client.Object {
 	return &appsv1.StatefulSet{}
 }
 
-// implementation of BackstageObject interface
-func (b *DbStatefulSet) validate(model *RuntimeModel) error {
+// implementation of RuntimeObject interface
+func (b *DbStatefulSet) validate(model *BackstageModel) error {
 	// override image with env var
 	// [GA] TODO if we need this (and like this) feature
 	// we need to think about simple template engine
@@ -111,4 +111,10 @@ func (b *DbStatefulSet) container() *corev1.Container {
 // returns DB pod
 func (b *DbStatefulSet) podSpec() corev1.PodSpec {
 	return b.statefulSet.Spec.Template.Spec
+}
+
+func (b *DbStatefulSet) setDbEnvsFromSecret(name string) {
+	b.container().EnvFrom = append(b.container().EnvFrom, corev1.EnvFromSource{
+		SecretRef: &corev1.SecretEnvSource{
+			LocalObjectReference: corev1.LocalObjectReference{Name: name}}})
 }

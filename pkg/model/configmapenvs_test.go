@@ -18,10 +18,12 @@ import (
 	"context"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDefaultConfigMapEnvs(t *testing.T) {
+func TestDefaultConfigMapEnvFrom(t *testing.T) {
 
 	bs := simpleTestBackstage()
 
@@ -35,6 +37,32 @@ func TestDefaultConfigMapEnvs(t *testing.T) {
 	bscontainer := model.backstageDeployment.pod.container
 	assert.NotNil(t, bscontainer)
 
-	assert.Equal(t, len(bscontainer.EnvFrom), 2)
+	assert.Equal(t, 1, len(bscontainer.EnvFrom))
+	assert.Equal(t, 0, len(bscontainer.Env))
+
+}
+
+func TestSpecifiedConfigMapEnvs(t *testing.T) {
+
+	bs := simpleTestBackstage()
+
+	testObj := createBackstageTest(bs).withDefaultConfig(true)
+
+	cm := corev1.ConfigMap{Data: map[string]string{
+		"ENV1": "Val",
+	}}
+
+	testObj.detailedSpec.AddConfigObject(&ConfigMapEnvs{ConfigMap: &cm, Key: "ENV1"})
+
+	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, model)
+
+	bscontainer := model.backstageDeployment.pod.container
+	assert.NotNil(t, bscontainer)
+	assert.Equal(t, 1, len(bscontainer.Env))
+	assert.NotNil(t, bscontainer.Env[0])
+	assert.Equal(t, "ENV1", bscontainer.Env[0].ValueFrom.ConfigMapKeyRef.Key)
 
 }

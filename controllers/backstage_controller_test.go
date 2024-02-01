@@ -17,6 +17,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"janus-idp.io/backstage-operator/pkg/model"
@@ -1151,8 +1152,15 @@ plugins: []
 
 					mainCont := found.Spec.Template.Spec.Containers[0]
 
+					// /opt/app-root/src/dynamic-plugins-root - folder
+					// /opt/app-root/src/default.app-config.yaml - file (subPath)
+					// /opt/app-root/src/my-extra-config-1-cm-all - folder (2 files inside)
+					// /opt/app-root/src/my-extra-config-1-cm-single/my-extra-file-12-single.yaml - file (subPath)
+					// /opt/app-root/src/my-extra-config-2-secret-all - folder (2 files inside)
+					// /opt/app-root/src/my-extra-config-2-secret-single/my-extra-file-22-single.yaml - file (subPath)
+					// so, 6 mounts
 					By("Checking the main container Volume Mounts in the Backstage Deployment", func() {
-						Expect(mainCont.VolumeMounts).To(HaveLen(8))
+						Expect(mainCont.VolumeMounts).To(HaveLen(6))
 
 						expectedMountPath := mountPath
 						if expectedMountPath == "" {
@@ -1165,41 +1173,43 @@ plugins: []
 						Expect(bsAuth[0].SubPath).To(Equal("default.app-config.yaml"))
 
 						extraConfig1CmMounts := findVolumeMounts(mainCont.VolumeMounts, "vol-"+extraConfig1CmNameAll)
-						Expect(extraConfig1CmMounts).To(HaveLen(2), "No volume mounts found with name: %s", "vol-"+extraConfig1CmNameAll)
-						Expect(extraConfig1CmMounts[0].MountPath).ToNot(Equal(extraConfig1CmMounts[1].MountPath))
-						for i := 0; i <= 1; i++ {
-							Expect(extraConfig1CmMounts[i].MountPath).To(
-								SatisfyAny(
-									Equal(expectedMountPath+"/my-extra-config-11.yaml"),
-									Equal(expectedMountPath+"/my-extra-config-12.yaml")))
-							Expect(extraConfig1CmMounts[i].SubPath).To(
-								SatisfyAny(
-									Equal("my-extra-config-11.yaml"),
-									Equal("my-extra-config-12.yaml")))
-						}
+						// /some/path/for/extra/config/my-extra-config-1-cm-all - folder with 2 files
+						Expect(extraConfig1CmMounts).To(HaveLen(1), "No volume mounts found with name: %s", "vol-"+extraConfig1CmNameAll)
+						//Expect(extraConfig1CmMounts[0].MountPath).ToNot(Equal(extraConfig1CmMounts[1].MountPath))
+						Expect(extraConfig1CmMounts[0].MountPath).To(Equal(filepath.Join(expectedMountPath, "my-extra-config-1-cm-all")))
+						//for i := 0; i <= 1; i++ {
+						//	Expect(extraConfig1CmMounts[i].MountPath).To(
+						//		SatisfyAny(
+						//			Equal(expectedMountPath+"/my-extra-config-11.yaml"),
+						//			Equal(expectedMountPath+"/my-extra-config-12.yaml")))
+						//	Expect(extraConfig1CmMounts[i].SubPath).To(
+						//		SatisfyAny(
+						//			Equal("my-extra-config-11.yaml"),
+						//			Equal("my-extra-config-12.yaml")))
+						//}
 
 						extraConfig2SecretMounts := findVolumeMounts(mainCont.VolumeMounts, "vol-"+extraConfig2SecretNameAll)
-						Expect(extraConfig2SecretMounts).To(HaveLen(2), "No volume mounts found with name: %s", "vol-"+extraConfig2SecretNameAll)
-						Expect(extraConfig2SecretMounts[0].MountPath).ToNot(Equal(extraConfig2SecretMounts[1].MountPath))
-						for i := 0; i <= 1; i++ {
-							Expect(extraConfig2SecretMounts[i].MountPath).To(
-								SatisfyAny(
-									Equal(expectedMountPath+"/my-extra-config-21.yaml"),
-									Equal(expectedMountPath+"/my-extra-config-22.yaml")))
-							Expect(extraConfig2SecretMounts[i].SubPath).To(
-								SatisfyAny(
-									Equal("my-extra-config-21.yaml"),
-									Equal("my-extra-config-22.yaml")))
-						}
+						Expect(extraConfig2SecretMounts).To(HaveLen(1), "No volume mounts found with name: %s", "vol-"+extraConfig2SecretNameAll)
+						//Expect(extraConfig2SecretMounts[0].MountPath).ToNot(Equal(extraConfig2SecretMounts[1].MountPath))
+						//for i := 0; i <= 1; i++ {
+						//	Expect(extraConfig2SecretMounts[i].MountPath).To(
+						//		SatisfyAny(
+						//			Equal(expectedMountPath+"/my-extra-config-21.yaml"),
+						//			Equal(expectedMountPath+"/my-extra-config-22.yaml")))
+						//	Expect(extraConfig2SecretMounts[i].SubPath).To(
+						//		SatisfyAny(
+						//			Equal("my-extra-config-21.yaml"),
+						//			Equal("my-extra-config-22.yaml")))
+						//}
 
 						extraConfig1CmSingleMounts := findVolumeMounts(mainCont.VolumeMounts, "vol-"+extraConfig1CmNameSingle)
 						Expect(extraConfig1CmSingleMounts).To(HaveLen(1), "No volume mounts found with name: %s", "vol-"+extraConfig1CmNameSingle)
-						Expect(extraConfig1CmSingleMounts[0].MountPath).To(Equal(expectedMountPath + "/my-extra-file-12-single.yaml"))
+						Expect(extraConfig1CmSingleMounts[0].MountPath).To(Equal(expectedMountPath + "/my-extra-config-1-cm-single/my-extra-file-12-single.yaml"))
 						Expect(extraConfig1CmSingleMounts[0].SubPath).To(Equal("my-extra-file-12-single.yaml"))
 
 						extraConfig2SecretSingleMounts := findVolumeMounts(mainCont.VolumeMounts, "vol-"+extraConfig2SecretNameSingle)
 						Expect(extraConfig2SecretSingleMounts).To(HaveLen(1), "No volume mounts found with name: %s", "vol-"+extraConfig2SecretNameSingle)
-						Expect(extraConfig2SecretSingleMounts[0].MountPath).To(Equal(expectedMountPath + "/my-extra-file-22-single.yaml"))
+						Expect(extraConfig2SecretSingleMounts[0].MountPath).To(Equal(expectedMountPath + "/my-extra-config-2-secret-single/my-extra-file-22-single.yaml"))
 						Expect(extraConfig2SecretSingleMounts[0].SubPath).To(Equal("my-extra-file-22-single.yaml"))
 					})
 

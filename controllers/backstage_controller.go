@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 
+	"janus-idp.io/backstage-operator/controllers/dbsecret"
+
 	"k8s.io/apimachinery/pkg/types"
 
 	openshift "github.com/openshift/api/route/v1"
@@ -108,26 +110,28 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// 2. Make some validation to fail fast
 	spec, err := r.preprocessSpec(ctx, backstage)
 	if err != nil {
-		setStatusCondition(&backstage, bs.BackstageConditionTypeDeployed, metav1.ConditionFalse, bs.BackstageConditionReasonFailed, fmt.Sprintf("failed to preprocess backstage spec %s", err))
-		return ctrl.Result{}, fmt.Errorf("failed to preprocess backstage spec %w", err)
+		return ctrl.Result{}, errorAndStatus(&backstage, "failed to preprocess backstage spec", err)
 	}
 
 	// This creates array of model objects to be reconsiled
 	bsModel, err := model.InitObjects(ctx, backstage, spec, r.OwnsRuntime, r.IsOpenShift, r.Scheme)
 	if err != nil {
-		setStatusCondition(&backstage, bs.BackstageConditionTypeDeployed, metav1.ConditionFalse, bs.BackstageConditionReasonFailed, fmt.Sprintf("failed to initialize backstage model %s", err))
-		return ctrl.Result{}, fmt.Errorf("failed to initialize backstage model %w", err)
+		return ctrl.Result{}, errorAndStatus(&backstage, "failed to initialize backstage model", err)
 	}
 
-	err = r.applyObjects(ctx, bsModel.Objects)
+	if spec.IsLocalDbEnabled() && !spec.IsAuthSecretSpecified() {
+		if err := dbsecret.Generate(ctx, r.Client, backstage, bsModel.LocalDbService, r.Scheme); err != nil {
+			return ctrl.Result{}, errorAndStatus(&backstage, "failed to generate db-service", err)
+		}
+	}
+
+	err = r.applyObjects(ctx, bsModel.RuntimeObjects)
 	if err != nil {
-		setStatusCondition(&backstage, bs.BackstageConditionTypeDeployed, metav1.ConditionFalse, bs.BackstageConditionReasonFailed, fmt.Sprintf("failed to apply backstage objects %s", err))
-		return ctrl.Result{}, fmt.Errorf("failed to apply backstage objects %w", err)
+		return ctrl.Result{}, errorAndStatus(&backstage, "failed to apply backstage objects", err)
 	}
 
 	if err := r.cleanObjects(ctx, backstage); err != nil {
-		setStatusCondition(&backstage, bs.BackstageConditionTypeDeployed, metav1.ConditionFalse, bs.BackstageConditionReasonFailed, fmt.Sprintf("failed to clean backstage objects %s", err))
-		return ctrl.Result{}, fmt.Errorf("failed to clean backstage objects %w", err)
+		return ctrl.Result{}, errorAndStatus(&backstage, "failed to clean backstage objects ", err)
 	}
 
 	setStatusCondition(&backstage, bs.BackstageConditionTypeDeployed, metav1.ConditionTrue, bs.BackstageConditionReasonDeployed, "")
@@ -135,7 +139,12 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return ctrl.Result{}, nil
 }
 
-func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.BackstageObject) error {
+func errorAndStatus(backstage *bs.Backstage, msg string, err error) error {
+	setStatusCondition(backstage, bs.BackstageConditionTypeDeployed, metav1.ConditionFalse, bs.BackstageConditionReasonFailed, fmt.Sprintf("%s %s", msg, err))
+	return fmt.Errorf("%s %w", msg, err)
+}
+
+func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.RuntimeObject) error {
 
 	lg := log.FromContext(ctx)
 
@@ -155,10 +164,15 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 			continue
 		}
 
-		// needed for openshift.Route only
+		if _, ok := obj.Object().(*appsv1.Deployment); ok {
+			obj.Object().SetAnnotations(baseObject.GetAnnotations())
+			lg.V(1).Info(">>>>>>>>>>> ", "", obj.Object().GetAnnotations())
+		}
+
+		// needed for openshift.Route only, it yells otherwise
 		obj.Object().SetResourceVersion(baseObject.GetResourceVersion())
 
-		if err := r.Patch(ctx, obj.Object(), client.MergeFrom(baseObject)); err != nil {
+		if err := r.Patch(ctx, obj.Object(), client.StrategicMergeFrom(baseObject)); err != nil {
 			return fmt.Errorf("failed to patch object %s: %w", obj.Object().GetResourceVersion(), err)
 		}
 

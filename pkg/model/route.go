@@ -23,7 +23,7 @@ import (
 
 type BackstageRouteFactory struct{}
 
-func (f BackstageRouteFactory) newBackstageObject() BackstageObject {
+func (f BackstageRouteFactory) newBackstageObject() RuntimeObject {
 	return &BackstageRoute{route: &openshift.Route{}}
 }
 
@@ -84,26 +84,26 @@ func init() {
 	registerConfig("route.yaml", BackstageRouteFactory{}, ForOpenshift)
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (b *BackstageRoute) Object() client.Object {
 	return b.route
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (b *BackstageRoute) EmptyObject() client.Object {
 	return &openshift.Route{}
 }
 
-// implementation of BackstageObject interface
-func (b *BackstageRoute) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
+// implementation of RuntimeObject interface
+func (b *BackstageRoute) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	model.route = b
-	model.setObject(b)
+	model.setRuntimeObject(b)
 
 	b.route.SetName(RouteName(backstageMeta.Name))
 }
 
-// implementation of BackstageObject interface
-func (b *BackstageRoute) validate(model *RuntimeModel) error {
+// implementation of RuntimeObject interface
+func (b *BackstageRoute) validate(model *BackstageModel) error {
 	b.route.Spec.To.Name = model.backstageService.service.Name
 	return nil
 }

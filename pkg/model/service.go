@@ -26,7 +26,7 @@ import (
 
 type BackstageServiceFactory struct{}
 
-func (f BackstageServiceFactory) newBackstageObject() BackstageObject {
+func (f BackstageServiceFactory) newBackstageObject() RuntimeObject {
 	return &BackstageService{service: &corev1.Service{}}
 }
 
@@ -38,27 +38,27 @@ func init() {
 	registerConfig("service.yaml", BackstageServiceFactory{}, Mandatory)
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (b *BackstageService) Object() client.Object {
 	return b.service
 }
 
-// implementation of BackstageObject interface
-func (b *BackstageService) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
+// implementation of RuntimeObject interface
+func (b *BackstageService) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
 	model.backstageService = b
-	model.setObject(b)
+	model.setRuntimeObject(b)
 
 	b.service.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "service"))
 	utils.GenerateLabel(&b.service.Spec.Selector, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageMeta.Name))
 
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (b *BackstageService) EmptyObject() client.Object {
 	return &corev1.Service{}
 }
 
-// implementation of BackstageObject interface
-func (b *BackstageService) validate(model *RuntimeModel) error {
+// implementation of RuntimeObject interface
+func (b *BackstageService) validate(model *BackstageModel) error {
 	return nil
 }

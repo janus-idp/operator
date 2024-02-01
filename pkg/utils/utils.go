@@ -16,6 +16,8 @@ package utils
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -72,4 +74,13 @@ func ReadYamlFile(path string, object metav1.Object) error {
 
 func DefFile(key string) string {
 	return filepath.Join(os.Getenv("LOCALBIN"), "default-config", key)
+}
+
+func GeneratePassword(length int) (string, error) {
+	_bytes := make([]byte, length)
+	if _, err := rand.Read(_bytes); err != nil {
+		return "", err
+	}
+	// Encode the password to prevent special characters
+	return base64.StdEncoding.EncodeToString(_bytes), nil
 }

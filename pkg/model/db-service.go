@@ -25,7 +25,7 @@ import (
 
 type DbServiceFactory struct{}
 
-func (f DbServiceFactory) newBackstageObject() BackstageObject {
+func (f DbServiceFactory) newBackstageObject() RuntimeObject {
 	return &DbService{service: &corev1.Service{}}
 }
 
@@ -41,26 +41,26 @@ func DbServiceName(backstageName string) string {
 	return utils.GenerateRuntimeObjectName(backstageName, "db-service")
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (b *DbService) Object() client.Object {
 	return b.service
 }
 
-// implementation of BackstageObject interface
-func (b *DbService) addToModel(model *RuntimeModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
-	model.localDbService = b
-	model.setObject(b)
+// implementation of RuntimeObject interface
+func (b *DbService) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
+	model.LocalDbService = b
+	model.setRuntimeObject(b)
 
 	b.service.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "db-service"))
 	utils.GenerateLabel(&b.service.Spec.Selector, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (b *DbService) EmptyObject() client.Object {
 	return &corev1.Service{}
 }
 
-// implementation of BackstageObject interface
-func (b *DbService) validate(model *RuntimeModel) error {
+// implementation of RuntimeObject interface
+func (b *DbService) validate(model *BackstageModel) error {
 	return nil
 }

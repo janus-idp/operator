@@ -42,28 +42,28 @@ const backstageAppLabel = "backstage.io/app"
 // ForOpenshift - if configured, used for Openshift deployment, ignored otherwise
 var runtimeConfig []ObjectConfig
 
-// RuntimeModel represents internal object model
-type RuntimeModel struct {
+// BackstageModel represents internal object model
+type BackstageModel struct {
 	backstageDeployment *BackstageDeployment
 	backstageService    *BackstageService
 
 	localDbStatefulSet *DbStatefulSet
-	localDbService     *DbService
-	localDbSecret      *DbSecret
+	LocalDbService     *DbService
+	//LocalDbSecret      *DbSecret
 
 	route *BackstageRoute
 
-	Objects []BackstageObject
+	RuntimeObjects []RuntimeObject
 }
 
-func (model *RuntimeModel) setObject(object BackstageObject) {
-	for i, obj := range model.Objects {
+func (model *BackstageModel) setRuntimeObject(object RuntimeObject) {
+	for i, obj := range model.RuntimeObjects {
 		if reflect.TypeOf(obj) == reflect.TypeOf(object) {
-			model.Objects[i] = object
+			model.RuntimeObjects[i] = object
 			return
 		}
 	}
-	model.Objects = append(model.Objects, object)
+	model.RuntimeObjects = append(model.RuntimeObjects, object)
 }
 
 // Registers config object
@@ -72,18 +72,18 @@ func registerConfig(key string, factory ObjectFactory, need needType) {
 }
 
 // InitObjects performs a main loop for configuring and making the array of objects to reconcile
-func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backstageSpec *DetailedBackstageSpec, ownsRuntime bool, isOpenshift bool, scheme *runtime.Scheme) (*RuntimeModel, error) {
+func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backstageSpec *DetailedBackstageSpec, ownsRuntime bool, isOpenshift bool, scheme *runtime.Scheme) (*BackstageModel, error) {
 
 	// 3 phases of Backstage configuration:
 	// 1- load from Operator defaults, modify metadata (labels, selectors..) and namespace as needed
 	// 2- overlay some/all objects with Backstage.spec.rawRuntimeConfig CM
 	// 3- override some parameters defined in Backstage.spec.application
-	// At the end there should be an array of runtime Objects to apply (order optimized)
+	// At the end there should be an array of runtime RuntimeObjects to apply (order optimized)
 
 	lg := log.FromContext(ctx)
 	lg.V(1)
 
-	model := &RuntimeModel{Objects: make([]BackstageObject, 0) /*, generateDbPassword: backstageSpec.GenerateDbPassword*/}
+	model := &BackstageModel{RuntimeObjects: make([]RuntimeObject, 0) /*, generateDbPassword: backstageSpec.GenerateDbPassword*/}
 
 	if err := model.addDefaultsAndRaw(backstageMeta, backstageSpec, ownsRuntime, isOpenshift); err != nil {
 		return nil, fmt.Errorf("failed to initialize objects %w", err)
@@ -103,7 +103,7 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 	}
 
 	// init default meta info (name, namespace, owner) and update Backstage Pod with contributions (volumes, container)
-	for _, bso := range model.Objects {
+	for _, bso := range model.RuntimeObjects {
 		if bs, ok := bso.(BackstagePodContributor); ok {
 			bs.updateBackstagePod(backstagePod)
 		}
@@ -133,10 +133,17 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 	// if exists - initiated from existed, otherwise:
 	//  if specified - get from spec
 	//  if not specified - generate
-	if backstageSpec.IsLocalDbEnabled() {
-		backstageSpec.LocalDbSecret.addToModel(model, backstageMeta, ownsRuntime)
-		backstageSpec.LocalDbSecret.updateSecret(model)
+	// TODO
+	var dbSecretName string
+	if !backstageSpec.IsAuthSecretSpecified() {
+		dbSecretName = DbSecretDefaultName(backstageMeta.Name)
+	} else {
+		dbSecretName = backstageSpec.Database.AuthSecretName
 	}
+	if backstageSpec.IsLocalDbEnabled() {
+		model.localDbStatefulSet.setDbEnvsFromSecret(dbSecretName)
+	}
+	backstagePod.setEnvsFromSecret(dbSecretName)
 
 	// contribute to Backstage config
 	for _, v := range backstageSpec.ConfigObjects {
@@ -144,7 +151,7 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 	}
 
 	// set generic metainfo and validate all
-	for _, v := range model.Objects {
+	for _, v := range model.RuntimeObjects {
 		setMetaInfo(v, backstageMeta, ownsRuntime, scheme)
 		err := v.validate(model)
 		if err != nil {
@@ -155,7 +162,7 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 	return model, nil
 }
 
-func (model *RuntimeModel) addDefaultsAndRaw(backstageMeta bsv1alpha1.Backstage, backstageSpec *DetailedBackstageSpec, ownsRuntime bool, isOpenshift bool) error {
+func (model *BackstageModel) addDefaultsAndRaw(backstageMeta bsv1alpha1.Backstage, backstageSpec *DetailedBackstageSpec, ownsRuntime bool, isOpenshift bool) error {
 	// looping through the registered runtimeConfig objects initializing the model
 	for _, conf := range runtimeConfig {
 
@@ -211,14 +218,13 @@ func (model *RuntimeModel) addDefaultsAndRaw(backstageMeta bsv1alpha1.Backstage,
 	return nil
 }
 
-// Every BackstageObject.setMetaInfo should as minimum call this
-func setMetaInfo(modelObject BackstageObject, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool, scheme *runtime.Scheme) {
+// Every RuntimeObject.setMetaInfo should as minimum call this
+func setMetaInfo(modelObject RuntimeObject, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool, scheme *runtime.Scheme) {
 	modelObject.Object().SetNamespace(backstageMeta.Namespace)
 	modelObject.Object().SetLabels(utils.SetKubeLabels(modelObject.Object().GetLabels(), backstageMeta.Name))
 
 	if ownsRuntime {
-		err := controllerutil.SetControllerReference(&backstageMeta, modelObject.Object(), scheme)
-		if err != nil {
+		if err := controllerutil.SetControllerReference(&backstageMeta, modelObject.Object(), scheme); err != nil {
 			//error should never have happened,
 			//otherwise the Operator has invalid (not a runtime.Object) or non-registered type.
 			//In both cases it will fail before this place

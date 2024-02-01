@@ -23,7 +23,7 @@ import (
 
 type ConfigMapEnvsFactory struct{}
 
-func (f ConfigMapEnvsFactory) newBackstageObject() BackstageObject {
+func (f ConfigMapEnvsFactory) newBackstageObject() RuntimeObject {
 	return &ConfigMapEnvs{ConfigMap: &corev1.ConfigMap{}}
 }
 
@@ -36,47 +36,67 @@ func init() {
 	registerConfig("configmap-envs.yaml", ConfigMapEnvsFactory{}, Optional)
 }
 
-// Object implements BackstageObject interface
+// Object implements RuntimeObject interface
 func (p *ConfigMapEnvs) Object() client.Object {
 	return p.ConfigMap
 }
 
-// EmptyObject implements BackstageObject interface
+// EmptyObject implements RuntimeObject interface
 func (p *ConfigMapEnvs) EmptyObject() client.Object {
 	return &corev1.ConfigMap{}
 }
 
-// implementation of BackstageObject interface
-func (p *ConfigMapEnvs) addToModel(model *RuntimeModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
-	model.setObject(p)
+// implementation of RuntimeObject interface
+func (p *ConfigMapEnvs) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
+	model.setRuntimeObject(p)
 	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-configmapenvs"))
 }
 
-// implementation of BackstageObject interface
-func (p *ConfigMapEnvs) validate(model *RuntimeModel) error {
+// implementation of RuntimeObject interface
+func (p *ConfigMapEnvs) validate(model *BackstageModel) error {
 	return nil
 }
 
 // implementation of BackstagePodContributor interface
 func (p *ConfigMapEnvs) updateBackstagePod(pod *backstagePod) {
-	if p.Key == "" || (p.Key == p.ConfigMap.Name) {
-		pod.addContainerEnvFrom(corev1.EnvFromSource{
-			ConfigMapRef: &corev1.ConfigMapEnvSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: p.ConfigMap.Name}}})
-	}
 
 	if p.Key == "" {
 		pod.addContainerEnvFrom(corev1.EnvFromSource{
 			ConfigMapRef: &corev1.ConfigMapEnvSource{
 				LocalObjectReference: corev1.LocalObjectReference{Name: p.ConfigMap.Name}}})
-	} else if _, ok := p.ConfigMap.Data[p.Key]; ok {
-		pod.addContainerEnvVarSource(p.Key, &corev1.EnvVarSource{
+	} else {
+		envVarSource := &corev1.EnvVarSource{
 			ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 				LocalObjectReference: corev1.LocalObjectReference{
 					Name: p.ConfigMap.Name,
 				},
 				Key: p.Key,
 			},
+		}
+		pod.container.Env = append(pod.container.Env, corev1.EnvVar{
+			Name:      p.Key,
+			ValueFrom: envVarSource,
 		})
 	}
+
+	//if p.Key == "" || (p.Key == p.ConfigMap.Name) {
+	//	pod.addContainerEnvFrom(corev1.EnvFromSource{
+	//		ConfigMapRef: &corev1.ConfigMapEnvSource{
+	//			LocalObjectReference: corev1.LocalObjectReference{Name: p.ConfigMap.Name}}})
+	//}
+
+	//if p.Key == "" {
+	//	pod.addContainerEnvFrom(corev1.EnvFromSource{
+	//		ConfigMapRef: &corev1.ConfigMapEnvSource{
+	//			LocalObjectReference: corev1.LocalObjectReference{Name: p.ConfigMap.Name}}})
+	//} else if _, ok := p.ConfigMap.Data[p.Key]; ok {
+	//	pod.addContainerEnvVarSource(p.Key, &corev1.EnvVarSource{
+	//		ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+	//			LocalObjectReference: corev1.LocalObjectReference{
+	//				Name: p.ConfigMap.Name,
+	//			},
+	//			Key: p.Key,
+	//		},
+	//	})
+	//}
 }

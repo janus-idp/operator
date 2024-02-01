@@ -71,7 +71,7 @@ func TestSpecifiedConfigMapFiles(t *testing.T) {
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
-	assert.True(t, len(model.Objects) > 0)
+	assert.True(t, len(model.RuntimeObjects) > 0)
 
 	deployment := model.backstageDeployment
 	assert.NotNil(t, deployment)
@@ -102,7 +102,7 @@ func TestDefaultAndSpecifiedConfigMapFiles(t *testing.T) {
 	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
-	assert.True(t, len(model.Objects) > 0)
+	assert.True(t, len(model.RuntimeObjects) > 0)
 
 	deployment := model.backstageDeployment
 	assert.NotNil(t, deployment)

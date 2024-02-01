@@ -27,7 +27,7 @@ import (
 
 type ConfigMapFilesFactory struct{}
 
-func (f ConfigMapFilesFactory) newBackstageObject() BackstageObject {
+func (f ConfigMapFilesFactory) newBackstageObject() RuntimeObject {
 	return &ConfigMapFiles{ConfigMap: &corev1.ConfigMap{}, MountPath: defaultDir}
 }
 
@@ -41,24 +41,24 @@ func init() {
 	registerConfig("configmap-files.yaml", ConfigMapFilesFactory{}, Optional)
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (p *ConfigMapFiles) Object() client.Object {
 	return p.ConfigMap
 }
 
-// implementation of BackstageObject interface
+// implementation of RuntimeObject interface
 func (p *ConfigMapFiles) EmptyObject() client.Object {
 	return &corev1.ConfigMap{}
 }
 
-// implementation of BackstageObject interface
-func (p *ConfigMapFiles) addToModel(model *RuntimeModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
-	model.setObject(p)
+// implementation of RuntimeObject interface
+func (p *ConfigMapFiles) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
+	model.setRuntimeObject(p)
 	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-configmapfiles"))
 }
 
-// implementation of BackstageObject interface
-func (p *ConfigMapFiles) validate(model *RuntimeModel) error {
+// implementation of RuntimeObject interface
+func (p *ConfigMapFiles) validate(model *BackstageModel) error {
 	return nil
 }
 
@@ -78,13 +78,19 @@ func (p *ConfigMapFiles) updateBackstagePod(pod *backstagePod) {
 		VolumeSource: volSource,
 	})
 
-	for file := range p.ConfigMap.Data {
-		if p.Key == "" || (p.Key == file) {
-			pod.appendContainerVolumeMount(corev1.VolumeMount{
-				Name:      volName,
-				MountPath: filepath.Join(p.MountPath, file),
-				SubPath:   file,
-			})
-		}
-	}
+	vm := corev1.VolumeMount{Name: volName, MountPath: filepath.Join(p.MountPath, p.ConfigMap.Name, p.Key), SubPath: p.Key}
+	//if p.Key != "" {
+	//vm.SubPath = p.Key
+	//}
+	pod.container.VolumeMounts = append(pod.container.VolumeMounts, vm)
+
+	//for file := range p.ConfigMap.Data {
+	//	if p.Key == "" || (p.Key == file) {
+	//		pod.appendContainerVolumeMount(corev1.VolumeMount{
+	//			Name:      volName,
+	//			MountPath: filepath.Join(p.MountPath, file),
+	//			SubPath:   file,
+	//		})
+	//	}
+	//}
 }
