@@ -43,7 +43,7 @@ metadata:
     features.operators.openshift.io/token-auth-gcp: "false"
     repository: https://gitlab.cee.redhat.com/rhidp/rhdh/
     support: Red Hat
-  name: rhdh-operator.v1.0.0
+  name: rhdh-operator.v1.1.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
