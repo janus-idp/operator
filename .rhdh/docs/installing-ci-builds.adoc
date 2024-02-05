@@ -20,11 +20,14 @@ $ oc set data secret/pull-secret -n openshift-config --from-file=.dockerconfigjs
 $ rm -f /tmp/my-global-pull-secret.yaml
 ----
 
-. Run the installation script to create the RHDH Operator CatalogSource in your cluster. Use link:../scripts/install-rhdh-latest-build.sh[`install-rhdh-latest-build.sh`] to install the latest (upcoming version) build, and link:../scripts/install-rhdh-next-build.sh[`install-rhdh-next-build.sh`] to install the development build (from the `main` branch). For example:
+. Run the link:../scripts/install-rhdh-catalog-source.sh[installation script] to create the RHDH Operator CatalogSource in your cluster. By default, it installs the Release Candidate version, but the `--next` option allows to install the current development build (from the `main` branch). For example:
 +
 [source,console]
 ----
-$ curl -L https://raw.githubusercontent.com/janus-idp/operator/main/.rhdh/scripts/install-rhdh-latest-build.sh | bash
+$ cd /tmp
+$ curl -sSLO https://raw.githubusercontent.com/janus-idp/operator/main/.rhdh/scripts/install-rhdh-catalog-source.sh
+$ chmod +x install-rhdh-catalog-source.sh
+$ ./install-rhdh-catalog-source.sh --latest
 ----
 
 . In the *Administrator* perspective of the OpenShift web console, go to *Operators* → *OperatorHub*, search for Red Hat Developer Hub, and install the Red Hat Developer Hub Operator. For more info, see link:https://docs.openshift.com/container-platform/4.14/operators/admin/olm-adding-operators-to-cluster.html#olm-installing-from-operatorhub-using-web-console_olm-adding-operators-to-a-cluster[Installing from OperatorHub using the web console].
