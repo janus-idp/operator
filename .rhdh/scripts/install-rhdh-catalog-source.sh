@@ -33,7 +33,7 @@ errorf() {
 usage() {
 echo "
 This script streamlines testing IIB images by configuring an OpenShift cluster to enable it to use the specified IIB image
-in a catalog. The CatalogSource is created in the openshift-marketplace namespace,
+as a catalog source. The CatalogSource is created in the openshift-marketplace namespace,
 and is named 'operatorName-channelName', eg., rhdh-fast
 
 If IIB installation fails, see https://docs.engineering.redhat.com/display/CFC/Test and
@@ -43,16 +43,16 @@ Usage:
   $0 [OPTIONS]
 
 Options:
-  --latest                     : Install from iib quay.io/rhdh/iib:latest-\$OCP_VER-\$OCP_ARCH (eg., latest-v4.14-x86_64)
+  --latest                     : Install from iib quay.io/rhdh/iib:latest-\$OCP_VER-\$OCP_ARCH (eg., latest-v4.14-x86_64) [default]
   --next                       : Install from iib quay.io/rhdh/iib:next-\$OCP_VER-\$OCP_ARCH (eg., next-v4.14-x86_64)
   --install-operator <NAME>    : Install operator named \$NAME after creating CatalogSource
 
-Developer Hub Examples:
+Examples:
   $0 \\
-  --latest --install-operator rhdh # RC release in progess (from stable branch)
+  --install-operator rhdh # RC release in progess (from latest tag and stable branch )
 
   $0 \\
-  --next --install-operator rhdh   # CI future release (from main branch)
+  --next --install-operator rhdh   # CI future release (from next tag and upstream main branch)
 "
 }
 
@@ -101,8 +101,8 @@ done
 TMPDIR=$(mktemp -d)
 trap "rm -fr $TMPDIR" EXIT
 
-# Add ImageContentSourcePolicy to let resolve references to images not on quay as if from quay.io
-echo "[INFO] Adding ISCP to let resolve references to images not on Quay as if from quay.io"
+# Add ImageContentSourcePolicy to resolve references to images not on quay as if from quay.io
+echo "[INFO] Adding ISCP to resolve references to images not on quay.io as if from quay.io"
 ICSP_URL="quay.io/rhdh/"
 ICSP_URL_PRE=${ICSP_URL%%/*}
 # echo "[DEBUG] ${ICSP_URL_PRE}, ${ICSP_URL_PRE//./-}, ${ICSP_URL}"
