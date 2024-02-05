@@ -27,7 +27,9 @@ $ rm -f /tmp/my-global-pull-secret.yaml
 $ cd /tmp
 $ curl -sSLO https://raw.githubusercontent.com/janus-idp/operator/main/.rhdh/scripts/install-rhdh-catalog-source.sh
 $ chmod +x install-rhdh-catalog-source.sh
-$ ./install-rhdh-catalog-source.sh --latest
+$ ./install-rhdh-catalog-source.sh --latest # install only the catalog source
+# or
+$ ./install-rhdh-catalog-source.sh --latest --install-operator rhdh  # install catalog source and operator subscription
 ----
 
-. In the *Administrator* perspective of the OpenShift web console, go to *Operators* → *OperatorHub*, search for Red Hat Developer Hub, and install the Red Hat Developer Hub Operator. For more info, see link:https://docs.openshift.com/container-platform/4.14/operators/admin/olm-adding-operators-to-cluster.html#olm-installing-from-operatorhub-using-web-console_olm-adding-operators-to-a-cluster[Installing from OperatorHub using the web console].
+. If you did not create a subscription in the previous step, you can do so now. In the *Administrator* perspective of the OpenShift web console, go to *Operators* → *OperatorHub*, search for Red Hat Developer Hub, and install the Red Hat Developer Hub Operator. For more info, see link:https://docs.openshift.com/container-platform/4.14/operators/admin/olm-adding-operators-to-cluster.html#olm-installing-from-operatorhub-using-web-console_olm-adding-operators-to-a-cluster[Installing from OperatorHub using the web console].
