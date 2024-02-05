@@ -49,10 +49,10 @@ Options:
 
 Examples:
   $0 \\
-  --install-operator rhdh # RC release in progess (from latest tag and stable branch )
+    --install-operator rhdh # RC release in progess (from latest tag and stable branch )
 
   $0 \\
-  --next --install-operator rhdh   # CI future release (from next tag and upstream main branch)
+    --next --install-operator rhdh   # CI future release (from next tag and upstream main branch)
 "
 }
 
