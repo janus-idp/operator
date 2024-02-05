@@ -214,7 +214,7 @@ metadata:
   namespace: ${NAMESPACE_SUBSCRIPTION}
 spec:
   channel: $OLM_CHANNEL
-  installPlanApproval: $INSTALL_PLAN_APPROVAL
+  installPlanApproval: Automatic
   name: $TO_INSTALL
   source: ${CATALOGSOURCE_NAME}
   sourceNamespace: ${NAMESPACE_CATALOGSOURCE}
