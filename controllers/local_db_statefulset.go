@@ -18,6 +18,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"os"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -219,9 +220,12 @@ func (r *BackstageReconciler) patchLocalDbStatefulSetObj(statefulSet *appsv1.Sta
 
 func (r *BackstageReconciler) setDefaultStatefulSetImage(statefulSet *appsv1.StatefulSet) {
 	visitContainers(&statefulSet.Spec.Template, func(container *v1.Container) {
-		if len(container.Image) == 0 || container.Image == fmt.Sprintf("<%s>", bs.EnvPostGresImage) {
-			container.Image = r.PsqlImage
+		if val, ok := os.LookupEnv(EnvPostgresImage); ok {
+			container.Image = val
 		}
+		//if len(container.Image) == 0 || container.Image == fmt.Sprintf("<%s>", bs.EnvPostgresImage) {
+		//	container.Image = r.PsqlImage
+		//}
 	})
 }
 
