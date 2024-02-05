@@ -55,7 +55,6 @@ func (p *SecretEnvs) EmptyObject() client.Object {
 // implementation of RuntimeObject interface
 func (p *SecretEnvs) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
 	model.setRuntimeObject(p)
-
 	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretenvs"))
 }
 
@@ -64,8 +63,8 @@ func (p *SecretEnvs) validate(model *BackstageModel) error {
 	return nil
 }
 
-// implementation of BackstagePodContributor interface
-func (p *SecretEnvs) updateBackstagePod(pod *backstagePod) {
+// implementation of PodContributor interface
+func (p *SecretEnvs) updatePod(pod *backstagePod) {
 	if p.Key == "" {
 		pod.addContainerEnvFrom(corev1.EnvFromSource{
 			SecretRef: &corev1.SecretEnvSource{

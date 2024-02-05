@@ -57,8 +57,8 @@ func (p *ConfigMapEnvs) validate(model *BackstageModel) error {
 	return nil
 }
 
-// implementation of BackstagePodContributor interface
-func (p *ConfigMapEnvs) updateBackstagePod(pod *backstagePod) {
+// implementation of PodContributor interface
+func (p *ConfigMapEnvs) updatePod(pod *backstagePod) {
 
 	if p.Key == "" {
 		pod.addContainerEnvFrom(corev1.EnvFromSource{

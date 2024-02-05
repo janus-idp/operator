@@ -61,8 +61,8 @@ func (p *DynamicPlugins) addToModel(model *BackstageModel, backstageMeta v1alpha
 
 }
 
-// implementation of BackstagePodContributor interface
-func (p *DynamicPlugins) updateBackstagePod(pod *backstagePod) {
+// implementation of PodContributor interface
+func (p *DynamicPlugins) updatePod(pod *backstagePod) {
 
 	//it relies on implementation where dynamic-plugin initContainer
 	//uses specified ConfigMap for producing app-config with dynamic-plugins

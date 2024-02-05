@@ -52,23 +52,22 @@ type ObjectFactory interface {
 
 // Abstraction for the model Backstage object taking part in deployment
 type RuntimeObject interface {
-	// underlying Kubernetes object
+	// Object underlying Kubernetes object
 	Object() client.Object
-	// Inits metadata. Typically used to set/change object name, labels, selectors to ensure integrity
-	//setMetaInfo(backstageMeta bsv1alpha1.Backstage, ownsRuntime bool)
-	// needed only for check if Object exists to call KubeClient.Get() and it should be garbage collected right away
+	// EmptyObject an empty object the same kind as Object
 	EmptyObject() client.Object
-	// (For some types Backstage objects), adds it to the model
+	// adds runtime object to the model and generates default metadata for future applying
 	addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool)
 	// at this stage all the information is updated
-	// set the final references validates the object at the end of initialization (after 3 phases)
+	// set the final references validates the object at the end of initialization
 	validate(model *BackstageModel) error
 }
 
-// RuntimeObject contributing to Backstage pod. Usually app-config related
-type BackstagePodContributor interface {
+// PodContributor contributing to the pod as an Environment variables or mounting file/directory.
+// Usually app-config related
+type PodContributor interface {
 	RuntimeObject
-	updateBackstagePod(pod *backstagePod)
+	updatePod(pod *backstagePod)
 }
 
 // RuntimeObject contributing to Local DB pod

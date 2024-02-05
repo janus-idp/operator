@@ -65,9 +65,9 @@ func (b *AppConfig) validate(model *BackstageModel) error {
 	return nil
 }
 
-// implementation of BackstagePodContributor interface
+// implementation of PodContributor interface
 // it contrubutes to Volumes, container.VolumeMounts and contaiter.Args
-func (b *AppConfig) updateBackstagePod(pod *backstagePod) {
+func (b *AppConfig) updatePod(pod *backstagePod) {
 
 	volName := utils.GenerateVolumeNameFromCmOrSecret(b.ConfigMap.Name)
 

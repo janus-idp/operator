@@ -62,8 +62,8 @@ func (p *ConfigMapFiles) validate(model *BackstageModel) error {
 	return nil
 }
 
-// implementation of BackstagePodContributor interface
-func (p *ConfigMapFiles) updateBackstagePod(pod *backstagePod) {
+// implementation of PodContributor interface
+func (p *ConfigMapFiles) updatePod(pod *backstagePod) {
 
 	volName := utils.GenerateVolumeNameFromCmOrSecret(p.ConfigMap.Name)
 
@@ -79,18 +79,6 @@ func (p *ConfigMapFiles) updateBackstagePod(pod *backstagePod) {
 	})
 
 	vm := corev1.VolumeMount{Name: volName, MountPath: filepath.Join(p.MountPath, p.ConfigMap.Name, p.Key), SubPath: p.Key}
-	//if p.Key != "" {
-	//vm.SubPath = p.Key
-	//}
 	pod.container.VolumeMounts = append(pod.container.VolumeMounts, vm)
 
-	//for file := range p.ConfigMap.Data {
-	//	if p.Key == "" || (p.Key == file) {
-	//		pod.appendContainerVolumeMount(corev1.VolumeMount{
-	//			Name:      volName,
-	//			MountPath: filepath.Join(p.MountPath, file),
-	//			SubPath:   file,
-	//		})
-	//	}
-	//}
 }

@@ -54,9 +54,7 @@ func (p *SecretFiles) EmptyObject() client.Object {
 // implementation of RuntimeObject interface
 func (p *SecretFiles) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
 	model.setRuntimeObject(p)
-
 	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretfiles"))
-
 }
 
 // implementation of RuntimeObject interface
@@ -64,8 +62,8 @@ func (p *SecretFiles) validate(model *BackstageModel) error {
 	return nil
 }
 
-// implementation of BackstagePodContributor interface
-func (p *SecretFiles) updateBackstagePod(pod *backstagePod) {
+// implementation of PodContributor interface
+func (p *SecretFiles) updatePod(pod *backstagePod) {
 
 	volName := utils.GenerateVolumeNameFromCmOrSecret(p.Secret.Name)
 

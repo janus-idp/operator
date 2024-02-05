@@ -104,8 +104,8 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 
 	// init default meta info (name, namespace, owner) and update Backstage Pod with contributions (volumes, container)
 	for _, bso := range model.RuntimeObjects {
-		if bs, ok := bso.(BackstagePodContributor); ok {
-			bs.updateBackstagePod(backstagePod)
+		if bs, ok := bso.(PodContributor); ok {
+			bs.updatePod(backstagePod)
 		}
 	}
 
@@ -147,7 +147,7 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 
 	// contribute to Backstage config
 	for _, v := range backstageSpec.ConfigObjects {
-		v.updateBackstagePod(backstagePod)
+		v.updatePod(backstagePod)
 	}
 
 	// set generic metainfo and validate all

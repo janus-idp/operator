@@ -26,10 +26,10 @@ type DetailedBackstageSpec struct {
 	//LocalDbSecret    DbSecret
 }
 
-// array of BackstagePodContributor interfaces
-type backstageConfigs []BackstagePodContributor
+// array of PodContributor interfaces
+type backstageConfigs []PodContributor
 
-func (a *DetailedBackstageSpec) AddConfigObject(obj BackstagePodContributor) {
+func (a *DetailedBackstageSpec) AddConfigObject(obj PodContributor) {
 	a.ConfigObjects = append(a.ConfigObjects, obj)
 }
 
