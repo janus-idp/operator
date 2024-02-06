@@ -50,20 +50,20 @@ declare my_operator_index="${my_registry}/${prod_operator_package_name}/${my_ope
 declare my_catalog=${prod_operator_package_name}-disconnected-install
 declare k8s_resource_name=${my_catalog}
 
-# from https://docs.openshift.com/container-platform/4.14/registry/securing-exposing-registry.html
-echo "[INFO] Expose the default registry and log in ..."
-oc patch configs.imageregistry.operator.openshift.io/cluster --patch '{"spec":{"defaultRoute":true}}' --type=merge
-HOST=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}')
-echo "[INFO] Default registry is $HOST"
-my_registry="$HOST"
+## from https://docs.openshift.com/container-platform/4.14/registry/securing-exposing-registry.html
+#echo "[INFO] Expose the default registry and log in ..."
+#oc patch configs.imageregistry.operator.openshift.io/cluster --patch '{"spec":{"defaultRoute":true}}' --type=merge
+#HOST=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}')
+#echo "[INFO] Default registry is $HOST"
+#my_registry="$HOST"
 
 # if able to run sudo and update your ca trust store
 # oc get secret -n openshift-ingress  router-certs-default -o go-template='{{index .data "tls.crt"}}' | base64 -d | sudo tee /etc/pki/ca-trust/source/anchors/${HOST}.crt  > /dev/null
 # sudo update-ca-trust enable
 # sudo podman login -u kubeadmin -p "$(oc whoami -t)" "$HOST"
 
-# else just login with tls disabled
-podman login -u kubeadmin -p "$(oc whoami -t)" --tls-verify=false "$HOST"
+## else just login with tls disabled
+#podman login -u kubeadmin -p "$(oc whoami -t)" --tls-verify=false "$HOST"
 
 # Create local directory
 mkdir -p "${my_catalog}/${prod_operator_package_name}"
@@ -105,7 +105,7 @@ echo "[INFO] Deploying your catalog image to the $my_operator_index registry."
 ### TODO fix this step or switch to oc adm catalog mirror?
 # https://docs.openshift.com/container-platform/4.14/installing/disconnected_install/installing-mirroring-installation-images.html#installation-images-samples-disconnected-mirroring-assist_installing-mirroring-installation-images ?
 # FATA[0010] writing manifest: uploading manifest v1.1.0 to default-route-openshift-image-registry.apps.ci-ln-x0yk982-72292.origin-ci-int-gce.dev.rhcloud.com/rhdh/rhdh-index: denied 
-# skopeo copy --src-tls-verify=false --dest-tls-verify=false --all "containers-storage:$my_operator_index" "docker://$my_operator_index"
+skopeo copy --src-tls-verify=false --dest-tls-verify=false --all "containers-storage:$my_operator_index" "docker://$my_operator_index"
 
 echo "[INFO] Removing index image from mappings.txt to prepare mirroring."
 oc adm catalog mirror "$my_operator_index" "$my_registry" --insecure --manifests-only | tee catalog_mirror.log
