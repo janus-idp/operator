@@ -24,7 +24,7 @@ set -e
 #   --prod_operator_package_name "devspaces" \
 #   --prod_operator_bundle_name "rhdh-operator" \
 #   --prod_operator_version "v1.1.0" \
-#   --my_registry "$INTERNAL_REGISTRY_URL"
+#   --use_existing_mirror_registry "$MY_MIRROR_REGISTRY"
 while [ $# -gt 0 ]; do
   if [[ $1 == *"--"* ]]; then
     param="${1/--/}"
@@ -43,27 +43,234 @@ declare prod_operator_bundle_name="rhdh-operator"
 declare prod_operator_version="${prod_operator_version:?Must set --prod_operator_version: for stable channel, use v1.1.0; for stable-1.1 channel, use v1.1.1}" # eg., v1.1.0 or v1.1.1
 
 # Destination registry
-declare my_registry="${my_registry:?Must set --my_registry: something like 'default-route-openshift-image-registry.apps.ci-ln-x0yk982-72292.origin-ci-int-gce.dev.rhcloud.com' for your cluster}"
 declare my_operator_index_image_name_and_tag=${prod_operator_package_name}-index:${prod_operator_version}
-declare my_operator_index="${my_registry}/${prod_operator_package_name}/${my_operator_index_image_name_and_tag}"
 
 declare my_catalog=${prod_operator_package_name}-disconnected-install
 declare k8s_resource_name=${my_catalog}
 
-## from https://docs.openshift.com/container-platform/4.14/registry/securing-exposing-registry.html
-#echo "[INFO] Expose the default registry and log in ..."
-#oc patch configs.imageregistry.operator.openshift.io/cluster --patch '{"spec":{"defaultRoute":true}}' --type=merge
-#HOST=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}')
-#echo "[INFO] Default registry is $HOST"
-#my_registry="$HOST"
+# Check we're logged into a cluster
+if ! oc whoami > /dev/null 2>&1; then
+  errorf "Not logged into an OpenShift cluster"
+  exit 1
+fi
+# log into your OCP cluster before running this or you'll get null values for OCP vars!
+OCP_VER="$(oc version -o json | jq -r '.openshiftVersion')"
+OCP_ARCH="$(oc version -o json | jq -r '.serverVersion.platform' | sed -r -e "s#linux/##")"
+if [[ $OCP_ARCH == "amd64" ]]; then OCP_ARCH="x86_64"; fi
 
-# if able to run sudo and update your ca trust store
-# oc get secret -n openshift-ingress  router-certs-default -o go-template='{{index .data "tls.crt"}}' | base64 -d | sudo tee /etc/pki/ca-trust/source/anchors/${HOST}.crt  > /dev/null
-# sudo update-ca-trust enable
-# sudo podman login -u kubeadmin -p "$(oc whoami -t)" "$HOST"
+function deploy_mirror_registry() {
+    echo "[INFO] Deploying mirror registry..." >&2
+    local namespace="airgap-helper-ns"
+    local image="registry:2"
+    local storage_capacity="30Gi"
+    local username="registryuser"
+    local password=$(echo "$RANDOM" | base64 | head -c 20)
 
-## else just login with tls disabled
-#podman login -u kubeadmin -p "$(oc whoami -t)" --tls-verify=false "$HOST"
+    if ! oc get namespace "${namespace}" &> /dev/null; then
+      echo "  namespace ${namespace} does not exist - creating it..." >&2
+      oc create namespace "${namespace}" >&2
+    fi
+
+    registry_htpasswd=$(htpasswd -Bbn "${username}" "${password}")
+    echo "  generating auth secret for mirror registry. FYI, those creds will be stored in a secret named 'airgap-registry-auth-creds' in ${namespace} ..." >&2
+    cat <<EOF | oc apply -f - >&2
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: airgap-registry-auth
+  namespace: "${namespace}"
+  labels:
+    app: airgap-registry
+stringData:
+  htpasswd: "${registry_htpasswd}"
+EOF
+    cat <<EOF | oc apply -f - >&2
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: airgap-registry-auth-creds
+  namespace: "${namespace}"
+  labels:
+    app: airgap-registry
+stringData:
+  username: "${username}"
+  password: "${password}"
+EOF
+
+    if [ -z "$storage_class" ]; then
+      # use default storage class
+      storage_class=$(oc get storageclasses -o=jsonpath='{.items[?(@.metadata.annotations.storageclass\.kubernetes\.io/is-default-class=="true")].metadata.name}')
+    fi
+    echo "  creating PVC for mirror registry, using ${storage_class} as storage class: persistentvolumeclaim/airgap-registry-storage ..." >&2
+    cat <<EOF | oc apply -f - >&2
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: airgap-registry-storage
+  namespace: "${namespace}"
+spec:
+  resources:
+    requests:
+      storage: "${storage_capacity}"
+  storageClassName: "${storage_class}"
+  accessModes:
+    - ReadWriteOnce
+EOF
+
+    echo "  creating mirror registry Deployment: deployment/airgap-registry ..." >&2
+    cat <<EOF | oc apply -f - >&2
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airgap-registry
+  namespace: "${namespace}"
+  labels:
+    app: airgap-registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: airgap-registry
+  template:
+    metadata:
+      labels:
+        app: airgap-registry
+    spec:
+      # -----------------------------------------------------------------------
+      containers:
+        - image: "${image}"
+          name: airgap-registry
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: REGISTRY_AUTH
+              value: "htpasswd"
+            - name: REGISTRY_AUTH_HTPASSWD_REALM
+              value: "RHDH Private Registry"
+            - name: REGISTRY_AUTH_HTPASSWD_PATH
+              value: "/auth/htpasswd"
+            - name: REGISTRY_STORAGE_DELETE_ENABLED
+              value: "true"
+#            - name: REGISTRY_HTTP_TLS_CERTIFICATE
+#              value: "/certs/tls.crt"
+#            - name: REGISTRY_HTTP_TLS_KEY
+#              value: "/certs/tls.key"
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - name: registry-vol
+              mountPath: /var/lib/registry
+#            - name: tls-vol
+#              mountPath: /certs
+#              readOnly: true
+            - name: auth-vol
+              mountPath: "/auth"
+              readOnly: true
+      # -----------------------------------------------------------------------
+      volumes:
+        - name: registry-vol
+          persistentVolumeClaim:
+            claimName: airgap-registry-storage
+#        - name: tls-vol
+#          secret:
+#            secretName: airgap-registry-certificate
+        - name: auth-vol
+          secret:
+            secretName: airgap-registry-auth
+EOF
+
+    echo "  creating mirror registry Service: service/airgap-registry ..." >&2
+    cat <<EOF | oc apply -f - >&2
+apiVersion: v1
+kind: Service
+metadata:
+  name: airgap-registry
+  namespace: "${namespace}"
+  labels:
+    app: airgap-registry
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5000
+      protocol: TCP
+      targetPort: 5000
+  selector:
+    app: airgap-registry
+EOF
+
+    echo "  creating Route to access mirror registry: route/airgap-registry ..." >&2
+    oc -n "${namespace}" create route edge --service=airgap-registry --insecure-policy=Redirect --dry-run=client -o yaml \
+      | oc -n "${namespace}" apply -f - >&2
+
+    local registry_url=$(oc get route airgap-registry -n "${namespace}" --template='{{ .spec.host }}')
+    echo "... done. Mirror registry should now be reachable at: ${registry_url} ..." >&2
+
+    # Wait until url is ready
+    echo "[INFO] Waiting for mirror registry to be ready and reachable ..." >&2
+    curl --insecure -IL "${registry_url}" --retry 100 --retry-all-errors --retry-max-time 900 --fail &> /tmp/"${registry_url}.log" >&2
+
+    echo "[INFO] Log into mirror registry to be able to push images to it..." >&2
+    podman login -u="${username}" -p="${password}" "${registry_url}" --tls-verify=false >&2
+
+    echo "[INFO] Marking mirror registry as insecure in the cluster ..." >&2
+    oc patch image.config.openshift.io/cluster --patch '{"spec":{"registrySources":{"insecureRegistries":["'${registry_url}'"]}}}' --type=merge >&2
+
+    echo "[INFO] Adding mirror registry creds to cluster global pull secret ..." >&2
+    echo "  downloading global pull secret from the cluster ..." >&2
+    oc get secret/pull-secret -n openshift-config --template='{{index .data ".dockerconfigjson" | base64decode}}' > /tmp/my-global-pull-secret-for-mirror-reg.yaml
+    echo "   log into mirror registry and store creds into the pull secret downloaded..." >&2
+    oc registry login \
+      --insecure=true \
+      --registry="${registry_url}" \
+      --auth-basic="${username}:${password}" \
+      --to=/tmp/my-global-pull-secret-for-mirror-reg.yaml \
+       >&2
+    echo "  writing updated pull secret into the cluster ..." >&2
+    oc set data secret/pull-secret -n openshift-config --from-file=.dockerconfigjson=/tmp/my-global-pull-secret-for-mirror-reg.yaml >&2
+
+    # Need to mirror OCP release images, otherwise ImagePullBackOff when installing the operator:
+    # unable to pull quay.io/openshift-release-dev/ocp-v4.0-art-dev@...
+    echo "[INFO] Mirroring OCP release images ..." >&2
+    local ocp_product_repo='openshift-release-dev'
+    local ocp_release_name="ocp-release"
+    local ocp_local_repo="ocp/openshift"
+    oc adm release mirror -a /tmp/my-global-pull-secret-for-mirror-reg.yaml \
+      --from="quay.io/${ocp_product_repo}/${ocp_release_name}:${OCP_VER}-${OCP_ARCH}" \
+      --to="${registry_url}/${ocp_local_repo}" \
+      --to-release-image="${registry_url}/${ocp_local_repo}:${OCP_VER}-${OCP_ARCH}" \
+      --insecure=true > /tmp/oc-adm-release-mirror__mirror-registry.out
+    echo "  creating ImageContentSourcePolicy for OCP release images: imagecontentsourcepolicy/ocp-release ..." >&2
+    cat <<EOF | oc apply -f - >&2
+apiVersion: operator.openshift.io/v1alpha1
+kind: ImageContentSourcePolicy
+metadata:
+  name: ocp-release
+  labels:
+    app: airgap-registry
+spec:
+  repositoryDigestMirrors:
+  - mirrors:
+    - "${registry_url}/${ocp_local_repo}"
+    source: quay.io/openshift-release-dev/ocp-release
+  - mirrors:
+    - "${registry_url}/${ocp_local_repo}"
+    source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+EOF
+
+    echo "[INFO] Cleaning up temporary files ..." >&2
+    rm -f /tmp/my-global-pull-secret-for-mirror-reg.yaml /tmp/oc-adm-release-mirror__mirror-registry.out >&2
+
+    echo "[INFO] Mirror registry should be ready: ${registry_url}" >&2
+    echo "${registry_url}"
+}
+
+declare my_registry="${use_existing_mirror_registry}"
+if [ -z "${my_registry}" ]; then
+  my_registry=$(deploy_mirror_registry)
+fi
+
+declare my_operator_index="${my_registry}/${prod_operator_package_name}/${my_operator_index_image_name_and_tag}"
 
 # Create local directory
 mkdir -p "${my_catalog}/${prod_operator_package_name}"
@@ -101,10 +308,6 @@ oc patch OperatorHub cluster --type json \
     --patch '[{"op": "add", "path": "/spec/disableAllDefaultSources", "value": true}]'
 
 echo "[INFO] Deploying your catalog image to the $my_operator_index registry."
-# See: https://docs.openshift.com/container-platform/latest/installing/disconnected_install/installing-mirroring-installation-images.html#olm-mirroring-catalog_installing-mirroring-installation-images
-### TODO fix this step or switch to oc adm catalog mirror?
-# https://docs.openshift.com/container-platform/4.14/installing/disconnected_install/installing-mirroring-installation-images.html#installation-images-samples-disconnected-mirroring-assist_installing-mirroring-installation-images ?
-# FATA[0010] writing manifest: uploading manifest v1.1.0 to default-route-openshift-image-registry.apps.ci-ln-x0yk982-72292.origin-ci-int-gce.dev.rhcloud.com/rhdh/rhdh-index: denied 
 skopeo copy --src-tls-verify=false --dest-tls-verify=false --all "containers-storage:$my_operator_index" "docker://$my_operator_index"
 
 echo "[INFO] Removing index image from mappings.txt to prepare mirroring."
