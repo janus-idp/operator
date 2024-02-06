@@ -302,12 +302,12 @@ func (r *BackstageReconciler) labels(meta *v1.ObjectMeta, backstage bs.Backstage
 // SetupWithManager sets up the controller with the Manager.
 func (r *BackstageReconciler) SetupWithManager(mgr ctrl.Manager, log logr.Logger) error {
 
-	const imageNotSet = "environment variable %s is not set, default will be used"
+	const imageNotSet = "environment variable is not set, default will be used:"
 	if _, ok := os.LookupEnv(EnvPostgresImage); !ok {
-		log.Info(imageNotSet, EnvPostgresImage)
+		log.Info(imageNotSet, "", EnvPostgresImage)
 	}
 	if _, ok := os.LookupEnv(EnvBackstageImage); !ok {
-		log.Info(imageNotSet, EnvBackstageImage)
+		log.Info(imageNotSet, "", EnvBackstageImage)
 	}
 
 	builder := ctrl.NewControllerManagedBy(mgr).
