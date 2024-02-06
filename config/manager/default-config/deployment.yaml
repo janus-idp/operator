@@ -37,7 +37,7 @@ spec:
             - name: NPM_CONFIG_USERCONFIG
               value: /opt/app-root/src/.npmrc.dynamic-plugins
           #image: <RELATED_IMAGE_backstage> # will be replaced with the actual image quay.io/janus-idp/backstage-showcase:next
-          image: quay.io/janus-idp/backstage-showcase:next
+          image: quay.io/janus-idp/backstage-showcase:latest
           imagePullPolicy: IfNotPresent
           name: install-dynamic-plugins
           volumeMounts:
@@ -51,7 +51,7 @@ spec:
 
       containers:
         - name: backstage-backend
-          image: quay.io/janus-idp/backstage-showcase:next
+          image: quay.io/janus-idp/backstage-showcase:latest
           imagePullPolicy: IfNotPresent
           args:
             - "--config"
