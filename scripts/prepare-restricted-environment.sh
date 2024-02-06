@@ -118,6 +118,10 @@ echo "[INFO] Mirroring related images to the $my_registry registry."
 while IFS= read -r line
 do
   public_image=$(echo "${line}" | cut -d '=' -f1)
+  if [[ "$public_image" == registry.redhat.io/rhdh/* ]]; then
+    # CI Builds not public yet
+    public_image=${public_image/registry.redhat.io/quay.io}
+  fi
   private_image=$(echo "${line}" | cut -d '=' -f2)
   echo "[INFO] Mirroring ${public_image}"
   skopeo copy --dest-tls-verify=false --preserve-digests --all "docker://$public_image" "docker://$private_image"
