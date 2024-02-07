@@ -323,9 +323,13 @@ echo "[INFO] Mirroring related images to the $my_registry registry."
 while IFS= read -r line
 do
   public_image=$(echo "${line}" | cut -d '=' -f1)
-  if [[ "$public_image" == registry.redhat.io/rhdh/* ]]; then
-    # CI Builds not public yet
-    public_image=${public_image/registry.redhat.io/quay.io}
+  if [[ "$prod_operator_index" != registry.redhat.io/redhat/redhat-operator-index* ]] && [[ "$public_image" == registry.redhat.io/rhdh/* ]]; then
+    if ! skopeo inspect "docker://$public_image" &> /dev/null; then
+      # likely CI build, which is not public yet
+      echo "  Replacing non-public CI image $public_image ..."
+      public_image=${public_image/registry.redhat.io\/rhdh/quay.io\/rhdh}
+      echo "    => $public_image"
+    fi
   fi
   private_image=$(echo "${line}" | cut -d '=' -f2)
   echo "[INFO] Mirroring ${public_image}"
