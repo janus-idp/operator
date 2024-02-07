@@ -11,13 +11,6 @@
 # Fail on error
 set -e
 
-# INTERNAL_REGISTRY_URL, eg 'ec2-3-12-71-143.us-east-2.compute.amazonaws.com:5000' or 'default-route-openshift-image-registry.apps.ci-ln-x0yk982-72292.origin-ci-int-gce.dev.rhcloud.com'
-# INTERNAL_REG_USERNAME, eg., dummy
-# INTERNAL_REG_PASSWORD, eg., dummy
-
-# podman login registry.redhat.io -u ${RRIO_USERNAME} -p ${RRIO_PASSWORD}
-# podman login ${INTERNAL_REGISTRY_URL} -u ${INTERNAL_REG_USERNAME} -p ${INTERNAL_REG_PASSWORD} --tls-verify=false
-
 # example usage:
 # ./prepare-restricted-environment.sh \
 #   --prod_operator_index "registry.redhat.io/redhat/redhat-operator-index:v4.14" \
@@ -155,18 +148,11 @@ spec:
               value: "/auth/htpasswd"
             - name: REGISTRY_STORAGE_DELETE_ENABLED
               value: "true"
-#            - name: REGISTRY_HTTP_TLS_CERTIFICATE
-#              value: "/certs/tls.crt"
-#            - name: REGISTRY_HTTP_TLS_KEY
-#              value: "/certs/tls.key"
           ports:
             - containerPort: 5000
           volumeMounts:
             - name: registry-vol
               mountPath: /var/lib/registry
-#            - name: tls-vol
-#              mountPath: /certs
-#              readOnly: true
             - name: auth-vol
               mountPath: "/auth"
               readOnly: true
@@ -175,9 +161,6 @@ spec:
         - name: registry-vol
           persistentVolumeClaim:
             claimName: airgap-registry-storage
-#        - name: tls-vol
-#          secret:
-#            secretName: airgap-registry-certificate
         - name: auth-vol
           secret:
             secretName: airgap-registry-auth
