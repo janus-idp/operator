@@ -23,6 +23,9 @@ However, if you are preparing your cluster for disconnected usage, the script ca
 * `podman`. See link:https://podman.io/docs/installation[Podman Installation Instructions].
 * `skopeo` version 1.14 or higher. See link:https://github.com/containers/skopeo/blob/main/install.md[Installing Skopeo].
 * If you already have a mirror registry for your cluster, an active `skopeo` session with administrative access to this registry is required. See link:https://github.com/containers/skopeo#authenticating-to-a-registry[Authenticating to a registry] and link:https://docs.openshift.com/container-platform/4.14/installing/disconnected_install/installing-mirroring-installation-images.html[Mirroring images for a disconnected installation].
++
+NOTE: The internal OpenShift cluster image registry cannot be used as target mirror registry. See link:https://docs.openshift.com/container-platform/4.14/installing/disconnected_install/installing-mirroring-installation-images.html#installation-about-mirror-registry_installing-mirroring-installation-images[About the mirror registry].
+* If you prefer to create your own mirror registry, refer to link:https://docs.openshift.com/container-platform/4.14/installing/disconnected_install/installing-mirroring-creating-registry.html[Creating a mirror registry with mirror registry for Red Hat OpenShift].
 * If you don't already have a mirror registry and want the helper script to create one for you:
 ** `curl`. On Red Hat Enterprise Linux, this is available by installing the `curl` package; for other platforms, see link:https://curl.se/[the cURL website].
 +
