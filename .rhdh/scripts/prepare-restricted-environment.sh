@@ -122,7 +122,8 @@ spec:
 EOF
 
     echo "  creating mirror registry Deployment: deployment/airgap-registry ..." >&2
-    cat <<EOF | oc apply -f - >&2
+    # Replacing because password might have changed if we run the script a second time
+    cat <<EOF | oc replace --force -f - >&2
 apiVersion: apps/v1
 kind: Deployment
 metadata:
