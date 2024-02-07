@@ -24,6 +24,7 @@ set -e
 #   --prod_operator_package_name "devspaces" \
 #   --prod_operator_bundle_name "rhdh-operator" \
 #   --prod_operator_version "v1.1.0" \
+#   --helper_mirror_registry_storage "30Gi" \
 #   --use_existing_mirror_registry "$MY_MIRROR_REGISTRY"
 while [ $# -gt 0 ]; do
   if [[ $1 == *"--"* ]]; then
@@ -44,6 +45,7 @@ declare prod_operator_version="${prod_operator_version:?Must set --prod_operator
 
 # Destination registry
 declare my_operator_index_image_name_and_tag=${prod_operator_package_name}-index:${prod_operator_version}
+declare helper_mirror_registry_storage=${helper_mirror_registry_storage:-"30Gi"}
 
 declare my_catalog=${prod_operator_package_name}-disconnected-install
 declare k8s_resource_name=${my_catalog}
@@ -62,7 +64,6 @@ function deploy_mirror_registry() {
     echo "[INFO] Deploying mirror registry..." >&2
     local namespace="airgap-helper-ns"
     local image="registry:2"
-    local storage_capacity="30Gi"
     local username="registryuser"
     local password=$(echo "$RANDOM" | base64 | head -c 20)
 
@@ -113,7 +114,7 @@ metadata:
 spec:
   resources:
     requests:
-      storage: "${storage_capacity}"
+      storage: "${helper_mirror_registry_storage}"
   storageClassName: "${storage_class}"
   accessModes:
     - ReadWriteOnce
