@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 
 	openshift "github.com/openshift/api/route/v1"
@@ -142,8 +143,8 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 	}
 	if backstageSpec.IsLocalDbEnabled() {
 		model.localDbStatefulSet.setDbEnvsFromSecret(dbSecretName)
+		backstagePod.setEnvsFromSecret(dbSecretName)
 	}
-	backstagePod.setEnvsFromSecret(dbSecretName)
 
 	// contribute to Backstage config
 	for _, v := range backstageSpec.ConfigObjects {
@@ -168,15 +169,25 @@ func (model *BackstageModel) addDefaultsAndRaw(backstageMeta bsv1alpha1.Backstag
 
 		// creating the instance of backstageObject
 		backstageObject := conf.ObjectFactory.newBackstageObject()
-		var defaultErr error
-		var overlayErr error
+		//var defaultErr error
+		//var overlayErr error
 
 		// reading default configuration defined in the default-config/[key] file
 		// mounted from the 'default-config' ConfigMap
 		// this is a cluster scope configuration applying to every Backstage CR by default
 		if err := utils.ReadYamlFile(utils.DefFile(conf.Key), backstageObject.Object()); err != nil {
-			defaultErr = fmt.Errorf("failed to read default value for the key %s, reason: %s", conf.Key, err)
+			if !errors.Is(err, os.ErrNotExist) {
+				//defaultErr = fmt.Errorf("failed to read default value for the key %s, reason: %s", conf.Key, err)
+				return fmt.Errorf("failed to read default value for the key %s, reason: %s", conf.Key, err)
+			}
+			//else {
+			//	fmt.Printf("ERR")
+			//	// file does not exist
+			//	//lg.V(1).Info("no default config for", "object", conf.Key)
+			//}
 			//lg.V(1).Info("failed reading default config", "error", err.Error())
+		} else {
+
 		}
 
 		// reading configuration defined in BackstageCR.Spec.RawConfigContent ConfigMap
@@ -184,32 +195,32 @@ func (model *BackstageModel) addDefaultsAndRaw(backstageMeta bsv1alpha1.Backstag
 		overlay, overlayExist := backstageSpec.RawConfigContent[conf.Key]
 		if overlayExist {
 			if err := utils.ReadYaml([]byte(overlay), backstageObject.Object()); err != nil {
-				overlayErr = fmt.Errorf("failed to read overlay value for the key %s, reason: %s", conf.Key, err)
+				//overlayErr = fmt.Errorf("failed to read overlay value for the key %s, reason: %s", conf.Key, err)
+				return fmt.Errorf("failed to read overlay value for the key %s, reason: %s", conf.Key, err)
 			}
 		}
 
-		// throw the error if raw configuration exists and is invalid
-		// throw the error if there is invalid or no configuration (default|raw) for Mandatory object
-		// continue if there is invalid or no configuration (default|raw) for Optional object
-		// TODO separate the case when configuration does not exist (intentionally) from invalid configuration
-		if overlayErr != nil || (!overlayExist && defaultErr != nil) {
-			if conf.need == Mandatory || (conf.need == ForLocalDatabase && backstageSpec.IsLocalDbEnabled()) {
-				return errors.Join(defaultErr, overlayErr)
-			} else {
-				//lg.V(1).Info("failed to read default value for optional key. Ignored \n", conf.Key, errors.Join(defaultErr, overlayErr))
-				continue
-			}
-		}
+		//// throw the error if raw configuration exists and is invalid
+		//// throw the error if there is invalid or no configuration (default|raw) for Mandatory object
+		//// continue if there is invalid or no configuration (default|raw) for Optional object
+		//if overlayErr != nil || (!overlayExist && defaultErr != nil) {
+		//	if conf.need == Mandatory || (conf.need == ForLocalDatabase && backstageSpec.IsLocalDbEnabled()) {
+		//		return errors.Join(defaultErr, overlayErr)
+		//	} else {
+		//		//lg.V(1).Info("failed to read default value for optional key. Ignored \n", conf.Key, errors.Join(defaultErr, overlayErr))
+		//		continue
+		//	}
+		//}
 
-		// do not add if ForLocalDatabase and LocalDb is disabled
-		if !backstageSpec.IsLocalDbEnabled() && conf.need == ForLocalDatabase {
-			continue
-		}
-
-		// do not add if ForOpenshift and (cluster is not Openshift OR route is not enabled in CR)
-		if conf.need == ForOpenshift && (!isOpenshift || !backstageSpec.IsRouteEnabled()) {
-			continue
-		}
+		//// do not add if ForLocalDatabase and LocalDb is disabled
+		//if !backstageSpec.IsLocalDbEnabled() && conf.need == ForLocalDatabase {
+		//	continue
+		//}
+		//
+		//// do not add if ForOpenshift and (cluster is not Openshift OR route is not enabled in CR)
+		//if conf.need == ForOpenshift && (!isOpenshift || !backstageSpec.IsRouteEnabled()) {
+		//	continue
+		//}
 
 		// finally add the object to the model and list
 		backstageObject.addToModel(model, backstageMeta, ownsRuntime)

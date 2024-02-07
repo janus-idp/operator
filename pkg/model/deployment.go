@@ -34,6 +34,7 @@ func (f BackstageDeploymentFactory) newBackstageObject() RuntimeObject {
 }
 
 type BackstageDeployment struct {
+	objectRef
 	deployment *appsv1.Deployment
 	pod        *backstagePod
 }

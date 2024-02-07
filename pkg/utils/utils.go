@@ -64,8 +64,11 @@ func ReadYaml(manifest []byte, object interface{}) error {
 }
 
 func ReadYamlFile(path string, object metav1.Object) error {
-
-	b, err := os.ReadFile(filepath.Clean(path))
+	fpath := filepath.Clean(path)
+	if _, err := os.Stat(fpath); err != nil {
+		return err
+	}
+	b, err := os.ReadFile(fpath)
 	if err != nil {
 		return fmt.Errorf("failed to read YAML file: %w", err)
 	}

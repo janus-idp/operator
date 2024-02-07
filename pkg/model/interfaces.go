@@ -46,6 +46,12 @@ type ObjectConfig struct {
 	need needType
 }
 
+type objectRef struct {
+	name        string
+	kind        string
+	initialized *bool
+}
+
 type ObjectFactory interface {
 	newBackstageObject() RuntimeObject
 }

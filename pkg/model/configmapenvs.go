@@ -48,6 +48,7 @@ func (p *ConfigMapEnvs) EmptyObject() client.Object {
 
 // implementation of RuntimeObject interface
 func (p *ConfigMapEnvs) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
+
 	model.setRuntimeObject(p)
 	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-configmapenvs"))
 }
@@ -78,25 +79,4 @@ func (p *ConfigMapEnvs) updatePod(pod *backstagePod) {
 			ValueFrom: envVarSource,
 		})
 	}
-
-	//if p.Key == "" || (p.Key == p.ConfigMap.Name) {
-	//	pod.addContainerEnvFrom(corev1.EnvFromSource{
-	//		ConfigMapRef: &corev1.ConfigMapEnvSource{
-	//			LocalObjectReference: corev1.LocalObjectReference{Name: p.ConfigMap.Name}}})
-	//}
-
-	//if p.Key == "" {
-	//	pod.addContainerEnvFrom(corev1.EnvFromSource{
-	//		ConfigMapRef: &corev1.ConfigMapEnvSource{
-	//			LocalObjectReference: corev1.LocalObjectReference{Name: p.ConfigMap.Name}}})
-	//} else if _, ok := p.ConfigMap.Data[p.Key]; ok {
-	//	pod.addContainerEnvVarSource(p.Key, &corev1.EnvVarSource{
-	//		ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-	//			LocalObjectReference: corev1.LocalObjectReference{
-	//				Name: p.ConfigMap.Name,
-	//			},
-	//			Key: p.Key,
-	//		},
-	//	})
-	//}
 }
