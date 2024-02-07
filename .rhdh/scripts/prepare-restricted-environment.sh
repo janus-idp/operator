@@ -56,7 +56,8 @@ if ! oc whoami > /dev/null 2>&1; then
   exit 1
 fi
 # log into your OCP cluster before running this or you'll get null values for OCP vars!
-OCP_VER="$(oc version -o json | jq -r '.openshiftVersion')"
+OCP_VER="$(oc version -o json | jq -r '.openshiftVersion' | sed -r -e "s#([0-9]+\.[0-9]+\.[0-9]+)-.+#\1#")"
+OCP_VER_MAJOR="$(oc version -o json | jq -r '.openshiftVersion' | sed -r -e "s#([0-9]+)\..+#\1#")"
 OCP_ARCH="$(oc version -o json | jq -r '.serverVersion.platform' | sed -r -e "s#linux/##")"
 if [[ $OCP_ARCH == "amd64" ]]; then OCP_ARCH="x86_64"; fi
 
@@ -230,7 +231,7 @@ EOF
     echo "  writing updated pull secret into the cluster ..." >&2
     oc set data secret/pull-secret -n openshift-config --from-file=.dockerconfigjson=/tmp/my-global-pull-secret-for-mirror-reg.yaml >&2
 
-    # Need to mirror OCP release images, otherwise ImagePullBackOff when installing the operator:
+    # Need to mirror OCP release images, otherwise ImagePullBackOff when installing the operator after disconnecting the cluster:
     # unable to pull quay.io/openshift-release-dev/ocp-v4.0-art-dev@...
     echo "[INFO] Mirroring OCP release images ..." >&2
     local ocp_product_repo='openshift-release-dev'
@@ -256,7 +257,7 @@ spec:
     source: quay.io/openshift-release-dev/ocp-release
   - mirrors:
     - "${registry_url}/${ocp_local_repo}"
-    source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+    source: "quay.io/openshift-release-dev/ocp-v${OCP_VER_MAJOR}.0-art-dev"
 EOF
 
     echo "[INFO] Cleaning up temporary files ..." >&2
