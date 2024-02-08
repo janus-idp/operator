@@ -26,7 +26,7 @@ import (
 type DbServiceFactory struct{}
 
 func (f DbServiceFactory) newBackstageObject() RuntimeObject {
-	return &DbService{service: &corev1.Service{}}
+	return &DbService{ /*service: &corev1.Service{}*/ }
 }
 
 type DbService struct {
@@ -34,7 +34,7 @@ type DbService struct {
 }
 
 func init() {
-	registerConfig("db-service.yaml", DbServiceFactory{}, ForLocalDatabase)
+	registerConfig("db-service.yaml", DbServiceFactory{})
 }
 
 func DbServiceName(backstageName string) string {
@@ -46,13 +46,33 @@ func (b *DbService) Object() client.Object {
 	return b.service
 }
 
+func (b *DbService) setObject(object client.Object) {
+	b.service = nil
+	if object != nil {
+		b.service = object.(*corev1.Service)
+	}
+}
+
 // implementation of RuntimeObject interface
-func (b *DbService) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
+func (b *DbService) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) error {
+	if b.service == nil {
+		if model.localDbEnabled {
+			return fmt.Errorf("LocalDb Service not initialized, make sure there is db-service.yaml.yaml in default or raw configuration")
+		}
+		return nil
+	} else {
+		if !model.localDbEnabled {
+			return nil
+		}
+	}
+
 	model.LocalDbService = b
 	model.setRuntimeObject(b)
 
-	b.service.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "db-service"))
+	b.service.SetName(DbServiceName(backstageMeta.Name))
 	utils.GenerateLabel(&b.service.Spec.Selector, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
+
+	return nil
 }
 
 // implementation of RuntimeObject interface

@@ -30,17 +30,16 @@ const BackstageImageEnvVar = "RELATED_IMAGE_backstage"
 type BackstageDeploymentFactory struct{}
 
 func (f BackstageDeploymentFactory) newBackstageObject() RuntimeObject {
-	return &BackstageDeployment{deployment: &appsv1.Deployment{}}
+	return &BackstageDeployment{ /*deployment: &appsv1.Deployment{}*/ }
 }
 
 type BackstageDeployment struct {
-	objectRef
 	deployment *appsv1.Deployment
 	pod        *backstagePod
 }
 
 func init() {
-	registerConfig("deployment.yaml", BackstageDeploymentFactory{}, Mandatory)
+	registerConfig("deployment.yaml", BackstageDeploymentFactory{})
 }
 
 func DeploymentName(backstageName string) string {
@@ -52,29 +51,47 @@ func (b *BackstageDeployment) Object() client.Object {
 	return b.deployment
 }
 
+func (b *BackstageDeployment) setObject(object client.Object) {
+	b.deployment = nil
+	if object != nil {
+		b.deployment = object.(*appsv1.Deployment)
+	}
+}
+
 // implementation of RuntimeObject interface
 func (b *BackstageDeployment) EmptyObject() client.Object {
 	return &appsv1.Deployment{}
 }
 
 // implementation of RuntimeObject interface
-func (b *BackstageDeployment) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
+func (b *BackstageDeployment) addToModel(model *BackstageModel, backstage bsv1alpha1.Backstage, ownsRuntime bool) error {
+	if b.deployment == nil {
+		return fmt.Errorf("Backstage Deployment is not initialized, make sure there is deployment.yaml in default or raw configuration")
+	}
 	model.backstageDeployment = b
 	model.setRuntimeObject(b)
 
-	b.deployment.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "deployment"))
-	utils.GenerateLabel(&b.deployment.Spec.Template.ObjectMeta.Labels, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageMeta.Name))
-	utils.GenerateLabel(&b.deployment.Spec.Selector.MatchLabels, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageMeta.Name))
+	b.deployment.SetName(utils.GenerateRuntimeObjectName(backstage.Name, "deployment"))
+	utils.GenerateLabel(&b.deployment.Spec.Template.ObjectMeta.Labels, backstageAppLabel, fmt.Sprintf("backstage-%s", backstage.Name))
+	utils.GenerateLabel(&b.deployment.Spec.Selector.MatchLabels, backstageAppLabel, fmt.Sprintf("backstage-%s", backstage.Name))
 
-}
+	// fill the Pod
+	// create Backstage Pod object
+	var err error
+	b.pod, err = newBackstagePod(model.backstageDeployment)
+	if err != nil {
+		return fmt.Errorf("failed to create Backstage Pod: %s", err)
+	}
 
-// implementation of RuntimeObject interface
-func (b *BackstageDeployment) validate(model *BackstageModel) error {
+	if backstage.Spec.Application != nil {
+		b.setReplicas(backstage.Spec.Application.Replicas)
+		b.pod.setImagePullSecrets(backstage.Spec.Application.ImagePullSecrets)
+		b.pod.setImage(backstage.Spec.Application.Image)
+		b.pod.addExtraEnvs(backstage.Spec.Application.ExtraEnvs)
+	}
+
 	// override image with env var
-	// [GA] TODO if we need this (and like this) feature
-	// we need to think about simple template engine
-	// for substitution env vars instead.
-	// Current implementation is not good
+	// [GA] TODO Do we need this feature?
 	if os.Getenv(BackstageImageEnvVar) != "" {
 		b.pod.container.Image = os.Getenv(BackstageImageEnvVar)
 		// TODO workaround for the (janus-idp, rhdh) case where we have
@@ -84,6 +101,27 @@ func (b *BackstageDeployment) validate(model *BackstageModel) error {
 			b.deployment.Spec.Template.Spec.InitContainers[i].Image = os.Getenv(BackstageImageEnvVar)
 		}
 	}
+
+	return nil
+}
+
+// implementation of RuntimeObject interface
+func (b *BackstageDeployment) validate(model *BackstageModel) error {
+	//for _, bso := range model.RuntimeObjects {
+	//	if bs, ok := bso.(PodContributor); ok {
+	//		bs.updatePod(b.pod)
+	//	}
+	//}
+	//if backstage.Spec.Application != nil {
+	//	// AppConfig
+	//	// DynaPlugins
+	//	// Ext (4)
+	//	// DbSecret
+	//}
+
+	//for _, v := range backstage.Spec.ConfigObjects {
+	//	v.updatePod(b.pod)
+	//}
 	return nil
 }
 

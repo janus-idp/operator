@@ -21,7 +21,7 @@ import (
 	"os"
 	"reflect"
 
-	openshift "github.com/openshift/api/route/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -45,12 +45,15 @@ var runtimeConfig []ObjectConfig
 
 // BackstageModel represents internal object model
 type BackstageModel struct {
+	localDbEnabled bool
+	isOpenshift    bool
+
 	backstageDeployment *BackstageDeployment
 	backstageService    *BackstageService
 
 	localDbStatefulSet *DbStatefulSet
 	LocalDbService     *DbService
-	//LocalDbSecret      *DbSecret
+	LocalDbSecret      *DbSecret
 
 	route *BackstageRoute
 
@@ -68,8 +71,8 @@ func (model *BackstageModel) setRuntimeObject(object RuntimeObject) {
 }
 
 // Registers config object
-func registerConfig(key string, factory ObjectFactory, need needType) {
-	runtimeConfig = append(runtimeConfig, ObjectConfig{Key: key, ObjectFactory: factory, need: need})
+func registerConfig(key string, factory ObjectFactory) {
+	runtimeConfig = append(runtimeConfig, ObjectConfig{Key: key, ObjectFactory: factory /*, need: need*/})
 }
 
 // InitObjects performs a main loop for configuring and making the array of objects to reconcile
@@ -84,71 +87,56 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 	lg := log.FromContext(ctx)
 	lg.V(1)
 
-	model := &BackstageModel{RuntimeObjects: make([]RuntimeObject, 0) /*, generateDbPassword: backstageSpec.GenerateDbPassword*/}
+	model := &BackstageModel{RuntimeObjects: make([]RuntimeObject, 0), localDbEnabled: backstageSpec.IsLocalDbEnabled(), isOpenshift: isOpenshift}
 
-	if err := model.addDefaultsAndRaw(backstageMeta, backstageSpec, ownsRuntime, isOpenshift); err != nil {
-		return nil, fmt.Errorf("failed to initialize objects %w", err)
-	}
+	// looping through the registered runtimeConfig objects initializing the model
+	for _, conf := range runtimeConfig {
 
-	if model.backstageDeployment == nil {
-		return nil, fmt.Errorf("failed to identify Backstage Deployment by %s, it should not happen normally", "deployment.yaml")
-	}
-	if backstageSpec.IsLocalDbEnabled() && model.localDbStatefulSet == nil {
-		return nil, fmt.Errorf("failed to identify Local DB StatefulSet by %s, it should not happen normally", "db-statefulset.yaml")
-	}
+		// creating the instance of backstageObject
+		backstageObject := conf.ObjectFactory.newBackstageObject()
 
-	// create Backstage Pod object
-	backstagePod, err := newBackstagePod(model.backstageDeployment)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Backstage Pod: %s", err)
+		var obj client.Object = backstageObject.EmptyObject()
+		if err := utils.ReadYamlFile(utils.DefFile(conf.Key), obj); err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				return nil, fmt.Errorf("failed to read default value for the key %s, reason: %s", conf.Key, err)
+			}
+
+		} else {
+			backstageObject.setObject(obj)
+		}
+
+		// reading configuration defined in BackstageCR.Spec.RawConfigContent ConfigMap
+		// if present, backstageObject's default configuration will be overridden
+		overlay, overlayExist := backstageSpec.RawConfigContent[conf.Key]
+		if overlayExist {
+			if err := utils.ReadYaml([]byte(overlay), obj); err != nil {
+				return nil, fmt.Errorf("failed to read overlay value for the key %s, reason: %s", conf.Key, err)
+			} else {
+				backstageObject.setObject(obj)
+			}
+		}
+
+		// apply spec and add the object to the model and list
+		if err := backstageObject.addToModel(model, backstageMeta, ownsRuntime); err != nil {
+			return nil, fmt.Errorf("failed to initialize %s reason: %s", backstageObject, err)
+		}
 	}
 
 	// init default meta info (name, namespace, owner) and update Backstage Pod with contributions (volumes, container)
 	for _, bso := range model.RuntimeObjects {
 		if bs, ok := bso.(PodContributor); ok {
-			bs.updatePod(backstagePod)
+			bs.updatePod(model.backstageDeployment.pod)
 		}
 	}
 
-	// Phase 3: process Backstage.spec, getting final desired state
-	if backstageSpec.Application != nil {
-		model.backstageDeployment.setReplicas(backstageSpec.Application.Replicas)
-		backstagePod.setImagePullSecrets(backstageSpec.Application.ImagePullSecrets)
-		backstagePod.setImage(backstageSpec.Application.Image)
-
-		backstagePod.addExtraEnvs(backstageSpec.Application.ExtraEnvs)
-
-	}
-
-	// Route...
-	// TODO: nicer proccessing
-	if isOpenshift && backstageSpec.IsRouteEnabled() && !backstageSpec.IsRouteEmpty() {
-		if model.route == nil {
-			br := BackstageRoute{route: &openshift.Route{}}
-			br.addToModel(model, backstageMeta, ownsRuntime)
-		}
-		model.route.patchRoute(*backstageSpec.Application.Route)
-	}
-
-	// Local DB Secret...
-	// if exists - initiated from existed, otherwise:
-	//  if specified - get from spec
-	//  if not specified - generate
-	// TODO
-	var dbSecretName string
-	if !backstageSpec.IsAuthSecretSpecified() {
-		dbSecretName = DbSecretDefaultName(backstageMeta.Name)
-	} else {
-		dbSecretName = backstageSpec.Database.AuthSecretName
-	}
 	if backstageSpec.IsLocalDbEnabled() {
-		model.localDbStatefulSet.setDbEnvsFromSecret(dbSecretName)
-		backstagePod.setEnvsFromSecret(dbSecretName)
+		model.localDbStatefulSet.setDbEnvsFromSecret(model.LocalDbSecret.secret.Name)
+		model.backstageDeployment.pod.setEnvsFromSecret(model.LocalDbSecret.secret.Name)
 	}
 
 	// contribute to Backstage config
 	for _, v := range backstageSpec.ConfigObjects {
-		v.updatePod(backstagePod)
+		v.updatePod(model.backstageDeployment.pod)
 	}
 
 	// set generic metainfo and validate all
@@ -161,72 +149,6 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 	}
 
 	return model, nil
-}
-
-func (model *BackstageModel) addDefaultsAndRaw(backstageMeta bsv1alpha1.Backstage, backstageSpec *DetailedBackstageSpec, ownsRuntime bool, isOpenshift bool) error {
-	// looping through the registered runtimeConfig objects initializing the model
-	for _, conf := range runtimeConfig {
-
-		// creating the instance of backstageObject
-		backstageObject := conf.ObjectFactory.newBackstageObject()
-		//var defaultErr error
-		//var overlayErr error
-
-		// reading default configuration defined in the default-config/[key] file
-		// mounted from the 'default-config' ConfigMap
-		// this is a cluster scope configuration applying to every Backstage CR by default
-		if err := utils.ReadYamlFile(utils.DefFile(conf.Key), backstageObject.Object()); err != nil {
-			if !errors.Is(err, os.ErrNotExist) {
-				//defaultErr = fmt.Errorf("failed to read default value for the key %s, reason: %s", conf.Key, err)
-				return fmt.Errorf("failed to read default value for the key %s, reason: %s", conf.Key, err)
-			}
-			//else {
-			//	fmt.Printf("ERR")
-			//	// file does not exist
-			//	//lg.V(1).Info("no default config for", "object", conf.Key)
-			//}
-			//lg.V(1).Info("failed reading default config", "error", err.Error())
-		} else {
-
-		}
-
-		// reading configuration defined in BackstageCR.Spec.RawConfigContent ConfigMap
-		// if present, backstageObject's default configuration will be overridden
-		overlay, overlayExist := backstageSpec.RawConfigContent[conf.Key]
-		if overlayExist {
-			if err := utils.ReadYaml([]byte(overlay), backstageObject.Object()); err != nil {
-				//overlayErr = fmt.Errorf("failed to read overlay value for the key %s, reason: %s", conf.Key, err)
-				return fmt.Errorf("failed to read overlay value for the key %s, reason: %s", conf.Key, err)
-			}
-		}
-
-		//// throw the error if raw configuration exists and is invalid
-		//// throw the error if there is invalid or no configuration (default|raw) for Mandatory object
-		//// continue if there is invalid or no configuration (default|raw) for Optional object
-		//if overlayErr != nil || (!overlayExist && defaultErr != nil) {
-		//	if conf.need == Mandatory || (conf.need == ForLocalDatabase && backstageSpec.IsLocalDbEnabled()) {
-		//		return errors.Join(defaultErr, overlayErr)
-		//	} else {
-		//		//lg.V(1).Info("failed to read default value for optional key. Ignored \n", conf.Key, errors.Join(defaultErr, overlayErr))
-		//		continue
-		//	}
-		//}
-
-		//// do not add if ForLocalDatabase and LocalDb is disabled
-		//if !backstageSpec.IsLocalDbEnabled() && conf.need == ForLocalDatabase {
-		//	continue
-		//}
-		//
-		//// do not add if ForOpenshift and (cluster is not Openshift OR route is not enabled in CR)
-		//if conf.need == ForOpenshift && (!isOpenshift || !backstageSpec.IsRouteEnabled()) {
-		//	continue
-		//}
-
-		// finally add the object to the model and list
-		backstageObject.addToModel(model, backstageMeta, ownsRuntime)
-	}
-
-	return nil
 }
 
 // Every RuntimeObject.setMetaInfo should as minimum call this

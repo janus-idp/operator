@@ -24,7 +24,7 @@ import (
 type SecretEnvsFactory struct{}
 
 func (f SecretEnvsFactory) newBackstageObject() RuntimeObject {
-	return &SecretEnvs{Secret: &corev1.Secret{}}
+	return &SecretEnvs{ /*Secret: &corev1.Secret{}*/ }
 }
 
 type SecretEnvs struct {
@@ -33,12 +33,19 @@ type SecretEnvs struct {
 }
 
 func init() {
-	registerConfig("secret-envs.yaml", SecretEnvsFactory{}, Optional)
+	registerConfig("secret-envs.yaml", SecretEnvsFactory{})
 }
 
 // implementation of RuntimeObject interface
 func (p *SecretEnvs) Object() client.Object {
 	return p.Secret
+}
+
+func (p *SecretEnvs) setObject(object client.Object) {
+	p.Secret = nil
+	if object != nil {
+		p.Secret = object.(*corev1.Secret)
+	}
 }
 
 // implementation of RuntimeObject interface
@@ -53,9 +60,12 @@ func (p *SecretEnvs) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (p *SecretEnvs) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
-	model.setRuntimeObject(p)
-	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretenvs"))
+func (p *SecretEnvs) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) error {
+	if p.Secret != nil {
+		model.setRuntimeObject(p)
+		p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretenvs"))
+	}
+	return nil
 }
 
 // implementation of RuntimeObject interface

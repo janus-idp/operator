@@ -32,7 +32,7 @@ const dynamicPluginInitContainerName = "install-dynamic-plugins"
 type DynamicPluginsFactory struct{}
 
 func (f DynamicPluginsFactory) newBackstageObject() RuntimeObject {
-	return &DynamicPlugins{ConfigMap: &corev1.ConfigMap{}}
+	return &DynamicPlugins{ /*ConfigMap: &corev1.ConfigMap{}*/ }
 }
 
 type DynamicPlugins struct {
@@ -40,12 +40,20 @@ type DynamicPlugins struct {
 }
 
 func init() {
-	registerConfig("dynamic-plugins.yaml", DynamicPluginsFactory{}, Optional)
+	registerConfig("dynamic-plugins.yaml", DynamicPluginsFactory{})
 }
 
 // implementation of RuntimeObject interface
 func (p *DynamicPlugins) Object() client.Object {
 	return p.ConfigMap
+}
+
+func (p *DynamicPlugins) setObject(object client.Object) {
+	p.ConfigMap = nil
+	if object != nil {
+		p.ConfigMap = object.(*corev1.ConfigMap)
+	}
+
 }
 
 // implementation of RuntimeObject interface
@@ -54,11 +62,12 @@ func (p *DynamicPlugins) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (p *DynamicPlugins) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
-	model.setRuntimeObject(p)
-
-	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-dynamic-plugins"))
-
+func (p *DynamicPlugins) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) error {
+	if p.ConfigMap != nil {
+		model.setRuntimeObject(p)
+		p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-dynamic-plugins"))
+	}
+	return nil
 }
 
 // implementation of PodContributor interface
@@ -112,10 +121,7 @@ func (p *DynamicPlugins) validate(model *BackstageModel) error {
 		return fmt.Errorf("failed to find initContainer named %s", dynamicPluginInitContainerName)
 	}
 	// override image with env var
-	// [GA] TODO if we need this (and like this) feature
-	// we need to think about simple template engine
-	// for substitution env vars instead.
-	// Current implementation is not good
+	// [GA] Do we need this feature?
 	if os.Getenv(BackstageImageEnvVar) != "" {
 		// TODO workaround for the (janus-idp, rhdh) case where we have
 		// exactly the same image for initContainer and want it to be overriden

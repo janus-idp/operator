@@ -28,7 +28,7 @@ import (
 type SecretFilesFactory struct{}
 
 func (f SecretFilesFactory) newBackstageObject() RuntimeObject {
-	return &SecretFiles{Secret: &corev1.Secret{}, MountPath: defaultDir}
+	return &SecretFiles{ /*Secret: &corev1.Secret{},*/ MountPath: defaultDir}
 }
 
 type SecretFiles struct {
@@ -38,12 +38,19 @@ type SecretFiles struct {
 }
 
 func init() {
-	registerConfig("secret-files.yaml", SecretFilesFactory{}, Optional)
+	registerConfig("secret-files.yaml", SecretFilesFactory{})
 }
 
 // implementation of RuntimeObject interface
 func (p *SecretFiles) Object() client.Object {
 	return p.Secret
+}
+
+func (p *SecretFiles) setObject(object client.Object) {
+	p.Secret = nil
+	if object != nil {
+		p.Secret = object.(*corev1.Secret)
+	}
 }
 
 // implementation of RuntimeObject interface
@@ -52,9 +59,12 @@ func (p *SecretFiles) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (p *SecretFiles) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
-	model.setRuntimeObject(p)
-	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretfiles"))
+func (p *SecretFiles) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) error {
+	if p.Secret != nil {
+		model.setRuntimeObject(p)
+		p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretfiles"))
+	}
+	return nil
 }
 
 // implementation of RuntimeObject interface

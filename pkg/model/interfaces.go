@@ -22,16 +22,16 @@ import (
 // Need Identifier for configuration object
 // Used on initialization phase to let initializer know what to do if configuration object
 // of the certain type is not found
-const (
-	// Mandatory for Backstage deployment, initialization fails
-	Mandatory needType = "Mandatory"
-	// Optional for Backstage deployment (for example config parameters), initialization continues
-	Optional needType = "Optional"
-	// Mandatory if Local database Enabled, initialization fails if LocalDB enabled, ignored otherwise
-	ForLocalDatabase needType = "ForLocalDatabase"
-	// Used for Openshift cluster only, ignored otherwise
-	ForOpenshift needType = "ForOpenshift"
-)
+//const (
+//	// Mandatory for Backstage deployment, initialization fails
+//	Mandatory needType = "Mandatory"
+//	// Optional for Backstage deployment (for example config parameters), initialization continues
+//	Optional needType = "Optional"
+//	// Mandatory if Local database Enabled, initialization fails if LocalDB enabled, ignored otherwise
+//	ForLocalDatabase needType = "ForLocalDatabase"
+//	// Used for Openshift cluster only, ignored otherwise
+//	ForOpenshift needType = "ForOpenshift"
+//)
 
 type needType string
 
@@ -43,13 +43,7 @@ type ObjectConfig struct {
 	// For example: "deployment.yaml" containing configuration of Backstage Deployment
 	Key string
 	// Need identifier
-	need needType
-}
-
-type objectRef struct {
-	name        string
-	kind        string
-	initialized *bool
+	//need needType
 }
 
 type ObjectFactory interface {
@@ -60,10 +54,12 @@ type ObjectFactory interface {
 type RuntimeObject interface {
 	// Object underlying Kubernetes object
 	Object() client.Object
+	// setObject sets object
+	setObject(client.Object)
 	// EmptyObject an empty object the same kind as Object
 	EmptyObject() client.Object
 	// adds runtime object to the model and generates default metadata for future applying
-	addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool)
+	addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) error
 	// at this stage all the information is updated
 	// set the final references validates the object at the end of initialization
 	validate(model *BackstageModel) error
@@ -75,9 +71,3 @@ type PodContributor interface {
 	RuntimeObject
 	updatePod(pod *backstagePod)
 }
-
-// RuntimeObject contributing to Local DB pod
-//type LocalDbPodContributor interface {
-//	RuntimeObject
-//	updateLocalDbPod(model *BackstageModel)
-//}

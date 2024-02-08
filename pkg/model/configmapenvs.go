@@ -24,7 +24,7 @@ import (
 type ConfigMapEnvsFactory struct{}
 
 func (f ConfigMapEnvsFactory) newBackstageObject() RuntimeObject {
-	return &ConfigMapEnvs{ConfigMap: &corev1.ConfigMap{}}
+	return &ConfigMapEnvs{}
 }
 
 type ConfigMapEnvs struct {
@@ -33,12 +33,19 @@ type ConfigMapEnvs struct {
 }
 
 func init() {
-	registerConfig("configmap-envs.yaml", ConfigMapEnvsFactory{}, Optional)
+	registerConfig("configmap-envs.yaml", ConfigMapEnvsFactory{})
 }
 
 // Object implements RuntimeObject interface
 func (p *ConfigMapEnvs) Object() client.Object {
 	return p.ConfigMap
+}
+
+func (p *ConfigMapEnvs) setObject(object client.Object) {
+	p.ConfigMap = nil
+	if object != nil {
+		p.ConfigMap = object.(*corev1.ConfigMap)
+	}
 }
 
 // EmptyObject implements RuntimeObject interface
@@ -47,10 +54,13 @@ func (p *ConfigMapEnvs) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (p *ConfigMapEnvs) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
+func (p *ConfigMapEnvs) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) error {
+	if p.ConfigMap != nil {
+		model.setRuntimeObject(p)
+		p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-configmapenvs"))
+	}
 
-	model.setRuntimeObject(p)
-	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-configmapenvs"))
+	return nil
 }
 
 // implementation of RuntimeObject interface

@@ -15,94 +15,71 @@
 package model
 
 import (
+	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 	"janus-idp.io/backstage-operator/pkg/utils"
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-//type DbSecretFactory struct{}
-//
-//func (f DbSecretFactory) newBackstageObject() RuntimeObject {
-//	return &DbSecret{secret: &corev1.Secret{}}
-//}
-//
-//type DbSecret struct {
-//	secret        *corev1.Secret
-//	nameSpecified bool
-//}
-//
-//// TODO: consider to get it back
-////func init() {
-////	registerConfig("db-secret.yaml", DbSecretFactory{}, ForLocalDatabase)
-////}
+type DbSecretFactory struct{}
+
+func (f DbSecretFactory) newBackstageObject() RuntimeObject {
+	return &DbSecret{}
+}
+
+type DbSecret struct {
+	secret *corev1.Secret
+}
+
+func init() {
+	registerConfig("db-secret.yaml", DbSecretFactory{})
+}
 
 func DbSecretDefaultName(backstageName string) string {
-
-	//controllerutil.CreateOrPatch()
 	return utils.GenerateRuntimeObjectName(backstageName, "default-dbsecret")
 }
 
-//func NewDbSecretFromSpec(name string) DbSecret {
-//	return DbSecret{
-//		secret: &corev1.Secret{
-//			ObjectMeta: metav1.ObjectMeta{
-//				Name: name,
-//			},
-//		},
-//		nameSpecified: true,
-//	}
-//}
-//
-//func ExistedDbSecret(sec corev1.Secret) DbSecret {
-//	return DbSecret{
-//		secret:        &sec,
-//		nameSpecified: true,
-//	}
-//}
-//
-//func GenerateDbSecret() DbSecret {
-//	// generate password
-//	pswd, _ := generatePassword(24)
-//	return DbSecret{
-//		secret: &corev1.Secret{
-//			StringData: map[string]string{
-//				"POSTGRES_PASSWORD":         pswd,
-//				"POSTGRESQL_ADMIN_PASSWORD": pswd,
-//				"POSTGRES_USER":             "postgres",
-//			},
-//		},
-//		nameSpecified: false,
-//	}
-//}
-//
-//// implementation of RuntimeObject interface
-//func (b *DbSecret) Object() client.Object {
-//	return b.secret
-//}
-//
-//// implementation of RuntimeObject interface
-//func (b *DbSecret) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
-//	model.LocalDbSecret = b
-//	model.setRuntimeObject(b)
-//
-//	// TODO refactor it: b.secret should not be nil at this stage
-//	if b.secret == nil {
-//		b.secret = GenerateDbSecret().secret
-//	}
-//
-//	if !b.nameSpecified {
-//		b.secret.SetName(DbSecretDefaultName(backstageMeta.Name))
-//	}
-//}
-//
-//// implementation of RuntimeObject interface
-//func (b *DbSecret) EmptyObject() client.Object {
-//	return &corev1.Secret{}
-//}
-//
-//// implementation of RuntimeObject interface
-//func (b *DbSecret) validate(model *BackstageModel) error {
-//	return nil
-//}
-//
+// implementation of RuntimeObject interface
+func (b *DbSecret) Object() client.Object {
+	return b.secret
+}
+
+func (b *DbSecret) setObject(object client.Object) {
+	b.secret = nil
+	if object != nil {
+		b.secret = object.(*corev1.Secret)
+	}
+}
+
+// implementation of RuntimeObject interface
+func (b *DbSecret) addToModel(model *BackstageModel, backstage bsv1alpha1.Backstage, ownsRuntime bool) error {
+	if b.secret == nil && !backstage.Spec.IsAuthSecretSpecified() {
+		return nil
+	}
+
+	if backstage.Spec.IsAuthSecretSpecified() {
+		b.secret = &corev1.Secret{}
+		b.secret.SetName(backstage.Spec.Database.AuthSecretName)
+	} else {
+		b.secret.SetName(DbSecretDefaultName(backstage.Name))
+	}
+
+	model.LocalDbSecret = b
+	//model.setRuntimeObject(b)
+
+	return nil
+}
+
+// implementation of RuntimeObject interface
+func (b *DbSecret) EmptyObject() client.Object {
+	return &corev1.Secret{}
+}
+
+// implementation of RuntimeObject interface
+func (b *DbSecret) validate(model *BackstageModel) error {
+	return nil
+}
+
 //func (b *DbSecret) updateSecret(model *BackstageModel) {
 //
 //	dbservice := model.LocalDbService.service

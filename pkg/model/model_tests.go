@@ -65,7 +65,7 @@ func createBackstageTest(bs bsv1alpha1.Backstage) *testBackstageObject {
 }
 
 // enables LocalDB
-func (b *testBackstageObject) withLocalDb(secretName string) *testBackstageObject {
+func (b *testBackstageObject) withLocalDb() *testBackstageObject {
 	b.detailedSpec.Database.EnableLocalDb = pointer.Bool(true)
 	//if secretName == "" {
 	//	secretName =

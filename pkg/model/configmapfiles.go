@@ -28,7 +28,7 @@ import (
 type ConfigMapFilesFactory struct{}
 
 func (f ConfigMapFilesFactory) newBackstageObject() RuntimeObject {
-	return &ConfigMapFiles{ConfigMap: &corev1.ConfigMap{}, MountPath: defaultDir}
+	return &ConfigMapFiles{ /*ConfigMap: &corev1.ConfigMap{},*/ MountPath: defaultDir}
 }
 
 type ConfigMapFiles struct {
@@ -38,12 +38,20 @@ type ConfigMapFiles struct {
 }
 
 func init() {
-	registerConfig("configmap-files.yaml", ConfigMapFilesFactory{}, Optional)
+	registerConfig("configmap-files.yaml", ConfigMapFilesFactory{})
 }
 
 // implementation of RuntimeObject interface
 func (p *ConfigMapFiles) Object() client.Object {
 	return p.ConfigMap
+}
+
+func (p *ConfigMapFiles) setObject(object client.Object) {
+	p.ConfigMap = nil
+	if object != nil {
+		p.ConfigMap = object.(*corev1.ConfigMap)
+	}
+
 }
 
 // implementation of RuntimeObject interface
@@ -52,9 +60,12 @@ func (p *ConfigMapFiles) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (p *ConfigMapFiles) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
-	model.setRuntimeObject(p)
-	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-configmapfiles"))
+func (p *ConfigMapFiles) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) error {
+	if p.ConfigMap != nil {
+		model.setRuntimeObject(p)
+		p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-configmapfiles"))
+	}
+	return nil
 }
 
 // implementation of RuntimeObject interface

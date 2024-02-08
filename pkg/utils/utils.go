@@ -22,8 +22,6 @@ import (
 	"os"
 	"path/filepath"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
@@ -63,7 +61,7 @@ func ReadYaml(manifest []byte, object interface{}) error {
 	return nil
 }
 
-func ReadYamlFile(path string, object metav1.Object) error {
+func ReadYamlFile(path string, object /*metav1.Object*/ interface{}) error {
 	fpath := filepath.Clean(path)
 	if _, err := os.Stat(fpath); err != nil {
 		return err

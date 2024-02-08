@@ -31,7 +31,7 @@ const LocalDbImageEnvVar = "RELATED_IMAGE_postgresql"
 type DbStatefulSetFactory struct{}
 
 func (f DbStatefulSetFactory) newBackstageObject() RuntimeObject {
-	return &DbStatefulSet{statefulSet: &appsv1.StatefulSet{}}
+	return &DbStatefulSet{ /*statefulSet: &appsv1.StatefulSet{}*/ }
 }
 
 type DbStatefulSet struct {
@@ -40,7 +40,7 @@ type DbStatefulSet struct {
 }
 
 func init() {
-	registerConfig("db-statefulset.yaml", DbStatefulSetFactory{}, ForLocalDatabase)
+	registerConfig("db-statefulset.yaml", DbStatefulSetFactory{})
 }
 
 func DbStatefulSetName(backstageName string) string {
@@ -52,15 +52,40 @@ func (b *DbStatefulSet) Object() client.Object {
 	return b.statefulSet
 }
 
+func (b *DbStatefulSet) setObject(object client.Object) {
+	b.statefulSet = nil
+	if object != nil {
+		b.statefulSet = object.(*appsv1.StatefulSet)
+	}
+}
+
 // implementation of RuntimeObject interface
-func (b *DbStatefulSet) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
+func (b *DbStatefulSet) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) error {
+	if b.statefulSet == nil {
+		if model.localDbEnabled {
+			return fmt.Errorf("LocalDb StatefulSet not configured, make sure there is db-statefulset.yaml.yaml in default or raw configuration")
+		}
+		return nil
+	} else {
+		if !model.localDbEnabled {
+			return nil
+		}
+	}
+
 	model.localDbStatefulSet = b
 	model.setRuntimeObject(b)
 
-	//setMetaInfo(b, backstageMeta, ownsRuntime)
 	b.statefulSet.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "db-statefulset"))
 	utils.GenerateLabel(&b.statefulSet.Spec.Template.ObjectMeta.Labels, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
 	utils.GenerateLabel(&b.statefulSet.Spec.Selector.MatchLabels, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
+
+	// override image with env var
+	// [GA] TODO Do we really need this feature?
+	if os.Getenv(LocalDbImageEnvVar) != "" {
+		b.container().Image = os.Getenv(LocalDbImageEnvVar)
+	}
+
+	return nil
 }
 
 // implementation of RuntimeObject interface
@@ -70,14 +95,6 @@ func (b *DbStatefulSet) EmptyObject() client.Object {
 
 // implementation of RuntimeObject interface
 func (b *DbStatefulSet) validate(model *BackstageModel) error {
-	// override image with env var
-	// [GA] TODO if we need this (and like this) feature
-	// we need to think about simple template engine
-	// for substitution env vars instead.
-	// Current implementation is not good
-	if os.Getenv(LocalDbImageEnvVar) != "" {
-		b.container().Image = os.Getenv(LocalDbImageEnvVar)
-	}
 	return nil
 }
 

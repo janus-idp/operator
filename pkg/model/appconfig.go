@@ -28,7 +28,7 @@ type AppConfigFactory struct{}
 
 // factory method to create App Config object
 func (f AppConfigFactory) newBackstageObject() RuntimeObject {
-	return &AppConfig{ConfigMap: &corev1.ConfigMap{}, MountPath: defaultDir}
+	return &AppConfig{ /*ConfigMap: &corev1.ConfigMap{},*/ MountPath: defaultDir}
 }
 
 // structure containing ConfigMap where keys are Backstage ConfigApp file names and vaues are contents of the files
@@ -40,12 +40,19 @@ type AppConfig struct {
 }
 
 func init() {
-	registerConfig("app-config.yaml", AppConfigFactory{}, Optional)
+	registerConfig("app-config.yaml", AppConfigFactory{})
 }
 
 // implementation of RuntimeObject interface
 func (b *AppConfig) Object() client.Object {
 	return b.ConfigMap
+}
+
+func (b *AppConfig) setObject(object client.Object) {
+	b.ConfigMap = nil
+	if object != nil {
+		b.ConfigMap = object.(*corev1.ConfigMap)
+	}
 }
 
 // implementation of RuntimeObject interface
@@ -54,10 +61,13 @@ func (b *AppConfig) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (b *AppConfig) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) {
-	model.setRuntimeObject(b)
-	//setMetaInfo(b, backstageMeta, ownsRuntime)
-	b.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-appconfig"))
+func (b *AppConfig) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) error {
+
+	if b.ConfigMap != nil {
+		model.setRuntimeObject(b)
+		b.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-appconfig"))
+	}
+	return nil
 }
 
 // implementation of RuntimeObject interface
