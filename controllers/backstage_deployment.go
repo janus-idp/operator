@@ -17,7 +17,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"os"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -197,8 +196,8 @@ func (r *BackstageReconciler) validateAndUpdatePsqlSecretRef(backstage bs.Backst
 func (r *BackstageReconciler) setDefaultDeploymentImage(deployment *appsv1.Deployment) {
 
 	visitContainers(&deployment.Spec.Template, func(container *v1.Container) {
-		if val, ok := os.LookupEnv(EnvBackstageImage); ok {
-			container.Image = val
+		if envBackstageImage != "" {
+			container.Image = envBackstageImage
 		}
 	})
 }
