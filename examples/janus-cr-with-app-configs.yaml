@@ -134,7 +134,7 @@ data:
               /explore-backend-completed:
                 target: 'http://localhost:7017'
                 
-                ---
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
