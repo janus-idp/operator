@@ -41,10 +41,9 @@ const (
 	BackstageAppLabel = "janus-idp.io/app"
 )
 
-// Constants for image placeholders
-const (
-	EnvPostgresImage  string = "RELATED_IMAGE_postgresql"
-	EnvBackstageImage string = "RELATED_IMAGE_backstage"
+var (
+	envPostgresImage  string
+	envBackstageImage string
 )
 
 // BackstageReconciler reconciles a Backstage object
@@ -62,10 +61,10 @@ type BackstageReconciler struct {
 	Namespace string
 
 	IsOpenShift bool
+}
 
-	//PsqlImage string
-	//
-	//BackstageImage string
+func init() {
+
 }
 
 //+kubebuilder:rbac:groups=janus-idp.io,resources=backstages,verbs=get;list;watch;create;update;patch;delete
@@ -302,12 +301,12 @@ func (r *BackstageReconciler) labels(meta *v1.ObjectMeta, backstage bs.Backstage
 // SetupWithManager sets up the controller with the Manager.
 func (r *BackstageReconciler) SetupWithManager(mgr ctrl.Manager, log logr.Logger) error {
 
-	const imageNotSet = "environment variable is not set, default will be used:"
-	if _, ok := os.LookupEnv(EnvPostgresImage); !ok {
-		log.Info(imageNotSet, "", EnvPostgresImage)
+	var ok bool
+	if envPostgresImage, ok = os.LookupEnv("RELATED_IMAGE_postgresql"); !ok {
+		log.Info("RELATED_IMAGE_postgresql environment variable is not set, default will be used")
 	}
-	if _, ok := os.LookupEnv(EnvBackstageImage); !ok {
-		log.Info(imageNotSet, "", EnvBackstageImage)
+	if envBackstageImage, ok = os.LookupEnv("RELATED_IMAGE_backstage"); !ok {
+		log.Info("RELATED_IMAGE_backstage environment variable is not set, default will be used")
 	}
 
 	builder := ctrl.NewControllerManagedBy(mgr).
