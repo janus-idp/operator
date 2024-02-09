@@ -29,6 +29,7 @@ spec:
           envFrom:
             - secretRef:
                 name: <POSTGRESQL_SECRET>  # will be replaced with 'backstage-psql-secrets-<cr-name>'
+          # image will be replaced by the value of the `RELATED_IMAGE_postgresql` env var, if set
           image: quay.io/fedora/postgresql-15:latest
           imagePullPolicy: IfNotPresent
           securityContext:
