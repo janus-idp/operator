@@ -63,10 +63,6 @@ type BackstageReconciler struct {
 	IsOpenShift bool
 }
 
-func init() {
-
-}
-
 //+kubebuilder:rbac:groups=janus-idp.io,resources=backstages,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=janus-idp.io,resources=backstages/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=janus-idp.io,resources=backstages/finalizers,verbs=update
