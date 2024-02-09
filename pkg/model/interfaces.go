@@ -42,8 +42,6 @@ type ObjectConfig struct {
 	// Unique key identifying the "kind" of Object which also is the name of config file.
 	// For example: "deployment.yaml" containing configuration of Backstage Deployment
 	Key string
-	// Need identifier
-	//need needType
 }
 
 type ObjectFactory interface {
@@ -55,14 +53,14 @@ type RuntimeObject interface {
 	// Object underlying Kubernetes object
 	Object() client.Object
 	// setObject sets object
-	setObject(client.Object)
+	setObject(obj client.Object, backstageName string)
 	// EmptyObject an empty object the same kind as Object
 	EmptyObject() client.Object
 	// adds runtime object to the model and generates default metadata for future applying
 	addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) error
 	// at this stage all the information is updated
 	// set the final references validates the object at the end of initialization
-	validate(model *BackstageModel) error
+	validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error
 }
 
 // PodContributor contributing to the pod as an Environment variables or mounting file/directory.

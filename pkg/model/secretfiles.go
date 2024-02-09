@@ -46,10 +46,10 @@ func (p *SecretFiles) Object() client.Object {
 	return p.Secret
 }
 
-func (p *SecretFiles) setObject(object client.Object) {
+func (p *SecretFiles) setObject(obj client.Object, name string) {
 	p.Secret = nil
-	if object != nil {
-		p.Secret = object.(*corev1.Secret)
+	if obj != nil {
+		p.Secret = obj.(*corev1.Secret)
 	}
 }
 
@@ -68,7 +68,7 @@ func (p *SecretFiles) addToModel(model *BackstageModel, backstageMeta v1alpha1.B
 }
 
 // implementation of RuntimeObject interface
-func (p *SecretFiles) validate(model *BackstageModel) error {
+func (p *SecretFiles) validate(model *BackstageModel, backstage v1alpha1.Backstage) error {
 	return nil
 }
 
@@ -84,48 +84,19 @@ func (p *SecretFiles) updatePod(pod *backstagePod) {
 		},
 	}
 
+	tt := "secret"
+	urce := corev1.VolumeSource{}
+	if tt == "secret" {
+		urce.ConfigMap = &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: ""}}
+	} else {
+		urce.Secret = &corev1.SecretVolumeSource{SecretName: ""}
+	}
+
 	pod.appendVolume(corev1.Volume{
 		Name:         volName,
 		VolumeSource: volSource,
 	})
 
-	//for file := range p.Secret.Data {
-	//	if p.Key == "" || (p.Key == file) {
-	//		pod.appendContainerVolumeMount(corev1.VolumeMount{
-	//			Name:      volName,
-	//			MountPath: filepath.Join(p.MountPath, file),
-	//			SubPath:   file,
-	//		})
-	//	}
-	//}
-
-	//if p.Key == "" || (p.Key == file) {
 	vm := corev1.VolumeMount{Name: volName, MountPath: filepath.Join(p.MountPath, p.Secret.Name, p.Key), SubPath: p.Key}
-	//if p.Key != "" {
-	//	vm.SubPath = p.Key
-	//	vm.MountPath = filepath.Join(p.MountPath, p.Secret.Name, p.Key)
-	//} else {
-	//	vm.MountPath = filepath.Join(p.MountPath, p.Secret.Name)
-	//}
 	pod.container.VolumeMounts = append(pod.container.VolumeMounts, vm)
-
-	//pod.appendContainerVolumeMount(corev1.VolumeMount{
-	//	Name:      volName,
-	//	MountPath: filepath.Join(p.MountPath, p.Secret.Name),
-	//	//SubPath:   file,
-	//})
-	//
-
-	//}
-
-	//for file := range p.Secret.StringData {
-	//	if p.Key == "" || (p.Key == file) {
-	//		pod.appendContainerVolumeMount(corev1.VolumeMount{
-	//			Name:      volName,
-	//			MountPath: filepath.Join(p.MountPath, file),
-	//			SubPath:   file,
-	//		})
-	//	}
-	//}
-
 }

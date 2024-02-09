@@ -41,18 +41,12 @@ func (p *SecretEnvs) Object() client.Object {
 	return p.Secret
 }
 
-func (p *SecretEnvs) setObject(object client.Object) {
+func (p *SecretEnvs) setObject(obj client.Object, name string) {
 	p.Secret = nil
-	if object != nil {
-		p.Secret = object.(*corev1.Secret)
+	if obj != nil {
+		p.Secret = obj.(*corev1.Secret)
 	}
 }
-
-// implementation of RuntimeObject interface
-//func (p *SecretEnvs) setMetaInfo(backstageMeta v1alpha1.Backstage, ownsRuntime bool) {
-//	setMetaInfo(p, backstageMeta, ownsRuntime)
-//	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretenvs"))
-//}
 
 // implementation of RuntimeObject interface
 func (p *SecretEnvs) EmptyObject() client.Object {
@@ -69,7 +63,7 @@ func (p *SecretEnvs) addToModel(model *BackstageModel, backstageMeta v1alpha1.Ba
 }
 
 // implementation of RuntimeObject interface
-func (p *SecretEnvs) validate(model *BackstageModel) error {
+func (p *SecretEnvs) validate(model *BackstageModel, backstage v1alpha1.Backstage) error {
 	return nil
 }
 

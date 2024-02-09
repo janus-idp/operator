@@ -76,7 +76,7 @@ func registerConfig(key string, factory ObjectFactory) {
 }
 
 // InitObjects performs a main loop for configuring and making the array of objects to reconcile
-func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backstageSpec *DetailedBackstageSpec, ownsRuntime bool, isOpenshift bool, scheme *runtime.Scheme) (*BackstageModel, error) {
+func InitObjects(ctx context.Context, backstage bsv1alpha1.Backstage, backstageSpec *DetailedBackstageSpec, ownsRuntime bool, isOpenshift bool, scheme *runtime.Scheme) (*BackstageModel, error) {
 
 	// 3 phases of Backstage configuration:
 	// 1- load from Operator defaults, modify metadata (labels, selectors..) and namespace as needed
@@ -100,9 +100,8 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 			if !errors.Is(err, os.ErrNotExist) {
 				return nil, fmt.Errorf("failed to read default value for the key %s, reason: %s", conf.Key, err)
 			}
-
 		} else {
-			backstageObject.setObject(obj)
+			backstageObject.setObject(obj, backstage.Name)
 		}
 
 		// reading configuration defined in BackstageCR.Spec.RawConfigContent ConfigMap
@@ -112,16 +111,16 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 			if err := utils.ReadYaml([]byte(overlay), obj); err != nil {
 				return nil, fmt.Errorf("failed to read overlay value for the key %s, reason: %s", conf.Key, err)
 			} else {
-				backstageObject.setObject(obj)
+				backstageObject.setObject(obj, backstage.Name)
 			}
 		}
 
 		// apply spec and add the object to the model and list
-		if err := backstageObject.addToModel(model, backstageMeta, ownsRuntime); err != nil {
+		if err := backstageObject.addToModel(model, backstage, ownsRuntime); err != nil {
 			return nil, fmt.Errorf("failed to initialize %s reason: %s", backstageObject, err)
 		}
 	}
-
+	//////////////////////
 	// init default meta info (name, namespace, owner) and update Backstage Pod with contributions (volumes, container)
 	for _, bso := range model.RuntimeObjects {
 		if bs, ok := bso.(PodContributor); ok {
@@ -131,18 +130,19 @@ func InitObjects(ctx context.Context, backstageMeta bsv1alpha1.Backstage, backst
 
 	if backstageSpec.IsLocalDbEnabled() {
 		model.localDbStatefulSet.setDbEnvsFromSecret(model.LocalDbSecret.secret.Name)
-		model.backstageDeployment.pod.setEnvsFromSecret(model.LocalDbSecret.secret.Name)
+		//model.backstageDeployment.pod.setEnvsFromSecret(model.LocalDbSecret.secret.Name)
 	}
 
 	// contribute to Backstage config
 	for _, v := range backstageSpec.ConfigObjects {
 		v.updatePod(model.backstageDeployment.pod)
 	}
+	/////////////////
 
 	// set generic metainfo and validate all
 	for _, v := range model.RuntimeObjects {
-		setMetaInfo(v, backstageMeta, ownsRuntime, scheme)
-		err := v.validate(model)
+		setMetaInfo(v, backstage, ownsRuntime, scheme)
+		err := v.validate(model, backstage)
 		if err != nil {
 			return nil, fmt.Errorf("failed object validation, reason: %s", err)
 		}

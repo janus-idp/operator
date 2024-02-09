@@ -46,10 +46,10 @@ func (b *DbService) Object() client.Object {
 	return b.service
 }
 
-func (b *DbService) setObject(object client.Object) {
+func (b *DbService) setObject(obj client.Object, name string) {
 	b.service = nil
-	if object != nil {
-		b.service = object.(*corev1.Service)
+	if obj != nil {
+		b.service = obj.(*corev1.Service)
 	}
 }
 
@@ -81,6 +81,6 @@ func (b *DbService) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (b *DbService) validate(model *BackstageModel) error {
+func (b *DbService) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
 	return nil
 }

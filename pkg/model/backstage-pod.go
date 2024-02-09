@@ -147,3 +147,12 @@ func (p backstagePod) setEnvsFromSecret(name string) {
 		SecretRef: &corev1.SecretEnvSource{
 			LocalObjectReference: corev1.LocalObjectReference{Name: name}}})
 }
+
+//func (p *backstagePod) addAppConfig(configMapName string, key string) {
+//
+//	p.container.Args = append(p.container.Args, []string{"--config", appConfigPath}...)
+//
+//	p.addContainerEnvFrom(corev1.EnvFromSource{
+//		SecretRef: &corev1.SecretEnvSource{
+//			LocalObjectReference: corev1.LocalObjectReference{Name: name}}})
+//}

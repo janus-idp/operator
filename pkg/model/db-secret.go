@@ -44,10 +44,10 @@ func (b *DbSecret) Object() client.Object {
 	return b.secret
 }
 
-func (b *DbSecret) setObject(object client.Object) {
+func (b *DbSecret) setObject(obj client.Object, name string) {
 	b.secret = nil
-	if object != nil {
-		b.secret = object.(*corev1.Secret)
+	if obj != nil {
+		b.secret = obj.(*corev1.Secret)
 	}
 }
 
@@ -76,7 +76,7 @@ func (b *DbSecret) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (b *DbSecret) validate(model *BackstageModel) error {
+func (b *DbSecret) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
 	return nil
 }
 

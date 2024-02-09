@@ -51,10 +51,11 @@ func (b *BackstageDeployment) Object() client.Object {
 	return b.deployment
 }
 
-func (b *BackstageDeployment) setObject(object client.Object) {
+func (b *BackstageDeployment) setObject(obj client.Object, backstageName string) {
 	b.deployment = nil
-	if object != nil {
-		b.deployment = object.(*appsv1.Deployment)
+	if obj != nil {
+		b.deployment = obj.(*appsv1.Deployment)
+		b.deployment.SetName(DeploymentName(backstageName))
 	}
 }
 
@@ -71,7 +72,6 @@ func (b *BackstageDeployment) addToModel(model *BackstageModel, backstage bsv1al
 	model.backstageDeployment = b
 	model.setRuntimeObject(b)
 
-	b.deployment.SetName(utils.GenerateRuntimeObjectName(backstage.Name, "deployment"))
 	utils.GenerateLabel(&b.deployment.Spec.Template.ObjectMeta.Labels, backstageAppLabel, fmt.Sprintf("backstage-%s", backstage.Name))
 	utils.GenerateLabel(&b.deployment.Spec.Selector.MatchLabels, backstageAppLabel, fmt.Sprintf("backstage-%s", backstage.Name))
 
@@ -106,18 +106,27 @@ func (b *BackstageDeployment) addToModel(model *BackstageModel, backstage bsv1al
 }
 
 // implementation of RuntimeObject interface
-func (b *BackstageDeployment) validate(model *BackstageModel) error {
-	//for _, bso := range model.RuntimeObjects {
-	//	if bs, ok := bso.(PodContributor); ok {
-	//		bs.updatePod(b.pod)
-	//	}
-	//}
-	//if backstage.Spec.Application != nil {
-	//	// AppConfig
-	//	// DynaPlugins
-	//	// Ext (4)
-	//	// DbSecret
-	//}
+func (b *BackstageDeployment) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
+	for _, bso := range model.RuntimeObjects {
+		if bs, ok := bso.(PodContributor); ok {
+			bs.updatePod(b.pod)
+		}
+	}
+
+	if backstage.Spec.Application != nil {
+		application := backstage.Spec.Application
+		// AppConfig
+		mountPath := application.AppConfig.MountPath
+		for _, spec := range application.AppConfig.ConfigMaps {
+			newAppConfig(mountPath, spec.Name, spec.Key).updatePod(b.pod)
+		}
+		//DynaPlugins
+		newDynamicPlugins(application.DynamicPluginsConfigMapName).updatePod(b.pod)
+		//Ext (4)
+
+		//DbSecret
+		b.pod.setEnvsFromSecret(model.LocalDbSecret.secret.Name)
+	}
 
 	//for _, v := range backstage.Spec.ConfigObjects {
 	//	v.updatePod(b.pod)

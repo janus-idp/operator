@@ -41,10 +41,10 @@ func (p *ConfigMapEnvs) Object() client.Object {
 	return p.ConfigMap
 }
 
-func (p *ConfigMapEnvs) setObject(object client.Object) {
+func (p *ConfigMapEnvs) setObject(obj client.Object, name string) {
 	p.ConfigMap = nil
-	if object != nil {
-		p.ConfigMap = object.(*corev1.ConfigMap)
+	if obj != nil {
+		p.ConfigMap = obj.(*corev1.ConfigMap)
 	}
 }
 
@@ -64,7 +64,7 @@ func (p *ConfigMapEnvs) addToModel(model *BackstageModel, backstageMeta v1alpha1
 }
 
 // implementation of RuntimeObject interface
-func (p *ConfigMapEnvs) validate(model *BackstageModel) error {
+func (p *ConfigMapEnvs) validate(model *BackstageModel, backstage v1alpha1.Backstage) error {
 	return nil
 }
 

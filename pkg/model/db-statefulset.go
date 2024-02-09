@@ -52,10 +52,10 @@ func (b *DbStatefulSet) Object() client.Object {
 	return b.statefulSet
 }
 
-func (b *DbStatefulSet) setObject(object client.Object) {
+func (b *DbStatefulSet) setObject(obj client.Object, name string) {
 	b.statefulSet = nil
-	if object != nil {
-		b.statefulSet = object.(*appsv1.StatefulSet)
+	if obj != nil {
+		b.statefulSet = obj.(*appsv1.StatefulSet)
 	}
 }
 
@@ -94,7 +94,7 @@ func (b *DbStatefulSet) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (b *DbStatefulSet) validate(model *BackstageModel) error {
+func (b *DbStatefulSet) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
 	return nil
 }
 

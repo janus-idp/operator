@@ -15,6 +15,7 @@
 package model
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
 
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
@@ -28,7 +29,7 @@ type AppConfigFactory struct{}
 
 // factory method to create App Config object
 func (f AppConfigFactory) newBackstageObject() RuntimeObject {
-	return &AppConfig{ /*ConfigMap: &corev1.ConfigMap{},*/ MountPath: defaultDir}
+	return &AppConfig{MountPath: defaultDir}
 }
 
 // structure containing ConfigMap where keys are Backstage ConfigApp file names and vaues are contents of the files
@@ -43,15 +44,27 @@ func init() {
 	registerConfig("app-config.yaml", AppConfigFactory{})
 }
 
+func newAppConfig(mountPath string, name string, key string) *AppConfig {
+	return &AppConfig{
+		ConfigMap: &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: name},
+		},
+		MountPath: mountPath,
+		Key:       key,
+	}
+}
+
 // implementation of RuntimeObject interface
 func (b *AppConfig) Object() client.Object {
 	return b.ConfigMap
 }
 
-func (b *AppConfig) setObject(object client.Object) {
+// implementation of RuntimeObject interface
+func (b *AppConfig) setObject(obj client.Object, backstageName string) {
 	b.ConfigMap = nil
-	if object != nil {
-		b.ConfigMap = object.(*corev1.ConfigMap)
+	if obj != nil {
+		b.ConfigMap = obj.(*corev1.ConfigMap)
+		b.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageName, "default-appconfig"))
 	}
 }
 
@@ -62,16 +75,14 @@ func (b *AppConfig) EmptyObject() client.Object {
 
 // implementation of RuntimeObject interface
 func (b *AppConfig) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) error {
-
 	if b.ConfigMap != nil {
 		model.setRuntimeObject(b)
-		b.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-appconfig"))
 	}
 	return nil
 }
 
 // implementation of RuntimeObject interface
-func (b *AppConfig) validate(model *BackstageModel) error {
+func (b *AppConfig) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
 	return nil
 }
 
@@ -92,15 +103,31 @@ func (b *AppConfig) updatePod(pod *backstagePod) {
 		VolumeSource: volSource,
 	})
 
-	for file := range b.ConfigMap.Data {
-		if b.Key == "" || (b.Key == file) {
-			pod.appendContainerVolumeMount(corev1.VolumeMount{
-				Name:      volName,
-				MountPath: filepath.Join(b.MountPath, file),
-				SubPath:   file,
-			})
+	//for file := range b.ConfigMap.Data {
+	//	if b.Key == "" || (b.Key == file) {
+	//		pod.appendContainerVolumeMount(corev1.VolumeMount{
+	//			Name:      volName,
+	//			MountPath: filepath.Join(b.MountPath, file),
+	//			SubPath:   file,
+	//		})
+	//
+	//		pod.appendConfigArg(filepath.Join(b.MountPath, file))
+	//	}
+	//}
 
-			pod.appendConfigArg(filepath.Join(b.MountPath, file))
-		}
-	}
+	// One configMap - one appConfig
+	// Problem: we need to know file path to form --config CL args
+	// If we want not to read CM - need to point file name (key) which should fit CM data.key
+	// Otherwise - we can read it and not specify
+	// Path to appConfig: /<mountPath>/<configMapName>/<file(key) name>
+	// Preferences:
+	// - not to read CM.Data on external files (Less permissive operator, not needed CM read/list)
+	// - not to use SubPath mounting CM to make Kubernetes refresh data if CM changed
+	vm := corev1.VolumeMount{Name: volName, MountPath: filepath.Join(b.MountPath, b.ConfigMap.Name)}
+	pod.container.VolumeMounts = append(pod.container.VolumeMounts, vm)
+
+	appConfigPath := filepath.Join(b.MountPath, b.ConfigMap.Name, b.Key)
+	pod.container.Args = append(pod.container.Args, []string{"--config", appConfigPath}...)
+	//pod.appendConfigArg(filepath.Join(b.MountPath, b.ConfigMap.Name, b.Key))
+
 }

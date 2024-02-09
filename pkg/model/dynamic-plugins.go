@@ -16,6 +16,7 @@ package model
 
 import (
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"path/filepath"
 
@@ -43,15 +44,22 @@ func init() {
 	registerConfig("dynamic-plugins.yaml", DynamicPluginsFactory{})
 }
 
+func newDynamicPlugins(configMapName string) *DynamicPlugins {
+	return &DynamicPlugins{ConfigMap: &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: configMapName},
+	}}
+}
+
 // implementation of RuntimeObject interface
 func (p *DynamicPlugins) Object() client.Object {
 	return p.ConfigMap
 }
 
-func (p *DynamicPlugins) setObject(object client.Object) {
+func (p *DynamicPlugins) setObject(obj client.Object, backstageName string) {
 	p.ConfigMap = nil
-	if object != nil {
-		p.ConfigMap = object.(*corev1.ConfigMap)
+	if obj != nil {
+		p.ConfigMap = obj.(*corev1.ConfigMap)
+		p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageName, "default-dynamic-plugins"))
 	}
 
 }
@@ -65,7 +73,6 @@ func (p *DynamicPlugins) EmptyObject() client.Object {
 func (p *DynamicPlugins) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) error {
 	if p.ConfigMap != nil {
 		model.setRuntimeObject(p)
-		p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-dynamic-plugins"))
 	}
 	return nil
 }
@@ -114,7 +121,7 @@ func (p *DynamicPlugins) updatePod(pod *backstagePod) {
 
 // implementation of RuntimeObject interface
 // ConfigMap name must be the same as (deployment.yaml).spec.template.spec.volumes.name.dynamic-plugins-conf.ConfigMap.name
-func (p *DynamicPlugins) validate(model *BackstageModel) error {
+func (p *DynamicPlugins) validate(model *BackstageModel, backstage v1alpha1.Backstage) error {
 
 	initContainer := dynamicPluginsInitContainer(model.backstageDeployment.deployment.Spec.Template.Spec.InitContainers)
 	if initContainer == nil {

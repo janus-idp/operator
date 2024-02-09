@@ -89,10 +89,10 @@ func (b *BackstageRoute) Object() client.Object {
 	return b.route
 }
 
-func (b *BackstageRoute) setObject(object client.Object) {
+func (b *BackstageRoute) setObject(obj client.Object, name string) {
 	b.route = nil
-	if object != nil {
-		b.route = object.(*openshift.Route)
+	if obj != nil {
+		b.route = obj.(*openshift.Route)
 	}
 }
 
@@ -125,7 +125,7 @@ func (b *BackstageRoute) addToModel(model *BackstageModel, backstage bsv1alpha1.
 }
 
 // implementation of RuntimeObject interface
-func (b *BackstageRoute) validate(model *BackstageModel) error {
+func (b *BackstageRoute) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
 	b.route.Spec.To.Name = model.backstageService.service.Name
 	return nil
 }
