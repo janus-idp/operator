@@ -49,9 +49,9 @@ spec:
           workingDir: /opt/app-root/src
           resources:
             limits:
-              cpu: 400m
-              memory: 1Gi
-              ephemeral-storage: 3Gi
+              cpu: 1000m
+              memory: 2.5Gi
+              ephemeral-storage: 5Gi
       containers:
         - name: backstage-backend
           image: <RELATED_IMAGE_backstage> # will be replaced with the actual image quay.io/janus-idp/backstage-showcase:next
@@ -95,6 +95,6 @@ spec:
               name: dynamic-plugins-root
           resources:
             limits:
-              cpu: 400m
-              memory: 1Gi
-              ephemeral-storage: 3Gi
+              cpu: 1000m
+              memory: 2.5Gi
+              ephemeral-storage: 5Gi
