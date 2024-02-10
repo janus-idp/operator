@@ -116,21 +116,42 @@ func (b *BackstageDeployment) validate(model *BackstageModel, backstage bsv1alph
 	if backstage.Spec.Application != nil {
 		application := backstage.Spec.Application
 		// AppConfig
-		mountPath := application.AppConfig.MountPath
-		for _, spec := range application.AppConfig.ConfigMaps {
-			newAppConfig(mountPath, spec.Name, spec.Key).updatePod(b.pod)
+		if application.AppConfig != nil {
+			mountPath := application.AppConfig.MountPath
+			for _, spec := range application.AppConfig.ConfigMaps {
+				newAppConfig(mountPath, spec.Name, spec.Key).updatePod(b.pod)
+			}
 		}
-		//DynaPlugins
-		newDynamicPlugins(application.DynamicPluginsConfigMapName).updatePod(b.pod)
-		//Ext (4)
 
-		//DbSecret
+		//DynaPlugins
+		if application.DynamicPluginsConfigMapName != "" {
+			newDynamicPlugins(application.DynamicPluginsConfigMapName).updatePod(b.pod)
+		}
+		//Ext (4)
+		if application.ExtraFiles != nil {
+			mountPath := application.ExtraFiles.MountPath
+			for _, spec := range application.ExtraFiles.ConfigMaps {
+				newConfigMapFiles(mountPath, spec.Name, spec.Key).updatePod(b.pod)
+			}
+			for _, spec := range application.ExtraFiles.Secrets {
+				newSecretFiles(mountPath, spec.Name, spec.Key).updatePod(b.pod)
+			}
+		}
+		if application.ExtraEnvs != nil {
+			for _, spec := range application.ExtraEnvs.ConfigMaps {
+				newConfigMapEnvs(spec.Name, spec.Key).updatePod(b.pod)
+			}
+			for _, spec := range application.ExtraEnvs.Secrets {
+				newSecretEnvs(spec.Name, spec.Key).updatePod(b.pod)
+			}
+		}
+	}
+
+	//DbSecret
+	if model.localDbEnabled || backstage.Spec.IsAuthSecretSpecified() {
 		b.pod.setEnvsFromSecret(model.LocalDbSecret.secret.Name)
 	}
 
-	//for _, v := range backstage.Spec.ConfigObjects {
-	//	v.updatePod(b.pod)
-	//}
 	return nil
 }
 

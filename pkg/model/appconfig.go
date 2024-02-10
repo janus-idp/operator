@@ -15,8 +15,9 @@
 package model
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 	"janus-idp.io/backstage-operator/pkg/utils"
@@ -29,7 +30,7 @@ type AppConfigFactory struct{}
 
 // factory method to create App Config object
 func (f AppConfigFactory) newBackstageObject() RuntimeObject {
-	return &AppConfig{MountPath: defaultDir}
+	return &AppConfig{MountPath: defaultMountDir}
 }
 
 // structure containing ConfigMap where keys are Backstage ConfigApp file names and vaues are contents of the files

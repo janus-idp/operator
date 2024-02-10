@@ -24,7 +24,7 @@ import (
 )
 
 const backstageContainerName = "backstage-backend"
-const defaultDir = "/opt/app-root/src"
+const defaultMountDir = "/opt/app-root/src"
 
 // Pod containing Backstage business logic runtime objects (container, volumes)
 type backstagePod struct {
@@ -60,24 +60,24 @@ func newBackstagePod(bsdeployment *BackstageDeployment) (*backstagePod, error) {
 }
 
 // appends Volume to the Backstage Pod
-func (p backstagePod) appendVolume(volume corev1.Volume) {
+func (p *backstagePod) appendVolume(volume corev1.Volume) {
 	*p.volumes = append(*p.volumes, volume)
 	p.parent.Spec.Template.Spec.Volumes = *p.volumes
 }
 
 // appends --config argument to the Backstage Container command line
-func (p backstagePod) appendConfigArg(appConfigPath string) {
+func (p *backstagePod) appendConfigArg(appConfigPath string) {
 	p.container.Args = append(p.container.Args, []string{"--config", appConfigPath}...)
 }
 
 // appends VolumeMount to the Backstage Container
-func (p backstagePod) appendContainerVolumeMount(mount corev1.VolumeMount) {
+func (p *backstagePod) appendContainerVolumeMount(mount corev1.VolumeMount) {
 	p.container.VolumeMounts = append(p.container.VolumeMounts, mount)
 }
 
 // appends VolumeMount to the Backstage Container and
 // a workaround for supporting dynamic plugins
-func (p backstagePod) appendOrReplaceInitContainerVolumeMount(mount corev1.VolumeMount, containerName string) {
+func (p *backstagePod) appendOrReplaceInitContainerVolumeMount(mount corev1.VolumeMount, containerName string) {
 	for i, ic := range p.parent.Spec.Template.Spec.InitContainers {
 		if ic.Name == containerName {
 			replaced := false
@@ -97,12 +97,12 @@ func (p backstagePod) appendOrReplaceInitContainerVolumeMount(mount corev1.Volum
 }
 
 // adds environment variable to the Backstage Container using ConfigMap or Secret source
-func (p backstagePod) addContainerEnvFrom(envFrom corev1.EnvFromSource) {
+func (p *backstagePod) addContainerEnvFrom(envFrom corev1.EnvFromSource) {
 	p.container.EnvFrom = append(p.container.EnvFrom, envFrom)
 }
 
 // adds environment variables to the Backstage Container
-func (p backstagePod) addContainerEnvVar(env bs.Env) {
+func (p *backstagePod) addContainerEnvVar(env bs.Env) {
 	p.container.Env = append(p.container.Env, corev1.EnvVar{
 		Name:  env.Name,
 		Value: env.Value,
@@ -110,7 +110,7 @@ func (p backstagePod) addContainerEnvVar(env bs.Env) {
 }
 
 // adds environment from source to the Backstage Container
-func (p backstagePod) addContainerEnvVarSource(name string, envVarSource *corev1.EnvVarSource) {
+func (p *backstagePod) addContainerEnvVarSource(name string, envVarSource *corev1.EnvVarSource) {
 	p.container.Env = append(p.container.Env, corev1.EnvVar{
 		Name:      name,
 		ValueFrom: envVarSource,
@@ -118,7 +118,7 @@ func (p backstagePod) addContainerEnvVarSource(name string, envVarSource *corev1
 }
 
 // adds environment from source to the Backstage Container
-func (p backstagePod) addExtraEnvs(extraEnvs *bs.ExtraEnvs) {
+func (p *backstagePod) addExtraEnvs(extraEnvs *bs.ExtraEnvs) {
 	if extraEnvs != nil {
 		for _, e := range extraEnvs.Envs {
 			p.addContainerEnvVar(e)
@@ -127,7 +127,7 @@ func (p backstagePod) addExtraEnvs(extraEnvs *bs.ExtraEnvs) {
 }
 
 // sets pullSecret for Backstage Pod
-func (p backstagePod) setImagePullSecrets(pullSecrets []string) {
+func (p *backstagePod) setImagePullSecrets(pullSecrets []string) {
 	for _, ps := range pullSecrets {
 		p.parent.Spec.Template.Spec.ImagePullSecrets = append(p.parent.Spec.Template.Spec.ImagePullSecrets,
 			corev1.LocalObjectReference{Name: ps})
@@ -135,13 +135,13 @@ func (p backstagePod) setImagePullSecrets(pullSecrets []string) {
 }
 
 // sets container image name of Backstage Container
-func (p backstagePod) setImage(image *string) {
+func (p *backstagePod) setImage(image *string) {
 	if image != nil {
 		p.container.Image = *image
 	}
 }
 
-func (p backstagePod) setEnvsFromSecret(name string) {
+func (p *backstagePod) setEnvsFromSecret(name string) {
 
 	p.addContainerEnvFrom(corev1.EnvFromSource{
 		SecretRef: &corev1.SecretEnvSource{

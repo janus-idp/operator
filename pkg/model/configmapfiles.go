@@ -17,6 +17,8 @@ package model
 import (
 	"path/filepath"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/utils/pointer"
 
 	"janus-idp.io/backstage-operator/api/v1alpha1"
@@ -28,7 +30,7 @@ import (
 type ConfigMapFilesFactory struct{}
 
 func (f ConfigMapFilesFactory) newBackstageObject() RuntimeObject {
-	return &ConfigMapFiles{ /*ConfigMap: &corev1.ConfigMap{},*/ MountPath: defaultDir}
+	return &ConfigMapFiles{ /*ConfigMap: &corev1.ConfigMap{},*/ MountPath: defaultMountDir}
 }
 
 type ConfigMapFiles struct {
@@ -39,6 +41,16 @@ type ConfigMapFiles struct {
 
 func init() {
 	registerConfig("configmap-files.yaml", ConfigMapFilesFactory{})
+}
+
+func newConfigMapFiles(mountPath string, name string, key string) *ConfigMapFiles {
+	return &ConfigMapFiles{
+		ConfigMap: &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: name},
+		},
+		MountPath: mountPath,
+		Key:       key,
+	}
 }
 
 // implementation of RuntimeObject interface

@@ -44,7 +44,7 @@ func TestInitDefaultDeploy(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)
@@ -74,9 +74,9 @@ func TestIfEmptyObjectIsValid(t *testing.T) {
 	bs := simpleTestBackstage()
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
 
-	assert.False(t, testObj.detailedSpec.IsLocalDbEnabled())
+	assert.False(t, bs.Spec.IsLocalDbEnabled())
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
 	assert.NoError(t, err)
 
 	assert.Equal(t, 2, len(model.RuntimeObjects))
@@ -98,7 +98,7 @@ func TestAddToModel(t *testing.T) {
 	}
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
 	assert.NoError(t, err)
 	assert.NotNil(t, model)
 	assert.NotNil(t, model.RuntimeObjects)

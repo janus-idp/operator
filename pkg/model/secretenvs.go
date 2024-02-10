@@ -18,6 +18,7 @@ import (
 	"janus-idp.io/backstage-operator/api/v1alpha1"
 	"janus-idp.io/backstage-operator/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -39,6 +40,15 @@ func init() {
 // implementation of RuntimeObject interface
 func (p *SecretEnvs) Object() client.Object {
 	return p.Secret
+}
+
+func newSecretEnvs(name string, key string) *SecretEnvs {
+	return &SecretEnvs{
+		Secret: &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: name},
+		},
+		Key: key,
+	}
 }
 
 func (p *SecretEnvs) setObject(obj client.Object, name string) {

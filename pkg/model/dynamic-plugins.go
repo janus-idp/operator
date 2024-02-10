@@ -16,9 +16,10 @@ package model
 
 import (
 	"fmt"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"path/filepath"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"janus-idp.io/backstage-operator/pkg/utils"
 	"k8s.io/utils/pointer"

@@ -17,6 +17,8 @@ package model
 import (
 	"path/filepath"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/utils/pointer"
 
 	"janus-idp.io/backstage-operator/api/v1alpha1"
@@ -28,7 +30,7 @@ import (
 type SecretFilesFactory struct{}
 
 func (f SecretFilesFactory) newBackstageObject() RuntimeObject {
-	return &SecretFiles{ /*Secret: &corev1.Secret{},*/ MountPath: defaultDir}
+	return &SecretFiles{ /*Secret: &corev1.Secret{},*/ MountPath: defaultMountDir}
 }
 
 type SecretFiles struct {
@@ -39,6 +41,16 @@ type SecretFiles struct {
 
 func init() {
 	registerConfig("secret-files.yaml", SecretFilesFactory{})
+}
+
+func newSecretFiles(mountPath string, name string, key string) *SecretFiles {
+	return &SecretFiles{
+		Secret: &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: name},
+		},
+		MountPath: mountPath,
+		Key:       key,
+	}
 }
 
 // implementation of RuntimeObject interface

@@ -18,6 +18,7 @@ import (
 	"janus-idp.io/backstage-operator/api/v1alpha1"
 	"janus-idp.io/backstage-operator/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -34,6 +35,15 @@ type ConfigMapEnvs struct {
 
 func init() {
 	registerConfig("configmap-envs.yaml", ConfigMapEnvsFactory{})
+}
+
+func newConfigMapEnvs(name string, key string) *ConfigMapEnvs {
+	return &ConfigMapEnvs{
+		ConfigMap: &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: name},
+		},
+		Key: key,
+	}
 }
 
 // Object implements RuntimeObject interface

@@ -108,18 +108,18 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// 1. Preliminary read and prepare external config objects from the specs (configMaps, Secrets)
 	// 2. Make some validation to fail fast
-	spec, err := r.preprocessSpec(ctx, backstage)
+	rawConfig, err := r.rawConfigMap(ctx, backstage)
 	if err != nil {
 		return ctrl.Result{}, errorAndStatus(&backstage, "failed to preprocess backstage spec", err)
 	}
 
 	// This creates array of model objects to be reconsiled
-	bsModel, err := model.InitObjects(ctx, backstage, spec, r.OwnsRuntime, r.IsOpenShift, r.Scheme)
+	bsModel, err := model.InitObjects(ctx, backstage, rawConfig, r.OwnsRuntime, r.IsOpenShift, r.Scheme)
 	if err != nil {
 		return ctrl.Result{}, errorAndStatus(&backstage, "failed to initialize backstage model", err)
 	}
 
-	if spec.IsLocalDbEnabled() && !spec.IsAuthSecretSpecified() {
+	if backstage.Spec.IsLocalDbEnabled() && !backstage.Spec.IsAuthSecretSpecified() {
 		if err := dbsecret.Generate(ctx, r.Client, backstage, bsModel.LocalDbService, r.Scheme); err != nil {
 			return ctrl.Result{}, errorAndStatus(&backstage, "failed to generate db-service", err)
 		}
@@ -226,6 +226,27 @@ func setStatusCondition(backstage *bs.Backstage, condType bs.BackstageConditionT
 		Reason:             string(reason),
 		Message:            msg,
 	})
+}
+
+func (r *BackstageReconciler) rawConfigMap(ctx context.Context, backstage bs.Backstage) (map[string]string, error) {
+	//lg := log.FromContext(ctx)
+
+	bsSpec := backstage.Spec
+	ns := backstage.Namespace
+	result := map[string]string{}
+
+	// Process RawRuntimeConfig
+	if backstage.Spec.RawRuntimeConfig != "" {
+		cm := corev1.ConfigMap{}
+		if err := r.Get(ctx, types.NamespacedName{Name: bsSpec.RawRuntimeConfig, Namespace: ns}, &cm); err != nil {
+			return nil, fmt.Errorf("failed to load rawConfig %s: %w", bsSpec.RawRuntimeConfig, err)
+		}
+		for key, value := range cm.Data {
+			result[key] = value
+		}
+	}
+
+	return result, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

@@ -53,14 +53,14 @@ func TestOverrideBackstageImage(t *testing.T) {
 
 	_ = os.Setenv(BackstageImageEnvVar, "dummy")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "dummy", model.backstageDeployment.pod.container.Image)
 	assert.Equal(t, "dummy", model.backstageDeployment.deployment.Spec.Template.Spec.InitContainers[0].Image)
 
-	t.Log(">>>>>>>>>>>>>>>>", model.backstageDeployment.Object().GetOwnerReferences()[0].Kind)
+	//t.Log(">>>>>>>>>>>>>>>>", model.backstageDeployment.Object().GetOwnerReferences()[0].Kind)
 
-	t.Log(">>>>>>>>>>>>>>>>", testObj.scheme.AllKnownTypes())
+	//t.Log(">>>>>>>>>>>>>>>>", testObj.scheme.AllKnownTypes())
 
 }

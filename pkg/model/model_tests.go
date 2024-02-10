@@ -35,9 +35,9 @@ import (
 // withDefaultConfig(useDef bool)
 // addToDefaultConfig(key, fileName)
 type testBackstageObject struct {
-	backstage    bsv1alpha1.Backstage
-	detailedSpec *DetailedBackstageSpec
-	scheme       *runtime.Scheme
+	backstage bsv1alpha1.Backstage
+	rawConfig map[string]string
+	scheme    *runtime.Scheme
 }
 
 // simple bsv1alpha1.Backstage
@@ -58,15 +58,15 @@ func simpleTestBackstage() bsv1alpha1.Backstage {
 
 // initialises testBackstageObject object
 func createBackstageTest(bs bsv1alpha1.Backstage) *testBackstageObject {
-	b := &testBackstageObject{backstage: bs, detailedSpec: &DetailedBackstageSpec{BackstageSpec: bs.Spec}, scheme: runtime.NewScheme()}
+	b := &testBackstageObject{backstage: bs, rawConfig: map[string]string{}, scheme: runtime.NewScheme()}
 	utilruntime.Must(bsv1alpha1.AddToScheme(b.scheme))
-	b.detailedSpec.RawConfigContent = map[string]string{}
+	//b.rawConfig = map[string]string{}
 	return b
 }
 
 // enables LocalDB
 func (b *testBackstageObject) withLocalDb() *testBackstageObject {
-	b.detailedSpec.Database.EnableLocalDb = pointer.Bool(true)
+	b.backstage.Spec.Database.EnableLocalDb = pointer.Bool(true)
 	//if secretName == "" {
 	//	secretName =
 	//}
@@ -103,7 +103,7 @@ func (b *testBackstageObject) addToDefaultConfig(key string, fileName string) *t
 	if err != nil {
 		panic(err)
 	}
-	b.detailedSpec.RawConfigContent[key] = string(yaml)
+	b.rawConfig[key] = string(yaml)
 
 	return b
 }

@@ -18,7 +18,8 @@ import (
 	"context"
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
+	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -29,7 +30,7 @@ func TestDefaultConfigMapEnvFrom(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("configmap-envs.yaml", "raw-cm-envs.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model)
@@ -44,17 +45,26 @@ func TestDefaultConfigMapEnvFrom(t *testing.T) {
 
 func TestSpecifiedConfigMapEnvs(t *testing.T) {
 
-	bs := simpleTestBackstage()
+	bs := bsv1alpha1.Backstage{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bs",
+			Namespace: "ns123",
+		},
+		Spec: bsv1alpha1.BackstageSpec{
+			Application: &bsv1alpha1.Application{
+				ExtraEnvs: &bsv1alpha1.ExtraEnvs{
+					ConfigMaps: []bsv1alpha1.ObjectKeyRef{},
+				},
+			},
+		},
+	}
+
+	bs.Spec.Application.ExtraEnvs.ConfigMaps = append(bs.Spec.Application.ExtraEnvs.ConfigMaps,
+		bsv1alpha1.ObjectKeyRef{Name: "mapName", Key: "ENV1"})
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
 
-	cm := corev1.ConfigMap{Data: map[string]string{
-		"ENV1": "Val",
-	}}
-
-	testObj.detailedSpec.AddConfigObject(&ConfigMapEnvs{ConfigMap: &cm, Key: "ENV1"})
-
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model)

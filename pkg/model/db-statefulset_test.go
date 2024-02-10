@@ -35,7 +35,7 @@ func TestOverrideDbImage(t *testing.T) {
 
 	_ = os.Setenv(LocalDbImageEnvVar, "dummy")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "dummy", model.localDbStatefulSet.statefulSet.Spec.Template.Spec.Containers[0].Image)

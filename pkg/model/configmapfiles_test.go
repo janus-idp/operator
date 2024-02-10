@@ -17,12 +17,46 @@ package model
 import (
 	"context"
 
-	corev1 "k8s.io/api/core/v1"
+	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+)
+
+var (
+	//appConfigTestCm = corev1.ConfigMap{
+	//	ObjectMeta: metav1.ObjectMeta{
+	//		Name:      "app-config1",
+	//		Namespace: "ns123",
+	//	},
+	//	Data: map[string]string{"conf.yaml": ""},
+	//}
+	//
+	//appConfigTestCm2 = corev1.ConfigMap{
+	//	ObjectMeta: metav1.ObjectMeta{
+	//		Name:      "app-config2",
+	//		Namespace: "ns123",
+	//	},
+	//	Data: map[string]string{"conf2.yaml": ""},
+	//}
+
+	configMapFilesTestBackstage = bsv1alpha1.Backstage{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bs",
+			Namespace: "ns123",
+		},
+		Spec: bsv1alpha1.BackstageSpec{
+			Application: &bsv1alpha1.Application{
+				ExtraFiles: &bsv1alpha1.ExtraFiles{
+					MountPath:  "/my/path",
+					ConfigMaps: []bsv1alpha1.ObjectKeyRef{},
+				},
+			},
+		},
+	}
 )
 
 func TestDefaultConfigMapFiles(t *testing.T) {
@@ -31,7 +65,7 @@ func TestDefaultConfigMapFiles(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("configmap-files.yaml", "raw-cm-files.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 
@@ -45,30 +79,14 @@ func TestDefaultConfigMapFiles(t *testing.T) {
 
 func TestSpecifiedConfigMapFiles(t *testing.T) {
 
-	bs := simpleTestBackstage()
-
-	cm := corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "app-config1",
-			Namespace: "ns123",
-		},
-		Data: map[string]string{"conf.yaml": ""},
-	}
-
-	cm2 := corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "app-config2",
-			Namespace: "ns123",
-		},
-		Data: map[string]string{"conf2.yaml": ""},
-	}
+	bs := *configMapFilesTestBackstage.DeepCopy()
+	cmf := &bs.Spec.Application.ExtraFiles.ConfigMaps
+	*cmf = append(*cmf, bsv1alpha1.ObjectKeyRef{Name: appConfigTestCm.Name})
+	*cmf = append(*cmf, bsv1alpha1.ObjectKeyRef{Name: appConfigTestCm2.Name})
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
 
-	testObj.detailedSpec.AddConfigObject(&ConfigMapFiles{ConfigMap: &cm, MountPath: "/my/path"})
-	testObj.detailedSpec.AddConfigObject(&ConfigMapFiles{ConfigMap: &cm2, MountPath: "/my/path"})
-
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)
@@ -84,22 +102,13 @@ func TestSpecifiedConfigMapFiles(t *testing.T) {
 
 func TestDefaultAndSpecifiedConfigMapFiles(t *testing.T) {
 
-	bs := simpleTestBackstage()
+	bs := *configMapFilesTestBackstage.DeepCopy()
+	cmf := &bs.Spec.Application.ExtraFiles.ConfigMaps
+	*cmf = append(*cmf, bsv1alpha1.ObjectKeyRef{Name: appConfigTestCm.Name})
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("configmap-files.yaml", "raw-cm-files.yaml")
 
-	cm := corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "app-config1",
-			Namespace: "ns123",
-		},
-		Data: map[string]string{"conf.yaml": ""},
-	}
-
-	//testObj.detailedSpec.Details.AddAppConfig(cm, "/my/path")
-	testObj.detailedSpec.AddConfigObject(&ConfigMapFiles{ConfigMap: &cm, MountPath: "/my/path"})
-
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)

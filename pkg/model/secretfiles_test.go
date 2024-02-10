@@ -17,6 +17,8 @@ package model
 import (
 	"context"
 
+	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -29,13 +31,46 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	secretFilesTestSecret = corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "secret1",
+			Namespace: "ns123",
+		},
+		StringData: map[string]string{"conf.yaml": ""},
+	}
+
+	secretFilesTestSecret2 = corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "secret2",
+			Namespace: "ns123",
+		},
+		StringData: map[string]string{"conf2.yaml": ""},
+	}
+
+	secretFilesTestBackstage = bsv1alpha1.Backstage{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bs",
+			Namespace: "ns123",
+		},
+		Spec: bsv1alpha1.BackstageSpec{
+			Application: &bsv1alpha1.Application{
+				ExtraFiles: &bsv1alpha1.ExtraFiles{
+					MountPath: "/my/path",
+					Secrets:   []bsv1alpha1.ObjectKeyRef{},
+				},
+			},
+		},
+	}
+)
+
 func TestDefaultSecretFiles(t *testing.T) {
 
 	bs := simpleTestBackstage()
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("secret-files.yaml", "raw-secret-files.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 
@@ -49,30 +84,14 @@ func TestDefaultSecretFiles(t *testing.T) {
 
 func TestSpecifiedSecretFiles(t *testing.T) {
 
-	bs := simpleTestBackstage()
-
-	sec1 := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "secret1",
-			Namespace: "ns123",
-		},
-		StringData: map[string]string{"conf.yaml": ""},
-	}
-
-	sec2 := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "secret2",
-			Namespace: "ns123",
-		},
-		Data: map[string][]byte{"conf2.yaml": {}},
-	}
+	bs := *secretFilesTestBackstage.DeepCopy()
+	sf := &bs.Spec.Application.ExtraFiles.Secrets
+	*sf = append(*sf, bsv1alpha1.ObjectKeyRef{Name: secretFilesTestSecret.Name})
+	*sf = append(*sf, bsv1alpha1.ObjectKeyRef{Name: secretFilesTestSecret2.Name})
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
 
-	testObj.detailedSpec.AddConfigObject(&SecretFiles{Secret: &sec1, MountPath: "/my/path"})
-	testObj.detailedSpec.AddConfigObject(&SecretFiles{Secret: &sec2, MountPath: "/my/path"})
-
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)
@@ -84,28 +103,18 @@ func TestSpecifiedSecretFiles(t *testing.T) {
 	assert.Equal(t, 0, len(deployment.deployment.Spec.Template.Spec.Containers[0].Args))
 	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Volumes))
 
-	t.Log(">>>>", deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts)
+	//t.Log(">>>>", deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts)
 
 }
 
 func TestDefaultAndSpecifiedSecretFiles(t *testing.T) {
 
-	bs := simpleTestBackstage()
-
+	bs := *secretFilesTestBackstage.DeepCopy()
+	sf := &bs.Spec.Application.ExtraFiles.Secrets
+	*sf = append(*sf, bsv1alpha1.ObjectKeyRef{Name: secretFilesTestSecret.Name})
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("secret-files.yaml", "raw-secret-files.yaml")
 
-	sec := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "secret1",
-			Namespace: "ns123",
-		},
-		StringData: map[string]string{"conf.yaml": ""},
-	}
-
-	//testObj.detailedSpec.Details.AddAppConfig(cm, "/my/path")
-	testObj.detailedSpec.AddConfigObject(&SecretFiles{Secret: &sec, MountPath: "/my/path"})
-
-	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)

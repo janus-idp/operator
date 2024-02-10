@@ -22,16 +22,16 @@ import (
 type DetailedBackstageSpec struct {
 	bs.BackstageSpec
 	RawConfigContent map[string]string
-	ConfigObjects    backstageConfigs
+	//ConfigObjects    backstageConfigs
 	//LocalDbSecret    DbSecret
 }
 
 // array of PodContributor interfaces
-type backstageConfigs []PodContributor
+//type backstageConfigs []PodContributor
 
-func (a *DetailedBackstageSpec) AddConfigObject(obj PodContributor) {
-	a.ConfigObjects = append(a.ConfigObjects, obj)
-}
+//func (a *DetailedBackstageSpec) AddConfigObject(obj PodContributor) {
+//	a.ConfigObjects = append(a.ConfigObjects, obj)
+//}
 
 //func (a *DetailedBackstageSpec) SetDbSecret(secret *corev1.Secret) {
 //	a.LocalDbSecret = DbSecret{secret: secret}

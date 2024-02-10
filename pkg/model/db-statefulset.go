@@ -95,6 +95,7 @@ func (b *DbStatefulSet) EmptyObject() client.Object {
 
 // implementation of RuntimeObject interface
 func (b *DbStatefulSet) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
+	b.setDbEnvsFromSecret(model.LocalDbSecret.secret.Name)
 	return nil
 }
 

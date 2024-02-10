@@ -974,8 +974,9 @@ plugins: []
 
 				It("should fail to reconcile", func() {
 					By("Checking if the custom resource was successfully created")
+					found := &bsv1alpha1.Backstage{}
 					Eventually(func() error {
-						found := &bsv1alpha1.Backstage{}
+						//found := &bsv1alpha1.Backstage{}
 						return k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, found)
 					}, time.Minute, time.Second).Should(Succeed())
 
@@ -983,6 +984,7 @@ plugins: []
 					_, err := backstageReconciler.Reconcile(ctx, reconcile.Request{
 						NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
 					})
+
 					Expect(err).To(HaveOccurred())
 					errStr := fmt.Sprintf("%ss \"%s\" not found", strings.ToLower(kind), name)
 					Expect(err.Error()).Should(ContainSubstring(errStr))
