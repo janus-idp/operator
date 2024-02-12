@@ -104,11 +104,11 @@ make deploy-openshift [IMAGE_TAG_BASE=<your-registry>/backstage-operator]
 ```
 
 ### Modifying the API definitions
-If you are editing the API definitions, generate the manifests such as CRs or CRDs using:
+If you are editing the API definitions, regenerate the bundle using:
 ```sh
-make manifests
+make bundle
 ```
-**NOTE:** Run `make --help` for more information on all potential `make` targets
+**NOTE:** Run `make help` for more information on all potential `make` targets
 
 More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
 
