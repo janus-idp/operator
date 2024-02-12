@@ -59,24 +59,14 @@ func newBackstagePod(bsdeployment *BackstageDeployment) (*backstagePod, error) {
 	return bspod, nil
 }
 
-// appends Volume to the Backstage Pod
-func (p *backstagePod) appendVolume(volume corev1.Volume) {
-	*p.volumes = append(*p.volumes, volume)
-	p.parent.Spec.Template.Spec.Volumes = *p.volumes
-}
-
 // appends --config argument to the Backstage Container command line
 func (p *backstagePod) appendConfigArg(appConfigPath string) {
 	p.container.Args = append(p.container.Args, []string{"--config", appConfigPath}...)
 }
 
-// appends VolumeMount to the Backstage Container
-func (p *backstagePod) appendContainerVolumeMount(mount corev1.VolumeMount) {
-	p.container.VolumeMounts = append(p.container.VolumeMounts, mount)
-}
-
-// appends VolumeMount to the Backstage Container and
-// a workaround for supporting dynamic plugins
+// appends/replace VolumeMount to the Backstage Container
+// a workaround for supporting dynamic plugins overriding,
+// works for janus pod configuration where plugins mounted from init container
 func (p *backstagePod) appendOrReplaceInitContainerVolumeMount(mount corev1.VolumeMount, containerName string) {
 	for i, ic := range p.parent.Spec.Template.Spec.InitContainers {
 		if ic.Name == containerName {
@@ -96,24 +86,11 @@ func (p *backstagePod) appendOrReplaceInitContainerVolumeMount(mount corev1.Volu
 	}
 }
 
-// adds environment variable to the Backstage Container using ConfigMap or Secret source
-func (p *backstagePod) addContainerEnvFrom(envFrom corev1.EnvFromSource) {
-	p.container.EnvFrom = append(p.container.EnvFrom, envFrom)
-}
-
 // adds environment variables to the Backstage Container
 func (p *backstagePod) addContainerEnvVar(env bs.Env) {
 	p.container.Env = append(p.container.Env, corev1.EnvVar{
 		Name:  env.Name,
 		Value: env.Value,
-	})
-}
-
-// adds environment from source to the Backstage Container
-func (p *backstagePod) addContainerEnvVarSource(name string, envVarSource *corev1.EnvVarSource) {
-	p.container.Env = append(p.container.Env, corev1.EnvVar{
-		Name:      name,
-		ValueFrom: envVarSource,
 	})
 }
 
@@ -141,6 +118,8 @@ func (p *backstagePod) setImage(image *string) {
 	}
 }
 
+////////
+
 func (p *backstagePod) setEnvsFromSecret(name string) {
 
 	p.addContainerEnvFrom(corev1.EnvFromSource{
@@ -148,11 +127,26 @@ func (p *backstagePod) setEnvsFromSecret(name string) {
 			LocalObjectReference: corev1.LocalObjectReference{Name: name}}})
 }
 
-//func (p *backstagePod) addAppConfig(configMapName string, key string) {
-//
-//	p.container.Args = append(p.container.Args, []string{"--config", appConfigPath}...)
-//
-//	p.addContainerEnvFrom(corev1.EnvFromSource{
-//		SecretRef: &corev1.SecretEnvSource{
-//			LocalObjectReference: corev1.LocalObjectReference{Name: name}}})
-//}
+// adds environment variable to the Backstage Container using ConfigMap or Secret source
+func (p *backstagePod) addContainerEnvFrom(envFrom corev1.EnvFromSource) {
+	p.container.EnvFrom = append(p.container.EnvFrom, envFrom)
+}
+
+// appends VolumeMount to the Backstage Container
+func (p *backstagePod) appendContainerVolumeMount(mount corev1.VolumeMount) {
+	p.container.VolumeMounts = append(p.container.VolumeMounts, mount)
+}
+
+// appends Volume to the Backstage Pod
+func (p *backstagePod) appendVolume(volume corev1.Volume) {
+	*p.volumes = append(*p.volumes, volume)
+	p.parent.Spec.Template.Spec.Volumes = *p.volumes
+}
+
+// adds environment from source to the Backstage Container
+func (p *backstagePod) addContainerEnvVarSource(name string, envVarSource *corev1.EnvVarSource) {
+	p.container.Env = append(p.container.Env, corev1.EnvVar{
+		Name:      name,
+		ValueFrom: envVarSource,
+	})
+}

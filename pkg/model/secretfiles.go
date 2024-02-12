@@ -96,14 +96,6 @@ func (p *SecretFiles) updatePod(pod *backstagePod) {
 		},
 	}
 
-	tt := "secret"
-	urce := corev1.VolumeSource{}
-	if tt == "secret" {
-		urce.ConfigMap = &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: ""}}
-	} else {
-		urce.Secret = &corev1.SecretVolumeSource{SecretName: ""}
-	}
-
 	pod.appendVolume(corev1.Volume{
 		Name:         volName,
 		VolumeSource: volSource,
