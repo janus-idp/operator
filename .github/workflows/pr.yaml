@@ -55,6 +55,7 @@ jobs:
           go-version-file: 'go.mod'
 
       - name: Check for outdated bundle
+        id: bundle-diff-checker
         run: |
           make bundle
           git status --porcelain
@@ -68,8 +69,16 @@ jobs:
             echo "For your convenience, the diff will be attached as a job artifact, so you can easily download and Git-apply it right away." && \
             echo "You might also need to manually update the CSV in '.rhdh/bundle/manifests/rhdh-operator.csv.yaml' file accordingly." && \
             echo "===================" && \
-            git --no-pager diff && \
-            exit 1)
+            git --no-pager diff | tee bundle.pr-${{ github.event.number }}.patch && \
+            exit 1 )
+
+      - name: Save bundle diff as patch
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() && steps.bundle-diff-checker.outcome == 'failure' }}
+        with:
+          name: bundle-diff-patch
+          path: bundle.pr-${{ github.event.number }}.patch
+          retention-days: 5
 
       # gosec needs a "build" stage so connect it to the lint step which we always do
       - name: build
