@@ -76,7 +76,8 @@ data:
               envFrom:
                 - secretRef:
                     name: <POSTGRESQL_SECRET>  # will be replaced with 'backstage-psql-secrets-<cr-name>'
-              image: <RELATED_IMAGE_postgresql> # will be replaced with the actual image
+              # image will be replaced by the value of the `RELATED_IMAGE_postgresql` env var, if set
+              image: quay.io/fedora/postgresql-15:latest
               imagePullPolicy: IfNotPresent
               securityContext:
                 runAsNonRoot: true
@@ -188,7 +189,8 @@ data:
               env:
                 - name: NPM_CONFIG_USERCONFIG
                   value: /opt/app-root/src/.npmrc.dynamic-plugins
-              image: <RELATED_IMAGE_backstage> # will be replaced with the actual image quay.io/janus-idp/backstage-showcase:next
+              # image will be replaced by the value of the `RELATED_IMAGE_backstage` env var, if set
+              image: quay.io/janus-idp/backstage-showcase:latest
               imagePullPolicy: IfNotPresent
               name: install-dynamic-plugins
               volumeMounts:
@@ -202,7 +204,7 @@ data:
 
           containers:
             - name: backstage-backend
-              image: <RELATED_IMAGE_backstage> # will be replaced with the actual image quay.io/janus-idp/backstage-showcase:next
+              image: quay.io/janus-idp/backstage-showcase:latest
               imagePullPolicy: IfNotPresent
               args:
                 - "--config"
