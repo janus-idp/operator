@@ -54,6 +54,23 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
+      - name: Check for outdated bundle
+        run: |
+          make bundle
+          git status --porcelain
+          # Since operator-sdk 1.26.0, `make bundle` changes the `createdAt` field from the bundle every time we run it.
+          # The `git diff` below checks if only the createdAt field has changed. If is the only change, it is ignored.
+          # Inspired from https://github.com/operator-framework/operator-sdk/issues/6285#issuecomment-1415350333
+          git diff --quiet -I'^    createdAt: ' bundle || ( echo "===================" && \
+            echo "Files changed in bundle generation." && \
+            echo "Please make sure to regenerate the bundle with 'make bundle' and push the changes." && \
+            echo "Make sure you unset any related env vars like VERSION or IMAGE_TAG_BASE or IMG before running this command, as they may affect the resulting manifests." && \
+            echo "For your convenience, the diff will be attached as a job artifact, so you can easily download and Git-apply it right away." && \
+            echo "You might also need to manually update the CSV in '.rhdh/bundle/manifests/rhdh-operator.csv.yaml' file accordingly." && \
+            echo "===================" && \
+            git --no-pager diff && \
+            exit 1)
+
       # gosec needs a "build" stage so connect it to the lint step which we always do
       - name: build
         run: make lint
