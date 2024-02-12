@@ -15,11 +15,13 @@ spec:
         janus-idp.io/app: backstage-psql-cr1 # placeholder for 'backstage-psql-<cr-name>'
       name: backstage-db-cr1 # placeholder for 'backstage-psql-<cr-name>'
     spec:
-#      securityContext:
-#        runAsGroup: 26
-      persistentVolumeClaimRetentionPolicy:
-        whenDeleted: Retain
-        whenScaled: Retain
+      automountServiceAccountToken: false
+      ## https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/
+      ## The optional .spec.persistentVolumeClaimRetentionPolicy field controls if and how PVCs are deleted during the lifecycle of a StatefulSet.
+      ## You must enable the StatefulSetAutoDeletePVC feature gate on the API server and the controller manager to use this field.
+#      persistentVolumeClaimRetentionPolicy:
+#        whenDeleted: Retain
+#        whenScaled: Retain
       containers:
         - env:
             - name: POSTGRESQL_PORT_NUMBER
@@ -28,11 +30,12 @@ spec:
               value: /var/lib/pgsql/data
             - name: PGDATA
               value: /var/lib/pgsql/data/userdata
-          image: quay.io/fedora/postgresql-15:latest # will be replaced with the actual image
+          envFrom:
+            - secretRef:
+                name: <POSTGRESQL_SECRET>  # will be replaced with 'backstage-psql-secrets-<cr-name>'
+          image: <RELATED_IMAGE_postgresql> # will be replaced with the actual image
           imagePullPolicy: IfNotPresent
           securityContext:
-            runAsUser: 26
-            runAsGroup: 0
             runAsNonRoot: true
             allowPrivilegeEscalation: false
             seccompProfile:
@@ -74,13 +77,17 @@ spec:
               cpu: 250m
               memory: 256Mi
             limits:
+              cpu: 250m
               memory: 1024Mi
+              ephemeral-storage: 20Mi
           volumeMounts:
             - mountPath: /dev/shm
               name: dshm
             - mountPath: /var/lib/pgsql/data
               name: data
       restartPolicy: Always
+      securityContext: {}
+      serviceAccount: default
       serviceAccountName: default
       volumes:
         - emptyDir:

@@ -12,11 +12,7 @@ spec:
       labels:
         janus-idp.io/app:  # placeholder for 'backstage-<cr-name>'
     spec:
-      #Error: EACCES: permission denied, open '/dynamic-plugins-root/backstage-plugin-scaffolder-backend-module-github-dynamic-0.2.2.tgz'
-#      securityContext:
-#        fsGroup: 1001
-#        runAsUser: 1001
-#        runAsGroup: 1001
+      automountServiceAccountToken: false
       volumes:
         - ephemeral:
             volumeClaimTemplate:
@@ -32,18 +28,17 @@ spec:
             defaultMode: 420
             optional: true
             secretName: dynamic-plugins-npmrc
+
       initContainers:
-        - name: install-dynamic-plugins
-          command:
+        - command:
             - ./install-dynamic-plugins.sh
             - /dynamic-plugins-root
-          image: quay.io/janus-idp/backstage-showcase:latest # will be replaced with the actual image quay.io/janus-idp/backstage-showcase:next
-          imagePullPolicy: IfNotPresent
-          securityContext:
-            runAsUser: 0
           env:
             - name: NPM_CONFIG_USERCONFIG
               value: /opt/app-root/src/.npmrc.dynamic-plugins
+          image: <RELATED_IMAGE_backstage> # will be replaced with the actual image quay.io/janus-idp/backstage-showcase:next
+          imagePullPolicy: IfNotPresent
+          name: install-dynamic-plugins
           volumeMounts:
             - mountPath: /dynamic-plugins-root
               name: dynamic-plugins-root
@@ -52,18 +47,18 @@ spec:
               readOnly: true
               subPath: .npmrc
           workingDir: /opt/app-root/src
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 2.5Gi
+              ephemeral-storage: 5Gi
       containers:
         - name: backstage-backend
-          image: quay.io/janus-idp/backstage-showcase:latest # will be replaced with the actual image quay.io/janus-idp/backstage-showcase:next
+          image: <RELATED_IMAGE_backstage> # will be replaced with the actual image quay.io/janus-idp/backstage-showcase:next
           imagePullPolicy: IfNotPresent
           args:
             - "--config"
             - "dynamic-plugins-root/app-config.dynamic-plugins.yaml"
-#          securityContext:
-#            runAsUser: 1001
-#            runAsGroup: 0
-#            runAsNonRoot: true
-#            allowPrivilegeEscalation: false
           readinessProbe:
             failureThreshold: 3
             httpGet:
@@ -90,6 +85,16 @@ spec:
           env:
             - name: APP_CONFIG_backend_listen_port
               value: "7007"
+          envFrom:
+            - secretRef:
+                name: <POSTGRESQL_SECRET>  # will be replaced with 'backstage-psql-secrets-<cr-name>'
+          #            - secretRef:
+          #                name: backstage-secrets
           volumeMounts:
             - mountPath: /opt/app-root/src/dynamic-plugins-root
               name: dynamic-plugins-root
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 2.5Gi
+              ephemeral-storage: 5Gi
