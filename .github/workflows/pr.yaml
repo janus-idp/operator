@@ -81,10 +81,10 @@ jobs:
           retention-days: 5
 
       # gosec needs a "build" stage so connect it to the lint step which we always do
-      - name: build
+      - name: Lint
         run: make lint
 
-      - name: test
+      - name: Test
         # run this stage only if there are changes that match the includes and not the excludes
         if: ${{ env.CHANGES != '' }}
         run: make test
