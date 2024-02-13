@@ -104,9 +104,9 @@ make deploy-openshift [IMAGE_TAG_BASE=<your-registry>/backstage-operator]
 ```
 
 ### Modifying the API definitions
-If you are editing the API definitions, regenerate the bundle using:
+If you are editing the API definitions, regenerate the manifests and bundle using:
 ```sh
-make bundle
+make manifests bundle
 ```
 **NOTE:** Run `make help` for more information on all potential `make` targets
 
