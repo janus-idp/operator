@@ -1,4 +1,4 @@
-module janus-idp.io/backstage-operator
+module redhat-developer/backstage-operator
 
 go 1.20
 
