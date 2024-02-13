@@ -32,10 +32,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	backstageiov1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
-	controller "redhat-developer/red-hat-developer-hub-operator/controllers"
-
 	openshift "github.com/openshift/api/route/v1"
+	backstageiov1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
+	controller "janus-idp.io/backstage-operator/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -109,7 +108,7 @@ func main() {
 		Scheme:      mgr.GetScheme(),
 		OwnsRuntime: ownRuntime,
 		IsOpenShift: isOpenShift,
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, setupLog); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Backstage")
 		os.Exit(1)
 	}

@@ -16,19 +16,15 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
 )
 
-type BackstageConditionReason string
-
-type BackstageConditionType string
-
+// Constants for status conditions
 const (
-	BackstageConditionTypeDeployed BackstageConditionType = "Deployed"
-
-	BackstageConditionReasonDeployed   BackstageConditionReason = "Deployed"
-	BackstageConditionReasonFailed     BackstageConditionReason = "DeployFailed"
-	BackstageConditionReasonInProgress BackstageConditionReason = "DeployInProgress"
+	// TODO: RuntimeConditionRunning string = "RuntimeRunning"
+	ConditionDeployed string = "Deployed"
+	DeployOK          string = "DeployOK"
+	DeployFailed      string = "DeployFailed"
+	DeployInProgress  string = "DeployInProgress"
 )
 
 // BackstageSpec defines the desired state of Backstage
@@ -36,20 +32,11 @@ type BackstageSpec struct {
 	// Configuration for Backstage. Optional.
 	Application *Application `json:"application,omitempty"`
 
-	// Raw Runtime RuntimeObjects configuration. For Advanced scenarios.
-	//RawConfig string `json:"rawConfig,omitempty"`
-
-	RawRuntimeConfig *RuntimeConfig `json:"rawRuntimeConfig,omitempty"`
+	// Raw Runtime Objects configuration. For Advanced scenarios.
+	RawRuntimeConfig RuntimeConfig `json:"rawRuntimeConfig,omitempty"`
 
 	// Configuration for database access. Optional.
-	Database *Database `json:"database,omitempty"`
-}
-
-type RuntimeConfig struct {
-	// Name of ConfigMap containing Backstage runtime objects configuration
-	BackstageConfigName string `json:"backstageConfig,omitempty"`
-	// Name of ConfigMap containing LocalDb (PostgreSQL) runtime objects configuration
-	LocalDbConfigName string `json:"localDbConfig,omitempty"`
+	Database Database `json:"database,omitempty"`
 }
 
 type Database struct {
@@ -58,8 +45,8 @@ type Database struct {
 	//+kubebuilder:default=true
 	EnableLocalDb *bool `json:"enableLocalDb,omitempty"`
 
-	// Name of the secret for database authentication. Required for external database access.
-	// Optional for a local database (EnableLocalDb=true) and if absent a secret will be auto generated.
+	// Name of the secret for database authentication. Optional.
+	// For a local database deployment (EnableLocalDb=true), a secret will be auto generated if it does not exist.
 	// The secret shall include information used for the database access.
 	// An example for PostgreSQL DB access:
 	// "POSTGRES_PASSWORD": "rl4s3Fh4ng3M4"
@@ -111,7 +98,7 @@ type Application struct {
 
 	// Image Pull Secrets to use in all containers (including Init Containers)
 	// +optional
-	ImagePullSecrets []string `json:"imagePullSecrets,omitempty"`
+	ImagePullSecrets *[]string `json:"imagePullSecrets,omitempty"`
 
 	// Route configuration. Used for OpenShift only.
 	Route *Route `json:"route,omitempty"`
@@ -188,6 +175,13 @@ type Env struct {
 	// Value of the environment variable
 	//+kubebuilder:validation:Required
 	Value string `json:"value"`
+}
+
+type RuntimeConfig struct {
+	// Name of ConfigMap containing Backstage runtime objects configuration
+	BackstageConfigName string `json:"backstageConfig,omitempty"`
+	// Name of ConfigMap containing LocalDb (P|ostgreSQL) runtime objects configuration
+	LocalDbConfigName string `json:"localDbConfig,omitempty"`
 }
 
 // BackstageStatus defines the observed state of Backstage
@@ -273,30 +267,4 @@ type TLS struct {
 
 func init() {
 	SchemeBuilder.Register(&Backstage{}, &BackstageList{})
-}
-
-func (s *BackstageSpec) IsLocalDbEnabled() bool {
-	if s.Database == nil {
-		return true
-	}
-	return pointer.BoolDeref(s.Database.EnableLocalDb, true)
-}
-
-func (s *BackstageSpec) IsRouteEnabled() bool {
-	if s.Application == nil || s.Application.Route == nil {
-		return false
-	}
-	return pointer.BoolDeref(s.Application.Route.Enabled, true)
-}
-
-func (s *BackstageSpec) IsRouteEmpty() bool {
-	route := s.Application.Route
-	if route.Host != "" && route.Subdomain != "" && route.TLS != nil && *route.TLS != (TLS{}) {
-		return true
-	}
-	return false
-}
-
-func (s *BackstageSpec) IsAuthSecretSpecified() bool {
-	return s.Database != nil && s.Database.AuthSecretName != ""
 }
