@@ -1,4 +1,4 @@
-module redhat-developer/backstage-operator
+module redhat-developer/red-hat-developer-hub-operator
 
 go 1.20
 

@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	backstageiov1alpha1 "redhat-developer/backstage-operator/api/v1alpha1"
-	controller "redhat-developer/backstage-operator/controllers"
+	backstageiov1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	controller "redhat-developer/red-hat-developer-hub-operator/controllers"
 
 	openshift "github.com/openshift/api/route/v1"
 	//+kubebuilder:scaffold:imports

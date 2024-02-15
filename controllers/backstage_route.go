@@ -21,7 +21,7 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	bs "redhat-developer/backstage-operator/api/v1alpha1"
+	bs "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
 
 	openshift "github.com/openshift/api/route/v1"
 	"k8s.io/apimachinery/pkg/api/errors"

@@ -21,7 +21,7 @@ import (
 	"os"
 	"path/filepath"
 
-	bs "redhat-developer/backstage-operator/api/v1alpha1"
+	bs "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
