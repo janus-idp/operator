@@ -1,12 +1,13 @@
+---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
-  name: backstages.janus-idp.io
+  name: backstages.rhdh.redhat.com
 spec:
-  group: janus-idp.io
+  group: rhdh.redhat.com
   names:
     kind: Backstage
     listKind: BackstageList
@@ -269,13 +270,14 @@ spec:
                 properties:
                   authSecretName:
                     description: 'Name of the secret for database authentication.
-                      Optional. For a local database deployment (EnableLocalDb=true),
-                      a secret will be auto generated if it does not exist. The secret
-                      shall include information used for the database access. An example
-                      for PostgreSQL DB access: "POSTGRES_PASSWORD": "rl4s3Fh4ng3M4"
-                      "POSTGRES_PORT": "5432" "POSTGRES_USER": "postgres" "POSTGRESQL_ADMIN_PASSWORD":
-                      "rl4s3Fh4ng3M4" "POSTGRES_HOST": "backstage-psql-bs1"  # For
-                      local database, set to "backstage-psql-<CR name>".'
+                      Required for external database access. Optional for a local
+                      database (EnableLocalDb=true) and if absent a secret will be
+                      auto generated. The secret shall include information used for
+                      the database access. An example for PostgreSQL DB access: "POSTGRES_PASSWORD":
+                      "rl4s3Fh4ng3M4" "POSTGRES_PORT": "5432" "POSTGRES_USER": "postgres"
+                      "POSTGRESQL_ADMIN_PASSWORD": "rl4s3Fh4ng3M4" "POSTGRES_HOST":
+                      "backstage-psql-bs1"  # For local database, set to "backstage-psql-<CR
+                      name>".'
                     type: string
                   enableLocalDb:
                     default: true
@@ -284,8 +286,16 @@ spec:
                     type: boolean
                 type: object
               rawRuntimeConfig:
-                description: Raw Runtime Objects configuration. For Advanced scenarios.
-                type: string
+                properties:
+                  backstageConfig:
+                    description: Name of ConfigMap containing Backstage runtime objects
+                      configuration
+                    type: string
+                  localDbConfig:
+                    description: Name of ConfigMap containing LocalDb (PostgreSQL)
+                      runtime objects configuration
+                    type: string
+                type: object
             type: object
           status:
             description: BackstageStatus defines the observed state of Backstage
@@ -366,9 +376,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: null
-  storedVersions: null

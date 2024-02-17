@@ -31,7 +31,7 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 # This variable is used to construct full image tags for bundle and catalog images.
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
-# redhat-developer/red-hat-developer-hub-operator-bundle:$VERSION and redhat-developer/red-hat-developer-hub-operator-catalog:$VERSION.
+# quay.io/janus-idp/operator-bundle:$VERSION and quay.io/janus-idp/operator-catalog:$VERSION.
 IMAGE_TAG_BASE ?= quay.io/janus-idp/operator
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
@@ -128,12 +128,6 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet envtest ## Run tests. We need LOCALBIN=$(LOCALBIN) to get correct default-config path
 	mkdir -p $(LOCALBIN)/default-config && cp config/manager/$(CONF_DIR)/* $(LOCALBIN)/default-config
 	LOCALBIN=$(LOCALBIN) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
-
-.PHONY: integration-test
-integration-test: manifests generate fmt vet envtest ## Run tests. We need LOCALBIN=$(LOCALBIN) to get correct default-config path
-	mkdir -p $(LOCALBIN)/default-config && cp config/manager/$(CONF_DIR)/* $(LOCALBIN)/default-config
-	LOCALBIN=$(LOCALBIN) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" ginkgo -v -r integration_tests
-
 
 ##@ Build
 
@@ -309,9 +303,9 @@ bundle: operator-sdk manifests kustomize ## Generate bundle manifests and metada
 	$(MAKE) fmt_license
 
 ## to update the CSV with a new tagged version of the operator:
-## yq '.spec.install.spec.deployments[0].spec.template.spec.containers[1].image|="quay.io/janus-idp/operator:some-other-tag"' bundle/manifests/backstage-operator.clusterserviceversion.yaml
+## yq '.spec.install.spec.deployments[0].spec.template.spec.containers[1].image|="quay.io/rhdh/operator:some-other-tag"' bundle/manifests/backstage-operator.clusterserviceversion.yaml
 ## or 
-## sed -r -e "s#(image: +)quay.io/.+operator.+#\1quay.io/janus-idp/operator:some-other-tag#g" -i bundle/manifests/backstage-operator.clusterserviceversion.yaml
+## sed -r -e "s#(image: +)quay.io/.+operator.+#\1quay.io/rhdh/operator:some-other-tag#g" -i bundle/manifests/backstage-operator.clusterserviceversion.yaml
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
 	$(CONTAINER_ENGINE) build --platform $(PLATFORM) -f docker/bundle.Dockerfile -t $(BUNDLE_IMG) --label $(LABEL) .
@@ -370,9 +364,4 @@ catalog-update: ## Update catalog source in the default namespace for catalogsou
 
 .PHONY: deploy-openshift
 deploy-openshift: release-build release-push catalog-update ## Deploy the operator on openshift cluster
-
-.PHONY: deployment-script
-deployment-script: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
-	$(KUSTOMIZE) build config/default > rhdh-operator-${VERSION}.yaml
 
