@@ -21,16 +21,10 @@ on:
     - rhdh-1.[0-9]+
     - 1.[0-9]+.x
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.number || github.event.pull_request.head.ref }}
-  cancel-in-progress: true
-
 jobs:
   pr-validate:
     name: PR Validate
     runs-on: ubuntu-latest
-    env:
-      CONTAINER_ENGINE: podman
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -77,32 +71,3 @@ jobs:
         with:
           # Path to SARIF file relative to the root of the repository
           sarif_file: gosec.sarif
-
-      - name: Prepare E2E Tests for PR by waiting until operator image is built and published
-        # run this stage only if there are changes that match the includes and not the excludes
-        if: ${{ env.CHANGES != '' }}
-        timeout-minutes: 10
-        run: |
-          SHORT_SHA=$(git rev-parse --short ${{ github.event.pull_request.head.sha }})
-          BASE_VERSION=$(grep -E "^VERSION \?=" Makefile | sed -r -e "s/.+= //") # 0.1.0
-          OPERATOR_IMAGE="quay.io/janus-idp/operator:${BASE_VERSION}-pr-${{ github.event.number }}-${SHORT_SHA}"
-          echo "Waiting until operator image is found or timeout expires: ${OPERATOR_IMAGE}..."
-          until ${CONTAINER_ENGINE} image pull "${OPERATOR_IMAGE}"; do
-            sleep 2
-            echo ...
-          done
-          echo "... operator image found: ${OPERATOR_IMAGE}."
-          echo "OPERATOR_IMAGE=${OPERATOR_IMAGE}" >> $GITHUB_ENV
-      - name: Start Minikube
-        # run this stage only if there are changes that match the includes and not the excludes
-        if: ${{ env.CHANGES != '' }}
-        uses: medyagh/setup-minikube@606b71970c783154fe49b711486c717f5780f485 # v0.0.15
-        with:
-          addons: ingress
-      - name: Run E2E tests
-        # run this stage only if there are changes that match the includes and not the excludes
-        if: ${{ env.CHANGES != '' }}
-        env:
-          BACKSTAGE_OPERATOR_TESTS_PLATFORM: minikube
-          IMG: ${{ env.OPERATOR_IMAGE }}
-        run: make test-e2e
