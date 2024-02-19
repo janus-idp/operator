@@ -56,29 +56,57 @@ jobs:
 
       - name: Check for outdated bundle
         id: bundle-diff-checker
+        # Lot of debate (https://github.com/janus-idp/operator/pull/195) whether this should be a warning or an error.
+        # For now, this is will be warning + a comment on the PR if manifests are outdated. This way, PR authors/maintainers can be aware of that fact.
+        continue-on-error: true
         run: |
           make bundle
           git status --porcelain
           # Since operator-sdk 1.26.0, `make bundle` changes the `createdAt` field from the bundle every time we run it.
           # The `git diff` below checks if only the createdAt field has changed. If is the only change, it is ignored.
           # Inspired from https://github.com/operator-framework/operator-sdk/issues/6285#issuecomment-1415350333
-          git diff --quiet -I'^    createdAt: ' bundle || ( echo "===================" && \
-            echo "Files changed in bundle generation." && \
-            echo "Please make sure to regenerate the bundle with 'make bundle' and push the changes." && \
-            echo "Make sure you unset any related env vars like VERSION or IMAGE_TAG_BASE or IMG before running this command, as they may affect the resulting manifests." && \
-            echo "For your convenience, the diff will be attached as a job artifact, so you can easily download and Git-apply it right away." && \
-            echo "You might also need to manually update the CSV in '.rhdh/bundle/manifests/rhdh-operator.csv.yaml' file accordingly." && \
-            echo "===================" && \
+          git diff --quiet -I'^    createdAt: ' bundle || ( echo "::group::WARNINGS" && \
             git --no-pager diff | tee bundle.pr-${{ github.event.number }}.patch && \
+            echo "::warning:: Files changed in bundle generation. Please regenerate the bundle with 'make bundle' and push the changes. For your convenience, the diff is attached as a job artifact, so you can easily download and Git-apply it right away instead. You might also need to manually update the CSV in '.rhdh/bundle/manifests/rhdh-operator.csv.yaml' file accordingly." && \
+            echo "::endgroup::" && \
             exit 1 )
 
       - name: Save bundle diff as patch
+        id: bundle-diff-patch-artifact-upload
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() && steps.bundle-diff-checker.outcome == 'failure' }}
         with:
           name: bundle-diff-patch
           path: bundle.pr-${{ github.event.number }}.patch
           retention-days: 5
+
+      - name: Comment on PR if bundle manifests are outdated
+        uses: actions/github-script@v7
+        if: ${{ !cancelled() && steps.bundle-diff-checker.outcome == 'failure' }}
+        # TODO(rm3l): this won't work for fork PRs due to permission restrictions. Remove this once this is fixed for fork PRs.
+        continue-on-error: true
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '⚠️ <b>Files changed in bundle generation<b>!<br/><br/>Please make sure to regenerate the bundle with `make bundle` and push the changes. Make sure you unset any related env vars like `VERSION` or `IMAGE_TAG_BASE` or `IMG` before running this command, as they may affect the resulting manifests.<br/>For your convenience, the diff is attached as a job artifact [here](${{ steps.bundle-diff-patch-artifact-upload.outputs.artifact-url }}), so you can easily download and Git-apply it right away instead of running `make bundle`.<br/>You might also need to manually update the CSV in [`.rhdh/bundle/manifests/rhdh-operator.csv.yaml`](.rhdh/bundle/manifests/rhdh-operator.csv.yaml) file accordingly.'
+            })
+
+      - name: Comment on PR if bundle manifests are up-to-date
+        uses: actions/github-script@v7
+        if: ${{ !cancelled() && steps.bundle-diff-checker.outcome == 'success' }}
+        # TODO(rm3l): this won't work for fork PRs due to permission restrictions. Remove this once this is fixed for fork PRs.
+        continue-on-error: true
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🎉 <b>Bundle manifests are up-to-date!<br/><br/>Please also review the bundle manifests to make sure manual updates to the CSV in [`.rhdh/bundle/manifests/rhdh-operator.csv.yaml`](.rhdh/bundle/manifests/rhdh-operator.csv.yaml) file are not required.'
+            })
 
       # gosec needs a "build" stage so connect it to the lint step which we always do
       - name: Lint
