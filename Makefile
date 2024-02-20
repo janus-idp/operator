@@ -3,7 +3,7 @@
 # To re-generate a bundle for another specific version without changing the standard setup, you can:
 # - use the VERSION as arg of the bundle target (e.g make bundle VERSION=0.0.2)
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
-VERSION ?= 0.0.1
+VERSION ?= 0.2.0
 
 # Using docker or podman to build and push images
 CONTAINER_ENGINE ?= docker
@@ -31,7 +31,7 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 # This variable is used to construct full image tags for bundle and catalog images.
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
-# janus-idp.io/backstage-operator-bundle:$VERSION and janus-idp.io/backstage-operator-catalog:$VERSION.
+# quay.io/janus-idp/operator-bundle:$VERSION and quay.io/janus-idp/operator-catalog:$VERSION.
 IMAGE_TAG_BASE ?= quay.io/janus-idp/operator
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
@@ -303,9 +303,9 @@ bundle: operator-sdk manifests kustomize ## Generate bundle manifests and metada
 	$(MAKE) fmt_license
 
 ## to update the CSV with a new tagged version of the operator:
-## yq '.spec.install.spec.deployments[0].spec.template.spec.containers[1].image|="quay.io/janus-idp/operator:some-other-tag"' bundle/manifests/backstage-operator.clusterserviceversion.yaml
+## yq '.spec.install.spec.deployments[0].spec.template.spec.containers[1].image|="quay.io/rhdh/operator:some-other-tag"' bundle/manifests/backstage-operator.clusterserviceversion.yaml
 ## or 
-## sed -r -e "s#(image: +)quay.io/.+operator.+#\1quay.io/janus-idp/operator:some-other-tag#g" -i bundle/manifests/backstage-operator.clusterserviceversion.yaml
+## sed -r -e "s#(image: +)quay.io/.+operator.+#\1quay.io/rhdh/operator:some-other-tag#g" -i bundle/manifests/backstage-operator.clusterserviceversion.yaml
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
 	$(CONTAINER_ENGINE) build --platform $(PLATFORM) -f docker/bundle.Dockerfile -t $(BUNDLE_IMG) --label $(LABEL) .
