@@ -109,7 +109,7 @@ jobs:
             })
 
       # gosec needs a "build" stage so connect it to the lint step which we always do
-      - name: Lint
+      - name: build
         run: make lint
 
       - name: Test
