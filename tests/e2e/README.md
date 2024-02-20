@@ -32,52 +32,84 @@ The behavior is configurable using the following environment variables:
 
 ### Examples
 
-#### Testing a specific version
+#### Testing the operator available for the VERSION (default)
 
-This should work on any Kubernetes cluster:
+In this scenario, you want to run the E2E test suite against the operator image corresponding to the `VERSION` declared in the project [`Makefile`](../../Makefile), which should be publicly available at `quay.io/janus-idp/operator:<VERSION>`.
 
-```shell
-$ make test-e2e VERSION=0.0.1-latest
-```
+This is the default behavior.
 
-#### Building and testing local changes on [kind](https://kind.sigs.k8s.io/)
+This should work on any Kubernetes or OpenShift cluster:
 
 ```shell
-$ kind create cluster
-$ make test-e2e BACKSTAGE_OPERATOR_TESTS_BUILD_IMAGES=true BACKSTAGE_OPERATOR_TESTS_PLATFORM=kind
-```
-
-#### Building and testing local changes on [k3d](https://k3d.io/)
-
-```shell
-$ k3d cluster create
-$ make test-e2e BACKSTAGE_OPERATOR_TESTS_BUILD_IMAGES=true BACKSTAGE_OPERATOR_TESTS_PLATFORM=k3d
-```
-
-#### Building and testing local changes on [minikube](https://minikube.sigs.k8s.io/docs/)
-
-```shell
-$ minikube start
-$ make test-e2e BACKSTAGE_OPERATOR_TESTS_BUILD_IMAGES=true BACKSTAGE_OPERATOR_TESTS_PLATFORM=minikube
+$ make test-e2e
 ```
 
 #### Testing a specific image (e.g. PR image)
 
+In this scenario, you want to run the E2E test suite against an existing operator image.
+
+This should work on any Kubernetes or OpenShift cluster:
+
 ```shell
-$ make test-e2e IMG=quay.io/janus-idp/operator:0.0.1-pr-201-7d08c24
+# if the tag is already published and available at the default location: quay.io/janus-idp/operator
+$ make test-e2e VERSION=0.2.0-3d1c1e0
+
+# or you can override the full image repo name
+$ make test-e2e IMG=my.registry.example.com/operator:0.2.0-3d1c1e0
+```
+
+Note that `VERSION` and `IMG` override the respective variables declared in the project [`Makefile`](../../Makefile).
+
+#### Building and testing local changes on supported local clusters
+
+In this scenario, you are iterating locally, and want to run the E2E test suite against your local changes. You are already using a local cluster like [`kind`](https://kind.sigs.k8s.io/), [`k3d`](https://k3d.io/) or [`minikube`](https://minikube.sigs.k8s.io/docs/), which provide the ability to import images into the cluster nodes.
+
+To do so, you can:
+1. set `BACKSTAGE_OPERATOR_TESTS_BUILD_IMAGES` to `true`, which will result in building the operator image from the local changes,
+2. and set `BACKSTAGE_OPERATOR_TESTS_PLATFORM` to a supported local cluster, which will result in loading the image built directly in that cluster (without having to push to a separate registry).
+
+##### `kind`
+
+```shell
+$ kind create cluster
+$ make test-e2e \
+    BACKSTAGE_OPERATOR_TESTS_BUILD_IMAGES=true \
+    BACKSTAGE_OPERATOR_TESTS_PLATFORM=kind
+```
+
+##### `k3d`
+
+```shell
+$ k3d cluster create
+$ make test-e2e \
+    BACKSTAGE_OPERATOR_TESTS_BUILD_IMAGES=true \
+    BACKSTAGE_OPERATOR_TESTS_PLATFORM=k3d
+```
+
+##### `minikube`
+
+```shell
+$ minikube start
+$ make test-e2e \
+    BACKSTAGE_OPERATOR_TESTS_BUILD_IMAGES=true \
+    BACKSTAGE_OPERATOR_TESTS_PLATFORM=minikube
 ```
 
 #### Testing a specific version using OLM
 
-This requires the [Operator Lifecycle Manager (OLM)](https://olm.operatorframework.io/) to be installed in the cluster:
+In this scenario, you want to leverage the [Operator Lifecycle Manager (OLM)](https://olm.operatorframework.io/) to deploy the Operator.
+
+This requires OLM to be installed in the cluster.
 
 ```shell
 $ make test-e2e BACKSTAGE_OPERATOR_TEST_MODE=olm
 ```
 
-#### Testing a downstream build of RHDH
+#### Testing a downstream build of Red Hat Developer Hub (RHDH)
 
-This requires an OpenShift cluster. If testing a CI build, please follow the instructions in [Installing CI builds of Red Hat Developer Hub](../../.rhdh/docs/installing-ci-builds.adoc) to add your Quay token to the cluster.
+In this scenario, you want to run the E2E tests against a downstream build of RHDH.
+
+This works only against OpenShift clusters. If testing a CI build, please follow the instructions in [Installing CI builds of Red Hat Developer Hub](../../.rhdh/docs/installing-ci-builds.adoc) to add your Quay token to the cluster.
 
 ```shell
 # latest
@@ -89,9 +121,15 @@ $ make test-e2e BACKSTAGE_OPERATOR_TEST_MODE=rhdh-next
 
 #### Airgap testing of RHDH
 
-This requires an OpenShift cluster.
-Please also read the prerequisites in [Installing Red Hat Developer Hub (RHDH) in restricted environments](../../.rhdh/docs/airgap.adoc).
+In this scenario, you want to run the E2E tests against an OpenShift cluster running in a restricted network. For this, the command below will make sure to prepare it by copying all the necessary images to a mirror registry, then deploy the operator.
+Please make sure to read the prerequisites in [Installing Red Hat Developer Hub (RHDH) in restricted environments](../../.rhdh/docs/airgap.adoc).
 
 ```shell
+# if you want to have a mirror registry to be created for you as part of the airgap environment setup
 $ make test-e2e BACKSTAGE_OPERATOR_TEST_MODE=rhdh-airgap
+
+# or if you already have a mirror registry available and reachable from within your cluster
+$ make test-e2e \
+    BACKSTAGE_OPERATOR_TEST_MODE=rhdh-airgap \
+    BACKSTAGE_OPERATOR_TESTS_AIRGAP_MIRROR_REGISTRY=my-registry.example.com
 ```
