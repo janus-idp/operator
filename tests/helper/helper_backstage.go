@@ -34,10 +34,11 @@ type ApiEndpointTest struct {
 }
 
 func VerifyBackstagePodStatus(g Gomega, ns string, crName string, expectedStatus string) {
-	cmd := exec.Command("kubectl", "get",
-		"pods", "-l", "rhdh.redhat.com/app=backstage-"+crName,
-		"-o", "jsonpath={.items[*].status}", "-n", ns,
-	)
+	cmd := exec.Command("kubectl", "get", "pods",
+		"-l", "rhdh.redhat.com/app=backstage-"+crName,
+		"-o", "jsonpath={.items[*].status}",
+		"-n", ns,
+	) // #nosec G204
 	status, err := Run(cmd)
 	fmt.Fprintln(GinkgoWriter, string(status))
 	g.Expect(err).ShouldNot(HaveOccurred())
@@ -46,7 +47,7 @@ func VerifyBackstagePodStatus(g Gomega, ns string, crName string, expectedStatus
 }
 
 func VerifyBackstageCRStatus(g Gomega, ns string, crName string, expectedStatus string) {
-	cmd := exec.Command(GetPlatformTool(), "get", "backstage", crName, "-o", "jsonpath={.status.conditions}", "-n", ns)
+	cmd := exec.Command(GetPlatformTool(), "get", "backstage", crName, "-o", "jsonpath={.status.conditions}", "-n", ns) // #nosec G204
 	status, err := Run(cmd)
 	fmt.Fprintln(GinkgoWriter, string(status))
 	g.Expect(err).ShouldNot(HaveOccurred())
@@ -59,13 +60,13 @@ func PatchBackstageCR(ns string, crName string, jsonPatch string, patchType stri
 	if p == "" {
 		p = "strategic"
 	}
-	_, err := Run(exec.Command(GetPlatformTool(), "-n", ns, "patch", "backstage", crName, "--patch", jsonPatch, "--type="+p))
+	_, err := Run(exec.Command(GetPlatformTool(), "-n", ns, "patch", "backstage", crName, "--patch", jsonPatch, "--type="+p)) // #nosec G204
 	return err
 }
 
 func DoesBackstageRouteExist(ns string, crName string) (bool, error) {
 	routeName := "backstage-" + crName
-	out, err := Run(exec.Command(GetPlatformTool(), "get", "route", routeName, "-n", ns))
+	out, err := Run(exec.Command(GetPlatformTool(), "get", "route", routeName, "-n", ns)) // #nosec G204
 	if err != nil {
 		if strings.Contains(string(out), fmt.Sprintf("%q not found", routeName)) {
 			return false, nil
@@ -79,7 +80,7 @@ func GetBackstageRouteHost(ns string, crName string) (string, error) {
 	routeName := "backstage-" + crName
 
 	hostBytes, err := Run(exec.Command(
-		GetPlatformTool(), "get", "route", routeName, "-o", "go-template={{if .spec.host}}{{.spec.host}}{{end}}", "-n", ns))
+		GetPlatformTool(), "get", "route", routeName, "-o", "go-template={{if .spec.host}}{{.spec.host}}{{end}}", "-n", ns)) // #nosec G204
 	if err != nil {
 		return "", fmt.Errorf("unable to determine host for route %s/%s: %w", ns, routeName, err)
 	}
@@ -90,7 +91,7 @@ func GetBackstageRouteHost(ns string, crName string) (string, error) {
 
 	// try with subdomain in case it was set
 	subDomainBytes, err := Run(exec.Command(
-		GetPlatformTool(), "get", "route", routeName, "-o", "go-template={{if .spec.subdomain}}{{.spec.subdomain}}{{end}}", "-n", ns))
+		GetPlatformTool(), "get", "route", routeName, "-o", "go-template={{if .spec.subdomain}}{{.spec.subdomain}}{{end}}", "-n", ns)) // #nosec G204
 	if err != nil {
 		return "", fmt.Errorf("unable to determine subdomain for route %s/%s: %w", ns, routeName, err)
 	}
@@ -98,7 +99,7 @@ func GetBackstageRouteHost(ns string, crName string) (string, error) {
 	if subDomain == "" {
 		return "", nil
 	}
-	ingressDomainBytes, err := Run(exec.Command(GetPlatformTool(), "get", "ingresses.config/cluster", "-o", "jsonpath={.spec.domain}"))
+	ingressDomainBytes, err := Run(exec.Command(GetPlatformTool(), "get", "ingresses.config/cluster", "-o", "jsonpath={.spec.domain}")) // #nosec G204
 	if err != nil {
 		return "", fmt.Errorf("unable to determine ingress sub-domain: %w", err)
 	}
@@ -133,7 +134,9 @@ func VerifyBackstageRoute(g Gomega, ns string, crName string, tests []ApiEndpoin
 	g.Expect(host).ShouldNot(BeEmpty())
 
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true, // #nosec G402 -- test code only, not used in production
+		},
 	}
 	httpClient := &http.Client{Transport: tr}
 
