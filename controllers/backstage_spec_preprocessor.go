@@ -61,6 +61,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.B
 	//	}
 	//}
 	//
+
 	//// Process ConfigMapFiles
 	//if bsSpec.Application != nil && bsSpec.Application.ExtraFiles != nil && bsSpec.Application.ExtraFiles.ConfigMaps != nil {
 	//	mountPath := bsSpec.Application.ExtraFiles.MountPath

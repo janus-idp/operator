@@ -21,6 +21,8 @@ import (
 	"os"
 	"reflect"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -58,6 +60,7 @@ type BackstageModel struct {
 	route *BackstageRoute
 
 	RuntimeObjects []RuntimeObject
+	appConfigs     []corev1.ConfigMap
 }
 
 func (model *BackstageModel) setRuntimeObject(object RuntimeObject) {
@@ -76,7 +79,7 @@ func registerConfig(key string, factory ObjectFactory) {
 }
 
 // InitObjects performs a main loop for configuring and making the array of objects to reconcile
-func InitObjects(ctx context.Context, backstage bsv1alpha1.Backstage, rawConfig map[string]string, ownsRuntime bool, isOpenshift bool, scheme *runtime.Scheme) (*BackstageModel, error) {
+func InitObjects(ctx context.Context, backstage bsv1alpha1.Backstage, rawConfig map[string]string, appConfigs []corev1.ConfigMap, ownsRuntime bool, isOpenshift bool, scheme *runtime.Scheme) (*BackstageModel, error) {
 
 	// 3 phases of Backstage configuration:
 	// 1- load from Operator defaults, modify metadata (labels, selectors..) and namespace as needed
@@ -87,7 +90,7 @@ func InitObjects(ctx context.Context, backstage bsv1alpha1.Backstage, rawConfig 
 	lg := log.FromContext(ctx)
 	lg.V(1)
 
-	model := &BackstageModel{RuntimeObjects: make([]RuntimeObject, 0), localDbEnabled: backstage.Spec.IsLocalDbEnabled(), isOpenshift: isOpenshift}
+	model := &BackstageModel{RuntimeObjects: make([]RuntimeObject, 0), appConfigs: appConfigs, localDbEnabled: backstage.Spec.IsLocalDbEnabled(), isOpenshift: isOpenshift}
 
 	// looping through the registered runtimeConfig objects initializing the model
 	for _, conf := range runtimeConfig {

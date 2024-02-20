@@ -17,8 +17,6 @@ package model
 import (
 	"path/filepath"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 	"janus-idp.io/backstage-operator/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
@@ -45,11 +43,9 @@ func init() {
 	registerConfig("app-config.yaml", AppConfigFactory{})
 }
 
-func newAppConfig(mountPath string, name string, key string) *AppConfig {
+func newAppConfig(mountPath string, cm *corev1.ConfigMap, key string) *AppConfig {
 	return &AppConfig{
-		ConfigMap: &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{Name: name},
-		},
+		ConfigMap: cm,
 		MountPath: mountPath,
 		Key:       key,
 	}
@@ -104,18 +100,6 @@ func (b *AppConfig) updatePod(pod *backstagePod) {
 		VolumeSource: volSource,
 	})
 
-	//for file := range b.ConfigMap.Data {
-	//	if b.Key == "" || (b.Key == file) {
-	//		pod.appendContainerVolumeMount(corev1.VolumeMount{
-	//			Name:      volName,
-	//			MountPath: filepath.Join(b.MountPath, file),
-	//			SubPath:   file,
-	//		})
-	//
-	//		pod.appendConfigArg(filepath.Join(b.MountPath, file))
-	//	}
-	//}
-
 	// One configMap - one appConfig
 	// Problem: we need to know file path to form --config CL args
 	// If we want not to read CM - need to point file name (key) which should fit CM data.key
@@ -124,11 +108,15 @@ func (b *AppConfig) updatePod(pod *backstagePod) {
 	// Preferences:
 	// - not to read CM.Data on external files (Less permissive operator, not needed CM read/list)
 	// - not to use SubPath mounting CM to make Kubernetes refresh data if CM changed
-	vm := corev1.VolumeMount{Name: volName, MountPath: filepath.Join(b.MountPath, b.ConfigMap.Name)}
+
+	fileDir := filepath.Join(b.MountPath, b.ConfigMap.Name)
+	vm := corev1.VolumeMount{Name: volName, MountPath: fileDir}
 	pod.container.VolumeMounts = append(pod.container.VolumeMounts, vm)
 
-	appConfigPath := filepath.Join(b.MountPath, b.ConfigMap.Name, b.Key)
-	pod.container.Args = append(pod.container.Args, []string{"--config", appConfigPath}...)
-	//pod.appendConfigArg(filepath.Join(b.MountPath, b.ConfigMap.Name, b.Key))
-
+	for file := range b.ConfigMap.Data {
+		if b.Key == "" || b.Key == file {
+			appConfigPath := filepath.Join(fileDir, file)
+			pod.container.Args = append(pod.container.Args, []string{"--config", appConfigPath}...)
+		}
+	}
 }

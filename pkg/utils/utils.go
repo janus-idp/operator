@@ -22,6 +22,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"k8s.io/client-go/discovery"
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
@@ -84,4 +87,27 @@ func GeneratePassword(length int) (string, error) {
 	}
 	// Encode the password to prevent special characters
 	return base64.StdEncoding.EncodeToString(_bytes), nil
+}
+
+// Automatically detects if the cluster the operator running on is OpenShift
+func IsOpenshift() (bool, error) {
+	restConfig := ctrl.GetConfigOrDie()
+	dcl, err := discovery.NewDiscoveryClientForConfig(restConfig)
+	if err != nil {
+		return false, err
+	}
+
+	apiList, err := dcl.ServerGroups()
+	if err != nil {
+		return false, err
+	}
+
+	apiGroups := apiList.Groups
+	for i := 0; i < len(apiGroups); i++ {
+		if apiGroups[i].Name == "route.openshift.io" {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

@@ -44,7 +44,7 @@ func TestDynamicPluginsValidationFailed(t *testing.T) {
 	testObj := createBackstageTest(bs).withDefaultConfig(true).
 		addToDefaultConfig("dynamic-plugins.yaml", "raw-dynamic-plugins.yaml")
 
-	_, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
+	_, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, false, testObj.scheme)
 
 	//"failed object validation, reason: failed to find initContainer named install-dynamic-plugins")
 	assert.Error(t, err)
@@ -59,7 +59,7 @@ func TestDefaultDynamicPlugins(t *testing.T) {
 		addToDefaultConfig("dynamic-plugins.yaml", "raw-dynamic-plugins.yaml").
 		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model.backstageDeployment)
@@ -94,7 +94,7 @@ func TestSpecifiedDynamicPlugins(t *testing.T) {
 
 	//testObj.detailedSpec.AddConfigObject(&DynamicPlugins{ConfigMap: &cm})
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model)

@@ -249,7 +249,7 @@ var _ = Describe("Backstage controller", func() {
 			err := k8sClient.Create(ctx, backstage)
 			Expect(err).To(Not(HaveOccurred()))
 		})
-
+		// *********** START
 		It("should successfully reconcile a custom resource for default Backstage", func() {
 			By("Checking if the custom resource was successfully created")
 			Eventually(func() error {
@@ -262,6 +262,7 @@ var _ = Describe("Backstage controller", func() {
 				NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
 			})
 			Expect(err).To(Not(HaveOccurred()))
+			// ************* It tests default CR created
 
 			By("creating a secret for accessing the Database")
 			Eventually(func(g Gomega) {
@@ -275,6 +276,7 @@ var _ = Describe("Backstage controller", func() {
 				}
 
 			}, time.Minute, time.Second).Should(Succeed())
+			// ************ It tests Db secret created as well
 
 			By("creating a StatefulSet for the Database")
 			Eventually(func(g Gomega) {
@@ -283,11 +285,17 @@ var _ = Describe("Backstage controller", func() {
 				name := model.DbStatefulSetName(backstageName)
 				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, found)
 				g.Expect(err).ShouldNot(HaveOccurred())
+				// ************ StatefulSet created
+
 				secName := getSecretName(found.Spec.Template.Spec.Containers, _defaultPsqlMainContainerName)
 				g.Expect(secName).Should(Equal(model.DbSecretDefaultName(backstageName)))
+				// ********* Once again test Db secret name
+
 				if backstageReconciler.OwnsRuntime {
 					g.Expect(found.GetOwnerReferences()).To(HaveLen(1))
 				}
+				// ********* Owner Ref exists
+
 			}, time.Minute, time.Second).Should(Succeed())
 
 			backendAuthConfigName := utils.GenerateRuntimeObjectName(backstage.Name, "default-appconfig")
@@ -299,6 +307,8 @@ var _ = Describe("Backstage controller", func() {
 					err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: backendAuthConfigName}, found)
 					g.Expect(err).ShouldNot(HaveOccurred())
 					g.Expect(found.Data).ToNot(BeEmpty(), "backend auth secret should contain non-empty data")
+					// ********* config map with auth  exists and not empty  )
+
 				}, time.Minute, time.Second).Should(Succeed())
 			})
 
@@ -315,9 +325,11 @@ var _ = Describe("Backstage controller", func() {
 				g.Expect(found.Data).To(HaveKey("dynamic-plugins.yaml"))
 				g.Expect(found.Data["dynamic-plugins.yaml"]).To(Not(BeEmpty()),
 					"default ConfigMap for dynamic plugins should contain a non-empty 'dynamic-plugins.yaml' in its data")
+				//********* config map with dynamic plugins exists (Janus specific)
 				if backstageReconciler.OwnsRuntime {
 					g.Expect(found.GetOwnerReferences()).To(HaveLen(1))
 				}
+				// ********* again owner ref?
 			}, time.Minute, time.Second).Should(Succeed())
 
 			By("Checking if Deployment was successfully created in the reconciliation")
@@ -330,6 +342,8 @@ var _ = Describe("Backstage controller", func() {
 
 			By("checking the number of replicas")
 			Expect(found.Spec.Replicas).To(HaveValue(BeEquivalentTo(1)))
+
+			// ****** deployment existss, replicas = 1
 
 			By("Checking the Volumes in the Backstage Deployment", func() {
 				Expect(found.Spec.Template.Spec.Volumes).To(HaveLen(4))
@@ -352,6 +366,7 @@ var _ = Describe("Backstage controller", func() {
 				Expect(backendAuthAppConfigVol.VolumeSource.ConfigMap.DefaultMode).To(HaveValue(Equal(int32(420))))
 				Expect(backendAuthAppConfigVol.VolumeSource.ConfigMap.LocalObjectReference.Name).To(Equal(backendAuthConfigName))
 			})
+			// ************ checks Janus specific volumes: dynamic-plugins-root, dynamic-plugins-npmrc ??? What for?
 
 			By("Checking the Number of init containers in the Backstage Deployment")
 			Expect(found.Spec.Template.Spec.InitContainers).To(HaveLen(1))
@@ -362,6 +377,8 @@ var _ = Describe("Backstage controller", func() {
 				Expect(initCont.Env[0].Name).To(Equal("NPM_CONFIG_USERCONFIG"))
 				Expect(initCont.Env[0].Value).To(Equal("/opt/app-root/src/.npmrc.dynamic-plugins"))
 			})
+
+			// ******** check init container for Janus
 
 			By("Checking the Init Container Volume Mounts in the Backstage Deployment", func() {
 				Expect(initCont.VolumeMounts).To(HaveLen(3))
@@ -385,9 +402,13 @@ var _ = Describe("Backstage controller", func() {
 				Expect(dp[0].ReadOnly).To(BeTrue())
 			})
 
+			// ******** check init container volume mounts  for Janus
+
 			By("Checking the Number of main containers in the Backstage Deployment")
 			Expect(found.Spec.Template.Spec.Containers).To(HaveLen(1))
 			mainCont := found.Spec.Template.Spec.Containers[0]
+
+			// ******** check number of containers (== 1)
 
 			By("Checking the main container Args in the Backstage Deployment", func() {
 				Expect(mainCont.Args).To(HaveLen(4))
@@ -396,6 +417,8 @@ var _ = Describe("Backstage controller", func() {
 				Expect(mainCont.Args[2]).To(Equal("--config"))
 				Expect(mainCont.Args[3]).To(Equal("/opt/app-root/src/default.app-config.yaml"))
 			})
+
+			// ******** check --config args for Janus
 
 			By("Checking the main container Volume Mounts in the Backstage Deployment", func() {
 				Expect(mainCont.VolumeMounts).To(HaveLen(2))
@@ -411,6 +434,8 @@ var _ = Describe("Backstage controller", func() {
 				Expect(bsAuth[0].SubPath).To(Equal("default.app-config.yaml"))
 			})
 
+			// ******** check volume mounts
+
 			By("Checking the db secret used by the Backstage Deployment")
 			//secName := getSecretName(found.Spec.Template.Spec.Containers, _defaultBackstageMainContainerName)
 			secName := model.DbSecretDefaultName(backstageName)
@@ -419,8 +444,12 @@ var _ = Describe("Backstage controller", func() {
 			Expect(err).To(Not(HaveOccurred()))
 			//Expect(secName).Should(Equal(utils.GenerateRuntimeObjectName(backstage.Name, "default-dbsecret")))
 
+			// ******** check DB secret AGAIN
+
 			By("Checking the latest Status added to the Backstage instance")
 			verifyBackstageInstance(ctx)
+
+			// ******** check if status added
 
 			By("Checking the localDb Sync Status in the Backstage instance")
 			Eventually(func(g Gomega) {
@@ -430,11 +459,15 @@ var _ = Describe("Backstage controller", func() {
 				//g.Expect(isLocalDbDeployed(backstage)).To(BeTrue())
 			}, time.Minute, time.Second).Should(Succeed())
 
+			// hecking the localDb Sync Status in the Backstage instance, Again?
+
 			By("Checking the localdb statefulset has been created")
 			Eventually(func(g Gomega) {
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: model.DbStatefulSetName(backstageName), Namespace: ns}, &appsv1.StatefulSet{})
 				g.Expect(err).To(Not(HaveOccurred()))
 			}, time.Minute, time.Second).Should(Succeed())
+
+			// *********** Checking the localdb statefulset has been created. Again?
 
 			By("Checking the localdb services have been created")
 			Eventually(func(g Gomega) {
@@ -445,11 +478,15 @@ var _ = Describe("Backstage controller", func() {
 				g.Expect(err).To(Not(HaveOccurred()))
 			}, time.Minute, time.Second).Should(Succeed())
 
+			// ************** Checking the localdb services have been created. wow
+
 			By("Checking the localdb secret has been gnerated")
 			Eventually(func(g Gomega) {
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: model.DbSecretDefaultName(backstageName), Namespace: ns}, &corev1.Secret{})
 				g.Expect(err).To(Not(HaveOccurred()))
 			}, time.Minute, time.Second).Should(Succeed())
+
+			// ************* Checking the localdb secret has been gnerated. Again
 
 			By("Updating custom resource by disabling local db")
 			var enableLocalDb = false
@@ -467,6 +504,8 @@ var _ = Describe("Backstage controller", func() {
 				g.Expect(err).To(Not(HaveOccurred()))
 			}, time.Minute, time.Second).Should(Succeed())
 
+			// disable localDb, add auth secret and update. Check if all good
+
 			By("Reconciling again after the custom resource update with local db disabled")
 			_, err = backstageReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
@@ -483,6 +522,8 @@ var _ = Describe("Backstage controller", func() {
 				//g.Expect(isLocalDbDeployed(backstage)).To(BeFalse())
 			}, time.Minute, time.Second).Should(Succeed())
 
+			// ************* .... reconsile and check all is good
+
 			By("Checking that the local db statefulset has been deleted")
 			Eventually(func(g Gomega) {
 				err := k8sClient.Get(ctx,
@@ -491,6 +532,8 @@ var _ = Describe("Backstage controller", func() {
 				g.Expect(err).Should(HaveOccurred())
 				g.Expect(errors.IsNotFound(err)).Should(BeTrue(), fmtNotFound, err)
 			}, time.Minute, time.Second).Should(Succeed())
+
+			// ************ Checking that the local db statefulset has been deleted
 
 			By("Checking that the local db services have been deleted")
 			Eventually(func(g Gomega) {
@@ -506,6 +549,8 @@ var _ = Describe("Backstage controller", func() {
 				g.Expect(errors.IsNotFound(err)).Should(BeTrue(), fmtNotFound, err)
 			}, time.Minute, time.Second).Should(Succeed())
 
+			// ************** Checking that the local db services have been deleted
+
 			By("Checking that the local db secret has been deleted")
 			Eventually(func(g Gomega) {
 				err := k8sClient.Get(ctx,
@@ -514,6 +559,8 @@ var _ = Describe("Backstage controller", func() {
 				g.Expect(err).Should(HaveOccurred())
 				g.Expect(errors.IsNotFound(err)).Should(BeTrue(), fmtNotFound, err)
 			}, time.Minute, time.Second).Should(Succeed())
+
+			// ************** Checking that the local db secret has been deleted
 		})
 	})
 
@@ -584,6 +631,8 @@ spec:
 				verifyBackstageInstance(ctx)
 			})
 		})
+
+		// ************** Customize deployment putting dummy image and check
 
 		// independent test
 		When("creating CR with runtime config for the database", func() {
@@ -664,6 +713,8 @@ spec:
 		})
 	})
 
+	// ************** Customize statefulSet putting dummy image and check
+
 	Context("App Configs", func() {
 		When("referencing non-existing ConfigMap as app-config", func() {
 			var backstage *bsv1alpha1.Backstage
@@ -697,6 +748,9 @@ spec:
 				errStr := fmt.Sprintf("configmaps \"%s\" not found", cmName)
 				Expect(err.Error()).Should(ContainSubstring(errStr))
 				verifyBackstageInstanceError(ctx, errStr)
+
+				// *************** try to create backstage with non-existed configMap,
+				// it fails because it somewhere readed , but should not
 
 				By("Not creating a Backstage Deployment")
 				Consistently(func() error {
@@ -782,6 +836,9 @@ plugins: []
 								g.Expect(err).To(Not(HaveOccurred()))
 							}, time.Minute, time.Second).Should(Succeed())
 
+							// ********** check if deployment created with app-config with and without keys
+							// and dynamic plugins
+
 							By("Checking the Volumes in the Backstage Deployment", func() {
 								// dynamic-plugins-root
 								// dynamic-plugins-npmrc
@@ -796,6 +853,8 @@ plugins: []
 								_, ok = findVolume(found.Spec.Template.Spec.Volumes, "dynamic-plugins-npmrc")
 								Expect(ok).To(BeTrue(), "No volume found with name: dynamic-plugins-npmrc")
 
+								// *********** check Janus container volume mounts
+
 								volName := utils.GenerateVolumeNameFromCmOrSecret(appConfig1CmName)
 								appConfig1CmVol, ok := findVolume(found.Spec.Template.Spec.Volumes, volName)
 								Expect(ok).To(BeTrue(), "No volume found with name: %s", volName)
@@ -803,13 +862,16 @@ plugins: []
 								Expect(appConfig1CmVol.VolumeSource.ConfigMap.DefaultMode).To(HaveValue(Equal(int32(420))))
 								Expect(appConfig1CmVol.VolumeSource.ConfigMap.LocalObjectReference.Name).To(Equal(appConfig1CmName))
 
-								//volName = "dynamic-plugins-conf"
+								// *********** check app-configs volume mount
+
 								volName = utils.GenerateVolumeNameFromCmOrSecret(dynamicPluginsConfigName)
 								dynamicPluginsConfigVol, ok := findVolume(found.Spec.Template.Spec.Volumes, volName)
 								Expect(ok).To(BeTrue(), "No volume found with name: %s", volName)
 								Expect(dynamicPluginsConfigVol.VolumeSource.Secret).To(BeNil())
 								Expect(dynamicPluginsConfigVol.VolumeSource.ConfigMap.DefaultMode).To(HaveValue(Equal(int32(420))))
 								Expect(dynamicPluginsConfigVol.VolumeSource.ConfigMap.LocalObjectReference.Name).To(Equal(dynamicPluginsConfigName))
+
+								// *********** check dymanic plugin config's volume mount
 							})
 
 							By("Checking the Number of init containers in the Backstage Deployment")
@@ -821,6 +883,8 @@ plugins: []
 								Expect(initCont.Env[0].Name).To(Equal("NPM_CONFIG_USERCONFIG"))
 								Expect(initCont.Env[0].Value).To(Equal("/opt/app-root/src/.npmrc.dynamic-plugins"))
 							})
+
+							// ********** check Janus init container
 
 							By("Checking the Init Container Volume Mounts in the Backstage Deployment", func() {
 								Expect(initCont.VolumeMounts).To(HaveLen(3))
@@ -839,8 +903,6 @@ plugins: []
 								Expect(dpNpmrc[0].ReadOnly).To(BeTrue())
 								Expect(dpNpmrc[0].SubPath).To(Equal(".npmrc"))
 
-								//// preconfigured in the pod
-								//volName := "dynamic-plugins-conf"
 								volName := utils.GenerateVolumeNameFromCmOrSecret(dynamicPluginsConfigName)
 								dp := findVolumeMounts(initCont.VolumeMounts, volName)
 								Expect(dp).To(HaveLen(1), "No volume mount found with name: %s", volName)
@@ -849,9 +911,13 @@ plugins: []
 								Expect(dp[0].ReadOnly).To(BeTrue())
 							})
 
+							// ********** check Janus init container volume mount
+
 							By("Checking the Number of main containers in the Backstage Deployment")
 							Expect(found.Spec.Template.Spec.Containers).To(HaveLen(1))
 							mainCont := found.Spec.Template.Spec.Containers[0]
+
+							// ********** check the Number of main containers for Janus
 
 							expectedMountPath := mountPath
 							if expectedMountPath == "" {
@@ -932,6 +998,8 @@ plugins: []
 								}
 							})
 
+							// ********** check number of volume mounts
+
 							By("Checking the latest Status added to the Backstage instance")
 							verifyBackstageInstance(ctx)
 
@@ -995,6 +1063,9 @@ plugins: []
 						// TODO to get name from default
 						return k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: fmt.Sprintf("backstage-%s", backstageName)}, &appsv1.Deployment{})
 					}, 5*time.Second, time.Second).Should(Not(Succeed()))
+
+					// ************* Checking deployment with non-existed Secret and CM fails (should not happen if not read it in advance ?)
+
 				})
 			})
 		}

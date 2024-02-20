@@ -19,6 +19,8 @@ import (
 	"os"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -53,7 +55,7 @@ func TestOverrideBackstageImage(t *testing.T) {
 
 	_ = os.Setenv(BackstageImageEnvVar, "dummy")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, false, testObj.scheme)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "dummy", model.backstageDeployment.pod.container.Image)

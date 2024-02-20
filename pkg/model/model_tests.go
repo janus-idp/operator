@@ -37,7 +37,8 @@ import (
 type testBackstageObject struct {
 	backstage bsv1alpha1.Backstage
 	rawConfig map[string]string
-	scheme    *runtime.Scheme
+	//appConfigs map[string][]string
+	scheme *runtime.Scheme
 }
 
 // simple bsv1alpha1.Backstage
@@ -107,6 +108,17 @@ func (b *testBackstageObject) addToDefaultConfig(key string, fileName string) *t
 
 	return b
 }
+
+//func (b *testBackstageObject) addAppConfigs(appConfigs []corev1.ConfigMap) *testBackstageObject {
+//
+//	for _, v := range appConfigs {
+//		b.appConfigs[v.Name] = []string{}
+//		for k := range b.appConfigs[v.Name].Data {
+//			b.appConfigs[v.Name] = append(b.appConfigs[v.Name], k)
+//		}
+//	}
+//	return b
+//}
 
 // reads file from ./testdata
 func readTestYamlFile(name string) ([]byte, error) {

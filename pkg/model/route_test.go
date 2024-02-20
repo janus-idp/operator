@@ -18,6 +18,8 @@ import (
 	"context"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
@@ -48,7 +50,7 @@ func TestDefaultRoute(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("route.yaml", "raw-route.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, true, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, true, testObj.scheme)
 
 	assert.NoError(t, err)
 
@@ -81,7 +83,7 @@ func TestSpecifiedRoute(t *testing.T) {
 
 	// Test w/o default route configured
 	testObjNoDef := createBackstageTest(bs).withDefaultConfig(true)
-	model, err := InitObjects(context.TODO(), bs, testObjNoDef.rawConfig, true, true, testObjNoDef.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObjNoDef.rawConfig, []corev1.ConfigMap{}, true, true, testObjNoDef.scheme)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model.route)
@@ -92,7 +94,7 @@ func TestSpecifiedRoute(t *testing.T) {
 
 	// Test with default route configured
 	testObjWithDef := testObjNoDef.addToDefaultConfig("route.yaml", "raw-route.yaml")
-	model, err = InitObjects(context.TODO(), bs, testObjWithDef.rawConfig, true, true, testObjWithDef.scheme)
+	model, err = InitObjects(context.TODO(), bs, testObjWithDef.rawConfig, []corev1.ConfigMap{}, true, true, testObjWithDef.scheme)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model.route)

@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"os"
 
+	corev1 "k8s.io/api/core/v1"
+
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 
 	"janus-idp.io/backstage-operator/pkg/utils"
@@ -119,7 +121,11 @@ func (b *BackstageDeployment) validate(model *BackstageModel, backstage bsv1alph
 		if application.AppConfig != nil {
 			mountPath := application.AppConfig.MountPath
 			for _, spec := range application.AppConfig.ConfigMaps {
-				newAppConfig(mountPath, spec.Name, spec.Key).updatePod(b.pod)
+				configMap, err := getAppConfigMap(spec.Name, spec.Key, model.appConfigs)
+				if err != nil {
+					return fmt.Errorf("app-config configuration failed %w", err)
+				}
+				newAppConfig(mountPath, configMap, spec.Key).updatePod(b.pod)
 			}
 		}
 
@@ -160,4 +166,21 @@ func (b *BackstageDeployment) setReplicas(replicas *int32) {
 	if replicas != nil {
 		b.deployment.Spec.Replicas = replicas
 	}
+}
+
+// find, validate and return app-config's configMap
+func getAppConfigMap(name, key string, configs []corev1.ConfigMap) (*corev1.ConfigMap, error) {
+	for _, cm := range configs {
+		if cm.Name == name {
+			if key != "" {
+				if _, ok := cm.Data[key]; ok {
+					return &cm, nil
+				} else {
+					return nil, fmt.Errorf("key %s not found", key)
+				}
+			}
+			return &cm, nil
+		}
+	}
+	return nil, fmt.Errorf("configMap %s not found", name)
 }

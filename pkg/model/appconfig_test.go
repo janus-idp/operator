@@ -16,6 +16,7 @@ package model
 
 import (
 	"context"
+	"path/filepath"
 
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -65,7 +66,7 @@ func TestDefaultAppConfig(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("app-config.yaml", "raw-app-config.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)
@@ -87,9 +88,11 @@ func TestSpecifiedAppConfig(t *testing.T) {
 	*cms = append(*cms, bsv1alpha1.ObjectKeyRef{Name: appConfigTestCm.Name})
 	*cms = append(*cms, bsv1alpha1.ObjectKeyRef{Name: appConfigTestCm2.Name})
 
+	// it is read by controller
+
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{appConfigTestCm, appConfigTestCm2}, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)
@@ -115,7 +118,7 @@ func TestDefaultAndSpecifiedAppConfig(t *testing.T) {
 
 	//testObj.detailedSpec.AddConfigObject(&AppConfig{ConfigMap: &cm, MountPath: "/my/path"})
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{appConfigTestCm}, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)
@@ -126,5 +129,15 @@ func TestDefaultAndSpecifiedAppConfig(t *testing.T) {
 	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts))
 	assert.Equal(t, 4, len(deployment.deployment.Spec.Template.Spec.Containers[0].Args))
 	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Volumes))
+
+	assert.Equal(t, filepath.Dir(deployment.deployment.Spec.Template.Spec.Containers[0].Args[1]),
+		deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts[0].MountPath)
+
+	// it should be valid assertion using Volumes and VolumeMounts indexes since the order of adding is from default to specified
+	assert.Equal(t, deployment.deployment.Spec.Template.Spec.Volumes[0].Name,
+		deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts[0].Name)
+
+	//t.Log(">>>>>>>>>>>>>>>>", )
+	//t.Log(">>>>>>>>>>>>>>>>", )
 
 }

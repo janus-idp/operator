@@ -17,6 +17,8 @@ package model
 import (
 	"context"
 
+	corev1 "k8s.io/api/core/v1"
+
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -65,7 +67,7 @@ func TestDefaultConfigMapFiles(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("configmap-files.yaml", "raw-cm-files.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 
@@ -86,7 +88,7 @@ func TestSpecifiedConfigMapFiles(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)
@@ -108,7 +110,7 @@ func TestDefaultAndSpecifiedConfigMapFiles(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("configmap-files.yaml", "raw-cm-files.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)

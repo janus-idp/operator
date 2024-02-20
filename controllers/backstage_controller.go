@@ -110,18 +110,23 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// 2. Make some validation to fail fast
 	rawConfig, err := r.rawConfigMap(ctx, backstage)
 	if err != nil {
-		return ctrl.Result{}, errorAndStatus(&backstage, "failed to preprocess backstage spec", err)
+		return ctrl.Result{}, errorAndStatus(&backstage, "failed to preprocess backstage raw spec", err)
+	}
+
+	appConfigs, err := r.appConfigMaps(ctx, backstage)
+	if err != nil {
+		return ctrl.Result{}, errorAndStatus(&backstage, "failed to preprocess backstage spec app-configs", err)
 	}
 
 	// This creates array of model objects to be reconsiled
-	bsModel, err := model.InitObjects(ctx, backstage, rawConfig, r.OwnsRuntime, r.IsOpenShift, r.Scheme)
+	bsModel, err := model.InitObjects(ctx, backstage, rawConfig, appConfigs, r.OwnsRuntime, r.IsOpenShift, r.Scheme)
 	if err != nil {
 		return ctrl.Result{}, errorAndStatus(&backstage, "failed to initialize backstage model", err)
 	}
 
 	if backstage.Spec.IsLocalDbEnabled() && !backstage.Spec.IsAuthSecretSpecified() {
 		if err := dbsecret.Generate(ctx, r.Client, backstage, bsModel.LocalDbService, r.Scheme); err != nil {
-			return ctrl.Result{}, errorAndStatus(&backstage, "failed to generate db-service", err)
+			return ctrl.Result{}, errorAndStatus(&backstage, "failed to generate db-secret", err)
 		}
 	}
 
@@ -246,6 +251,21 @@ func (r *BackstageReconciler) rawConfigMap(ctx context.Context, backstage bs.Bac
 		}
 	}
 
+	return result, nil
+}
+
+func (r *BackstageReconciler) appConfigMaps(ctx context.Context, backstage bs.Backstage) ([]corev1.ConfigMap, error) {
+	// Process AppConfigs
+	result := []corev1.ConfigMap{}
+	if backstage.Spec.Application != nil && backstage.Spec.Application.AppConfig != nil {
+		for _, ac := range backstage.Spec.Application.AppConfig.ConfigMaps {
+			cm := corev1.ConfigMap{}
+			if err := r.Get(ctx, types.NamespacedName{Name: ac.Name, Namespace: backstage.Namespace}, &cm); err != nil {
+				return nil, fmt.Errorf("failed to get configMap %s: %w", ac.Name, err)
+			}
+			result = append(result, cm)
+		}
+	}
 	return result, nil
 }
 
