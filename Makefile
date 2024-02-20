@@ -220,7 +220,7 @@ GOLANGCI_LINT_VERSION ?= v1.55.2
 GOIMPORTS_VERSION ?= v0.15.0
 ADDLICENSE_VERSION ?= v1.1.1
 # opm and operator-sdk version
-OP_VERSION ?= v1.33.0
+OP_VERSION ?= v1.36.0
 GOSEC_VERSION ?= v2.18.2
 
 ## Gosec options - default format is sarif so we can integrate with Github code scanning
