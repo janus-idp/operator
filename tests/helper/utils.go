@@ -75,10 +75,10 @@ func saveImageArchive(name string) (string, error) {
 	containerEngine := strings.TrimSpace(string(cEng))
 
 	// check if image exists locally first. It not, try to pull it
-	_, err = Run(exec.Command(containerEngine, "image", "inspect", name))
+	_, err = Run(exec.Command(containerEngine, "image", "inspect", name)) // #nosec G204
 	if err != nil {
 		// image likely does not exist locally
-		_, err = Run(exec.Command(containerEngine, "image", "pull", name))
+		_, err = Run(exec.Command(containerEngine, "image", "pull", name)) // #nosec G204
 		if err != nil {
 			return "", fmt.Errorf("image %q not found locally and not able to pull it: %w", name, err)
 		}
@@ -89,7 +89,7 @@ func saveImageArchive(name string) (string, error) {
 		return "", err
 	}
 	tmp := f.Name()
-	_, err = Run(exec.Command(containerEngine, "image", "save", "--output", tmp, name))
+	_, err = Run(exec.Command(containerEngine, "image", "save", "--output", tmp, name)) // #nosec G204
 	return tmp, err
 }
 
@@ -109,7 +109,7 @@ func LoadImageToKindClusterWithName(name string) error {
 	if v, ok := os.LookupEnv("BACKSTAGE_OPERATOR_TESTS_KIND_CLUSTER"); ok {
 		cluster = v
 	}
-	cmd := exec.Command("kind", "load", "image-archive", "--name", cluster, archive)
+	cmd := exec.Command("kind", "load", "image-archive", "--name", cluster, archive) // #nosec G204
 	_, err = Run(cmd)
 	return err
 }
@@ -130,7 +130,7 @@ func LoadImageToK3dClusterWithName(name string) error {
 	if v, ok := os.LookupEnv("BACKSTAGE_OPERATOR_TESTS_K3D_CLUSTER"); ok {
 		cluster = v
 	}
-	cmd := exec.Command("k3d", "image", "import", archive, "--cluster", cluster)
+	cmd := exec.Command("k3d", "image", "import", archive, "--cluster", cluster) // #nosec G204
 	_, err = Run(cmd)
 	return err
 }
@@ -147,7 +147,7 @@ func LoadImageToMinikubeClusterWithName(name string) error {
 		return err
 	}
 
-	_, err = Run(exec.Command("minikube", "image", "load", archive))
+	_, err = Run(exec.Command("minikube", "image", "load", archive)) // #nosec G204
 	return err
 }
 
@@ -205,7 +205,7 @@ func GetProjectDir() (string, error) {
 }
 
 func CreateNamespace(ns string) {
-	cmd := exec.Command(GetPlatformTool(), "create", "namespace", ns)
+	cmd := exec.Command(GetPlatformTool(), "create", "namespace", ns) // #nosec G204
 	out, err := Run(cmd)
 	if err != nil && strings.Contains(string(out), fmt.Sprintf("%q already exists", ns)) {
 		return
@@ -214,8 +214,13 @@ func CreateNamespace(ns string) {
 }
 
 func DeleteNamespace(ns string, wait bool) {
-	cmd := exec.Command(GetPlatformTool(), "delete", "namespace", ns,
-		fmt.Sprintf("--wait=%s", strconv.FormatBool(wait)), "--ignore-not-found=true")
+	cmd := exec.Command(GetPlatformTool(),
+		"delete",
+		"namespace",
+		ns,
+		fmt.Sprintf("--wait=%s", strconv.FormatBool(wait)),
+		"--ignore-not-found=true",
+	) // #nosec G204
 	_, err := Run(cmd)
 	Expect(err).ShouldNot(HaveOccurred())
 }
