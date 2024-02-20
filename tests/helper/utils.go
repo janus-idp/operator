@@ -73,6 +73,17 @@ func saveImageArchive(name string) (string, error) {
 		return "", err
 	}
 	containerEngine := strings.TrimSpace(string(cEng))
+
+	// check if image exists locally first. It not, try to pull it
+	_, err = Run(exec.Command(containerEngine, "image", "inspect", name))
+	if err != nil {
+		// image likely does not exist locally
+		_, err = Run(exec.Command(containerEngine, "image", "pull", name))
+		if err != nil {
+			return "", fmt.Errorf("image %q not found locally and not able to pull it: %w", name, err)
+		}
+	}
+
 	f, err := os.CreateTemp("", "tmp_image_archive-")
 	if err != nil {
 		return "", err
