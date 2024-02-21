@@ -21,6 +21,10 @@ on:
     - rhdh-1.[0-9]+
     - 1.[0-9]+.x
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number }}
+  cancel-in-progress: true
+
 jobs:
   pr-validate:
     name: PR Validate
@@ -30,6 +34,10 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
           fetch-depth: 0
+          # Check out PR HEAD ref instead of the default merge commit (detached).
+          # Otherwise, it will be impossible for the bundle-diff-checker step to auto-push any outstanding changes.
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{github.event.pull_request.head.repo.full_name}}
 
       # check changes in this commit for regex include and exclude matches; pipe to an env var
       - name: Check for changes to build
@@ -62,23 +70,20 @@ jobs:
           # Since operator-sdk 1.26.0, `make bundle` changes the `createdAt` field from the bundle every time we run it.
           # The `git diff` below checks if only the createdAt field has changed. If is the only change, it is ignored.
           # Inspired from https://github.com/operator-framework/operator-sdk/issues/6285#issuecomment-1415350333
-          git diff --quiet -I'^    createdAt: ' bundle || ( echo "===================" && \
-            echo "Files changed in bundle generation." && \
-            echo "Please make sure to regenerate the bundle with 'make bundle' and push the changes." && \
-            echo "Make sure you unset any related env vars like VERSION or IMAGE_TAG_BASE or IMG before running this command, as they may affect the resulting manifests." && \
-            echo "For your convenience, the diff will be attached as a job artifact, so you can easily download and Git-apply it right away." && \
-            echo "You might also need to manually update the CSV in '.rhdh/bundle/manifests/rhdh-operator.csv.yaml' file accordingly." && \
-            echo "===================" && \
-            git --no-pager diff | tee bundle.pr-${{ github.event.number }}.patch && \
-            exit 1 )
+          echo "MANIFESTS_CHANGED=$(if git diff --quiet -I'^    createdAt: ' bundle; then echo "false"; else echo "true"; fi)" >> $GITHUB_OUTPUT
 
-      - name: Save bundle diff as patch
-        uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() && steps.bundle-diff-checker.outcome == 'failure' }}
-        with:
-          name: bundle-diff-patch
-          path: bundle.pr-${{ github.event.number }}.patch
-          retention-days: 5
+      - name: Commit any manifest changes
+        if: ${{ steps.bundle-diff-checker.outputs.MANIFESTS_CHANGED == 'true' }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git fetch --prune
+          git pull --rebase --autostash
+          git add -A .
+          git commit \
+            -m "Regenerate bundle manifests" \
+            -m "Co-authored-by: $GITHUB_ACTOR <$GITHUB_ACTOR@users.noreply.github.com>"
+          git push
 
       # gosec needs a "build" stage so connect it to the lint step which we always do
       - name: build
