@@ -8,7 +8,7 @@ Deployment of the operator itself can be done by:
 - deploying with or without OLM,
 - or deploying the downstream bundle in both online and air-gapped scenarios
 
-To run the end-to-end tests, you can use:
+To run the end-to-end tests, make sure you have an active connection to a cluster in your current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) and run:
 ```shell
 $ make test-e2e
 ```
@@ -109,7 +109,9 @@ $ make test-e2e BACKSTAGE_OPERATOR_TEST_MODE=olm
 
 In this scenario, you want to run the E2E tests against a downstream build of RHDH.
 
-This works only against OpenShift clusters. If testing a CI build, please follow the instructions in [Installing CI builds of Red Hat Developer Hub](../../.rhdh/docs/installing-ci-builds.adoc) to add your Quay token to the cluster.
+This works only against OpenShift clusters. So make sure you are logged in to the OpenShift cluster using the `oc` command. See [Logging in to the OpenShift CLI](https://docs.openshift.com/container-platform/4.14/cli_reference/openshift_cli/getting-started-cli.html#cli-logging-in_cli-developer-commands) for more details.
+
+If testing a CI build, please follow the instructions in [Installing CI builds of Red Hat Developer Hub](../../.rhdh/docs/installing-ci-builds.adoc) to add your Quay token to the cluster.
 
 ```shell
 # latest
@@ -119,10 +121,13 @@ $ make test-e2e BACKSTAGE_OPERATOR_TEST_MODE=rhdh-latest
 $ make test-e2e BACKSTAGE_OPERATOR_TEST_MODE=rhdh-next
 ```
 
-#### Airgap testing of RHDH
+#### Airgap testing of Red Hat Developer Hub (RHDH)
 
 In this scenario, you want to run the E2E tests against an OpenShift cluster running in a restricted network. For this, the command below will make sure to prepare it by copying all the necessary images to a mirror registry, then deploy the operator.
-Please make sure to read the prerequisites in [Installing Red Hat Developer Hub (RHDH) in restricted environments](../../.rhdh/docs/airgap.adoc).
+
+Make sure you are logged in to the OpenShift cluster using the `oc` command. See [Logging in to the OpenShift CLI](https://docs.openshift.com/container-platform/4.14/cli_reference/openshift_cli/getting-started-cli.html#cli-logging-in_cli-developer-commands) for more details.
+
+Also make sure to read the prerequisites in [Installing Red Hat Developer Hub (RHDH) in restricted environments](../../.rhdh/docs/airgap.adoc).
 
 ```shell
 # if you want to have a mirror registry to be created for you as part of the airgap environment setup
