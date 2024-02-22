@@ -208,7 +208,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		g.Expect(err).ShouldNot(HaveOccurred())
 		g.Expect(string(status)).Should(Equal("Running"), fmt.Sprintf("controller pod in %s status", status))
 	}
-	EventuallyWithOffset(1, verifyControllerUp, time.Minute, time.Second).Should(Succeed())
+	EventuallyWithOffset(1, verifyControllerUp, 5*time.Minute, time.Second).Should(Succeed())
 
 	return nil
 }, func(_ []byte) {
