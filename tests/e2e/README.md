@@ -10,6 +10,8 @@ Deployment of the operator itself can be done by:
 
 To run the end-to-end tests, make sure you have an active connection to a cluster in your current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) and run:
 ```shell
+# Check your current context
+$ kubectl config current-context 
 $ make test-e2e
 ```
 
@@ -111,6 +113,8 @@ In this scenario, you want to run the E2E tests against a downstream build of RH
 
 This works only against OpenShift clusters. So make sure you are logged in to the OpenShift cluster using the `oc` command. See [Logging in to the OpenShift CLI](https://docs.openshift.com/container-platform/4.14/cli_reference/openshift_cli/getting-started-cli.html#cli-logging-in_cli-developer-commands) for more details.
 
+You can check your current context by running `oc config current-context` or `kubectl config current-context`.
+
 If testing a CI build, please follow the instructions in [Installing CI builds of Red Hat Developer Hub](../../.rhdh/docs/installing-ci-builds.adoc) to add your Quay token to the cluster.
 
 ```shell
@@ -126,6 +130,8 @@ $ make test-e2e BACKSTAGE_OPERATOR_TEST_MODE=rhdh-next
 In this scenario, you want to run the E2E tests against an OpenShift cluster running in a restricted network. For this, the command below will make sure to prepare it by copying all the necessary images to a mirror registry, then deploy the operator.
 
 Make sure you are logged in to the OpenShift cluster using the `oc` command. See [Logging in to the OpenShift CLI](https://docs.openshift.com/container-platform/4.14/cli_reference/openshift_cli/getting-started-cli.html#cli-logging-in_cli-developer-commands) for more details.
+
+You can check your current context by running `oc config current-context` or `kubectl config current-context`.
 
 Also make sure to read the prerequisites in [Installing Red Hat Developer Hub (RHDH) in restricted environments](../../.rhdh/docs/airgap.adoc).
 
