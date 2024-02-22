@@ -18,6 +18,8 @@ import (
 	"context"
 	"testing"
 
+	"k8s.io/utils/pointer"
+
 	corev1 "k8s.io/api/core/v1"
 
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
@@ -28,7 +30,17 @@ import (
 
 func TestDefaultConfigMapEnvFrom(t *testing.T) {
 
-	bs := simpleTestBackstage()
+	bs := bsv1alpha1.Backstage{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bs",
+			Namespace: "ns123",
+		},
+		Spec: bsv1alpha1.BackstageSpec{
+			Database: &bsv1alpha1.Database{
+				EnableLocalDb: pointer.Bool(false),
+			},
+		},
+	}
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("configmap-envs.yaml", "raw-cm-envs.yaml")
 

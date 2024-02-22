@@ -26,7 +26,7 @@ spec:
               value: /var/lib/pgsql/data
             - name: PGDATA
               value: /var/lib/pgsql/data/userdata
-          envFrom:
+#          envFrom:
 #            - secretRef:
 #                name: <POSTGRESQL_SECRET>  # will be replaced with 'backstage-psql-secrets-<cr-name>'
 #          image: quay.io/fedora/postgresql-15:latest
@@ -81,8 +81,8 @@ spec:
             - mountPath: /var/lib/pgsql/data
               name: data
       restartPolicy: Always
-      securityContext: {}
-      serviceAccount: default
+      securityContext:
+        fsGroup: 26
       serviceAccountName: default
       volumes:
         - emptyDir:

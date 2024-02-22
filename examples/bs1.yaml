@@ -2,3 +2,4 @@ apiVersion: janus-idp.io/v1alpha1
 kind: Backstage
 metadata:
   name: bs1
+

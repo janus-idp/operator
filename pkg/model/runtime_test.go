@@ -24,6 +24,7 @@ import (
 	"k8s.io/utils/pointer"
 
 	"janus-idp.io/backstage-operator/api/v1alpha1"
+	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stretchr/testify/assert"
@@ -73,7 +74,18 @@ func TestInitDefaultDeploy(t *testing.T) {
 
 func TestIfEmptyObjectIsValid(t *testing.T) {
 
-	bs := simpleTestBackstage()
+	bs := bsv1alpha1.Backstage{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bs",
+			Namespace: "ns123",
+		},
+		Spec: bsv1alpha1.BackstageSpec{
+			Database: &bsv1alpha1.Database{
+				EnableLocalDb: pointer.Bool(false),
+			},
+		},
+	}
+
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
 
 	assert.False(t, bs.Spec.IsLocalDbEnabled())

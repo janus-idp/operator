@@ -18,8 +18,6 @@ import (
 	"context"
 	"fmt"
 
-	"janus-idp.io/backstage-operator/controllers/dbsecret"
-
 	"k8s.io/apimachinery/pkg/types"
 
 	openshift "github.com/openshift/api/route/v1"
@@ -41,6 +39,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+var recNumber = 0
 
 // BackstageReconciler reconciles a Backstage object
 type BackstageReconciler struct {
@@ -73,7 +73,8 @@ type BackstageReconciler struct {
 func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	lg := log.FromContext(ctx)
 
-	lg.V(1).Info(fmt.Sprintf("starting reconciliation (namespace: %q)", req.NamespacedName))
+	recNumber = recNumber + 1
+	lg.V(1).Info(fmt.Sprintf("starting reconciliation (namespace: %q), number %d", req.NamespacedName, recNumber))
 
 	// Ignore requests for other namespaces, if specified.
 	// This is mostly useful for our tests, to overcome a limitation of EnvTest about namespace deletion.
@@ -124,11 +125,11 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, errorAndStatus(&backstage, "failed to initialize backstage model", err)
 	}
 
-	if backstage.Spec.IsLocalDbEnabled() && !backstage.Spec.IsAuthSecretSpecified() {
-		if err := dbsecret.Generate(ctx, r.Client, backstage, bsModel.LocalDbService, r.Scheme); err != nil {
-			return ctrl.Result{}, errorAndStatus(&backstage, "failed to generate db-secret", err)
-		}
-	}
+	//if backstage.Spec.IsLocalDbEnabled() && !backstage.Spec.IsAuthSecretSpecified() {
+	//	if err := dbsecret.Generate(ctx, r.Client, backstage, bsModel.LocalDbService, r.Scheme); err != nil {
+	//		return ctrl.Result{}, errorAndStatus(&backstage, "failed to generate db-secret", err)
+	//	}
+	//}
 
 	err = r.applyObjects(ctx, bsModel.RuntimeObjects)
 	if err != nil {
@@ -156,28 +157,63 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 	for _, obj := range objects {
 
 		baseObject := obj.EmptyObject()
-		if err := r.Get(ctx, types.NamespacedName{Name: obj.Object().GetName(), Namespace: obj.Object().GetNamespace()}, baseObject); err != nil {
-			if !errors.IsNotFound(err) {
-				return fmt.Errorf("failed to get object: %w", err)
-			}
+		baseObject.SetName(obj.Object().GetName())
+		baseObject.SetNamespace(obj.Object().GetNamespace())
 
+		// do not read Secrets
+		if _, ok := obj.Object().(*corev1.Secret); ok {
+			// try to create
 			if err := r.Create(ctx, obj.Object()); err != nil {
-				return fmt.Errorf("failed to create object %w", err)
+				if !errors.IsAlreadyExists(err) {
+					return fmt.Errorf("failed to create secret: %w", err)
+				}
+				//if DBSecret - nothing to do, it is not for update
+				if _, ok := obj.(*model.DbSecret); ok {
+					continue
+				}
+			} else {
+				lg.V(1).Info("Create secret ", "obj", obj.Object().GetName())
+				continue
 			}
 
-			lg.V(1).Info("Create object ", "obj", obj.Object().GetName())
-			continue
+		} else {
+			if err := r.Get(ctx, types.NamespacedName{Name: obj.Object().GetName(), Namespace: obj.Object().GetNamespace()}, baseObject); err != nil {
+				if !errors.IsNotFound(err) {
+					return fmt.Errorf("failed to get object: %w", err)
+				}
+
+				if err := r.Create(ctx, obj.Object()); err != nil {
+					return fmt.Errorf("failed to create object %w", err)
+				}
+
+				lg.V(1).Info("Create object ", "obj", obj.Object().GetName())
+				continue
+			}
 		}
 
+		//baseObject := obj.EmptyObject()
+		//if err := r.Get(ctx, types.NamespacedName{Name: obj.Object().GetName(), Namespace: obj.Object().GetNamespace()}, baseObject); err != nil {
+		//	if !errors.IsNotFound(err) {
+		//		return fmt.Errorf("failed to get object: %w", err)
+		//	}
+		//
+		//	if err := r.Create(ctx, obj.Object()); err != nil {
+		//		return fmt.Errorf("failed to create object %w", err)
+		//	}
+		//
+		//	lg.V(1).Info("Create object ", "obj", obj.Object().GetName())
+		//	continue
+		//}
+
+		// FIXME
 		if _, ok := obj.Object().(*appsv1.Deployment); ok {
 			obj.Object().SetAnnotations(baseObject.GetAnnotations())
-			lg.V(1).Info(">>>>>>>>>>> ", "", obj.Object().GetAnnotations())
 		}
 
 		// needed for openshift.Route only, it yells otherwise
 		obj.Object().SetResourceVersion(baseObject.GetResourceVersion())
 
-		if err := r.Patch(ctx, obj.Object(), client.StrategicMergeFrom(baseObject)); err != nil {
+		if err := r.Patch(ctx, obj.Object(), client.MergeFrom(baseObject)); err != nil {
 			return fmt.Errorf("failed to patch object %s: %w", obj.Object().GetResourceVersion(), err)
 		}
 
@@ -233,6 +269,7 @@ func setStatusCondition(backstage *bs.Backstage, condType bs.BackstageConditionT
 	})
 }
 
+// need pre-read raw config (if any) for runtime objects
 func (r *BackstageReconciler) rawConfigMap(ctx context.Context, backstage bs.Backstage) (map[string]string, error) {
 	//lg := log.FromContext(ctx)
 
@@ -254,6 +291,7 @@ func (r *BackstageReconciler) rawConfigMap(ctx context.Context, backstage bs.Bac
 	return result, nil
 }
 
+// need pre-read app-configs to be able to put --config argument
 func (r *BackstageReconciler) appConfigMaps(ctx context.Context, backstage bs.Backstage) ([]corev1.ConfigMap, error) {
 	// Process AppConfigs
 	result := []corev1.ConfigMap{}

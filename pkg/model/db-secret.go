@@ -15,6 +15,8 @@
 package model
 
 import (
+	"strconv"
+
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 	"janus-idp.io/backstage-operator/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
@@ -44,30 +46,37 @@ func (b *DbSecret) Object() client.Object {
 	return b.secret
 }
 
-func (b *DbSecret) setObject(obj client.Object, name string) {
+func (b *DbSecret) setObject(obj client.Object, backstageName string) {
 	b.secret = nil
 	if obj != nil {
 		b.secret = obj.(*corev1.Secret)
+		b.secret.SetName(DbSecretDefaultName(backstageName))
 	}
 }
 
 // implementation of RuntimeObject interface
 func (b *DbSecret) addToModel(model *BackstageModel, backstage bsv1alpha1.Backstage, ownsRuntime bool) error {
-	if b.secret == nil && !backstage.Spec.IsAuthSecretSpecified() {
-		return nil
-	}
 
-	if backstage.Spec.IsAuthSecretSpecified() {
-		b.secret = &corev1.Secret{}
-		b.secret.SetName(backstage.Spec.Database.AuthSecretName)
-	} else {
-		b.secret.SetName(DbSecretDefaultName(backstage.Name))
+	if b.secret != nil && model.localDbEnabled {
+		model.setRuntimeObject(b)
+		model.LocalDbSecret = b
 	}
-
-	model.LocalDbSecret = b
+	return nil
+	//if b.secret == nil && !backstage.Spec.IsAuthSecretSpecified() {
+	//	return nil
+	//}
+	//
+	//if backstage.Spec.IsAuthSecretSpecified() {
+	//	b.secret = &corev1.Secret{}
+	//	b.secret.SetName(backstage.Spec.Database.AuthSecretName)
+	//} else {
+	//	b.secret.SetName(DbSecretDefaultName(backstage.Name))
+	//}
+	//
+	//model.LocalDbSecret = b
 	//model.setRuntimeObject(b)
 
-	return nil
+	//return nil
 }
 
 // implementation of RuntimeObject interface
@@ -77,6 +86,22 @@ func (b *DbSecret) EmptyObject() client.Object {
 
 // implementation of RuntimeObject interface
 func (b *DbSecret) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
+
+	if backstage.Spec.IsAuthSecretSpecified() || !backstage.Spec.IsLocalDbEnabled() {
+		return nil
+	}
+
+	pswd, _ := utils.GeneratePassword(24)
+	service := model.LocalDbService
+
+	b.secret.StringData = map[string]string{
+		"POSTGRES_PASSWORD":         pswd,
+		"POSTGRESQL_ADMIN_PASSWORD": pswd,
+		"POSTGRES_USER":             "postgres",
+		"POSTGRES_HOST":             service.service.GetName(),
+		"POSTGRES_PORT":             strconv.FormatInt(int64(service.service.Spec.Ports[0].Port), 10),
+	}
+
 	return nil
 }
 

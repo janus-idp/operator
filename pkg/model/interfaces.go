@@ -19,22 +19,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Need Identifier for configuration object
-// Used on initialization phase to let initializer know what to do if configuration object
-// of the certain type is not found
-//const (
-//	// Mandatory for Backstage deployment, initialization fails
-//	Mandatory needType = "Mandatory"
-//	// Optional for Backstage deployment (for example config parameters), initialization continues
-//	Optional needType = "Optional"
-//	// Mandatory if Local database Enabled, initialization fails if LocalDB enabled, ignored otherwise
-//	ForLocalDatabase needType = "ForLocalDatabase"
-//	// Used for Openshift cluster only, ignored otherwise
-//	ForOpenshift needType = "ForOpenshift"
-//)
-
-type needType string
-
 // Registered Object configuring Backstage deployment
 type ObjectConfig struct {
 	// Factory to create the object

@@ -100,15 +100,6 @@ func (b *AppConfig) updatePod(pod *backstagePod) {
 		VolumeSource: volSource,
 	})
 
-	// One configMap - one appConfig
-	// Problem: we need to know file path to form --config CL args
-	// If we want not to read CM - need to point file name (key) which should fit CM data.key
-	// Otherwise - we can read it and not specify
-	// Path to appConfig: /<mountPath>/<configMapName>/<file(key) name>
-	// Preferences:
-	// - not to read CM.Data on external files (Less permissive operator, not needed CM read/list)
-	// - not to use SubPath mounting CM to make Kubernetes refresh data if CM changed
-
 	fileDir := filepath.Join(b.MountPath, b.ConfigMap.Name)
 	vm := corev1.VolumeMount{Name: volName, MountPath: fileDir}
 	pod.container.VolumeMounts = append(pod.container.VolumeMounts, vm)

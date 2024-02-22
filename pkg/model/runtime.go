@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"slices"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -63,14 +64,26 @@ type BackstageModel struct {
 	appConfigs     []corev1.ConfigMap
 }
 
-func (model *BackstageModel) setRuntimeObject(object RuntimeObject) {
-	for i, obj := range model.RuntimeObjects {
+func (m *BackstageModel) setRuntimeObject(object RuntimeObject) {
+	for i, obj := range m.RuntimeObjects {
 		if reflect.TypeOf(obj) == reflect.TypeOf(object) {
-			model.RuntimeObjects[i] = object
+			m.RuntimeObjects[i] = object
 			return
 		}
 	}
-	model.RuntimeObjects = append(model.RuntimeObjects, object)
+	m.RuntimeObjects = append(m.RuntimeObjects, object)
+}
+
+func (m *BackstageModel) sortRuntimeObjects() {
+	slices.SortFunc(m.RuntimeObjects,
+		func(a, b RuntimeObject) int {
+			_, ok1 := b.(*DbStatefulSet)
+			_, ok2 := b.(*BackstageDeployment)
+			if ok1 || ok2 {
+				return -1
+			}
+			return 1
+		})
 }
 
 // Registers config object
@@ -150,6 +163,9 @@ func InitObjects(ctx context.Context, backstage bsv1alpha1.Backstage, rawConfig 
 			return nil, fmt.Errorf("failed object validation, reason: %s", err)
 		}
 	}
+
+	// sort
+	model.sortRuntimeObjects()
 
 	return model, nil
 }

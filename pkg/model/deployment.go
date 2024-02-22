@@ -154,7 +154,7 @@ func (b *BackstageDeployment) validate(model *BackstageModel, backstage bsv1alph
 	}
 
 	//DbSecret
-	if model.localDbEnabled || backstage.Spec.IsAuthSecretSpecified() {
+	if model.LocalDbSecret != nil {
 		b.pod.setEnvsFromSecret(model.LocalDbSecret.secret.Name)
 	}
 
