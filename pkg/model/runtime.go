@@ -61,7 +61,13 @@ type BackstageModel struct {
 	route *BackstageRoute
 
 	RuntimeObjects []RuntimeObject
-	appConfigs     []corev1.ConfigMap
+
+	appConfigs []SpecifiedConfigMap
+}
+
+type SpecifiedConfigMap struct {
+	ConfigMap corev1.ConfigMap
+	Key       string
 }
 
 func (m *BackstageModel) setRuntimeObject(object RuntimeObject) {
@@ -92,7 +98,7 @@ func registerConfig(key string, factory ObjectFactory) {
 }
 
 // InitObjects performs a main loop for configuring and making the array of objects to reconcile
-func InitObjects(ctx context.Context, backstage bsv1alpha1.Backstage, rawConfig map[string]string, appConfigs []corev1.ConfigMap, ownsRuntime bool, isOpenshift bool, scheme *runtime.Scheme) (*BackstageModel, error) {
+func InitObjects(ctx context.Context, backstage bsv1alpha1.Backstage, rawConfig map[string]string, appConfigs []SpecifiedConfigMap, ownsRuntime bool, isOpenshift bool, scheme *runtime.Scheme) (*BackstageModel, error) {
 
 	// 3 phases of Backstage configuration:
 	// 1- load from Operator defaults, modify metadata (labels, selectors..) and namespace as needed
@@ -103,6 +109,9 @@ func InitObjects(ctx context.Context, backstage bsv1alpha1.Backstage, rawConfig 
 	lg := log.FromContext(ctx)
 	lg.V(1)
 
+	if appConfigs == nil {
+		appConfigs = []SpecifiedConfigMap{}
+	}
 	model := &BackstageModel{RuntimeObjects: make([]RuntimeObject, 0), appConfigs: appConfigs, localDbEnabled: backstage.Spec.IsLocalDbEnabled(), isOpenshift: isOpenshift}
 
 	// looping through the registered runtimeConfig objects initializing the model
@@ -132,32 +141,15 @@ func InitObjects(ctx context.Context, backstage bsv1alpha1.Backstage, rawConfig 
 		}
 
 		// apply spec and add the object to the model and list
-		if err := backstageObject.addToModel(model, backstage, ownsRuntime); err != nil {
+		if added, err := backstageObject.addToModel(model, backstage, ownsRuntime); err != nil {
 			return nil, fmt.Errorf("failed to initialize %s reason: %s", backstageObject, err)
+		} else if added {
+			setMetaInfo(backstageObject, backstage, ownsRuntime, scheme)
 		}
 	}
-	//////////////////////
-	// init default meta info (name, namespace, owner) and update Backstage Pod with contributions (volumes, container)
-	//for _, bso := range model.RuntimeObjects {
-	//	if bs, ok := bso.(PodContributor); ok {
-	//		bs.updatePod(model.backstageDeployment.pod)
-	//	}
-	//}
-	//
-	//if backstageSpec.IsLocalDbEnabled() {
-	//	model.localDbStatefulSet.setDbEnvsFromSecret(model.LocalDbSecret.secret.Name)
-	//	//model.backstageDeployment.pod.setEnvsFromSecret(model.LocalDbSecret.secret.Name)
-	//}
-	//
-	//// contribute to Backstage config
-	//for _, v := range backstageSpec.ConfigObjects {
-	//	v.updatePod(model.backstageDeployment.pod)
-	//}
-	/////////////////
 
 	// set generic metainfo and validate all
 	for _, v := range model.RuntimeObjects {
-		setMetaInfo(v, backstage, ownsRuntime, scheme)
 		err := v.validate(model, backstage)
 		if err != nil {
 			return nil, fmt.Errorf("failed object validation, reason: %s", err)
@@ -171,12 +163,13 @@ func InitObjects(ctx context.Context, backstage bsv1alpha1.Backstage, rawConfig 
 }
 
 // Every RuntimeObject.setMetaInfo should as minimum call this
-func setMetaInfo(modelObject RuntimeObject, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool, scheme *runtime.Scheme) {
-	modelObject.Object().SetNamespace(backstageMeta.Namespace)
-	modelObject.Object().SetLabels(utils.SetKubeLabels(modelObject.Object().GetLabels(), backstageMeta.Name))
+func setMetaInfo(modelObject RuntimeObject, backstage bsv1alpha1.Backstage, ownsRuntime bool, scheme *runtime.Scheme) {
+	modelObject.setMetaInfo(backstage.Name)
+	modelObject.Object().SetNamespace(backstage.Namespace)
+	modelObject.Object().SetLabels(utils.SetKubeLabels(modelObject.Object().GetLabels(), backstage.Name))
 
 	if ownsRuntime {
-		if err := controllerutil.SetControllerReference(&backstageMeta, modelObject.Object(), scheme); err != nil {
+		if err := controllerutil.SetControllerReference(&backstage, modelObject.Object(), scheme); err != nil {
 			//error should never have happened,
 			//otherwise the Operator has invalid (not a runtime.Object) or non-registered type.
 			//In both cases it will fail before this place

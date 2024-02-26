@@ -24,7 +24,7 @@ import (
 type BackstageRouteFactory struct{}
 
 func (f BackstageRouteFactory) newBackstageObject() RuntimeObject {
-	return &BackstageRoute{ /*route: &openshift.Route{}*/ }
+	return &BackstageRoute{}
 }
 
 type BackstageRoute struct {
@@ -41,6 +41,7 @@ func (b *BackstageRoute) setRoute(specified bsv1alpha1.Route) {
 
 	if len(specified.Host) > 0 {
 		b.route.Spec.Host = specified.Host
+		//b.route.Spec.To =
 	}
 	if len(specified.Subdomain) > 0 {
 		b.route.Spec.Subdomain = specified.Subdomain
@@ -102,10 +103,10 @@ func (b *BackstageRoute) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (b *BackstageRoute) addToModel(model *BackstageModel, backstage bsv1alpha1.Backstage, ownsRuntime bool) error {
+func (b *BackstageRoute) addToModel(model *BackstageModel, backstage bsv1alpha1.Backstage, ownsRuntime bool) (bool, error) {
 	if (b.route == nil && !backstage.Spec.IsRouteEnabled()) || !model.isOpenshift {
 		// no route
-		return nil
+		return false, nil
 	}
 
 	// load from spec
@@ -117,15 +118,18 @@ func (b *BackstageRoute) addToModel(model *BackstageModel, backstage bsv1alpha1.
 		b.setRoute(*backstage.Spec.Application.Route)
 	}
 
-	b.route.SetName(RouteName(backstage.Name))
 	model.route = b
 	model.setRuntimeObject(b)
 
-	return nil
+	return true, nil
 }
 
 // implementation of RuntimeObject interface
 func (b *BackstageRoute) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
 	b.route.Spec.To.Name = model.backstageService.service.Name
 	return nil
+}
+
+func (b *BackstageRoute) setMetaInfo(backstageName string) {
+	b.route.SetName(RouteName(backstageName))
 }

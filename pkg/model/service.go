@@ -27,7 +27,7 @@ import (
 type BackstageServiceFactory struct{}
 
 func (f BackstageServiceFactory) newBackstageObject() RuntimeObject {
-	return &BackstageService{ /*service: &corev1.Service{}*/ }
+	return &BackstageService{}
 }
 
 type BackstageService struct {
@@ -43,7 +43,7 @@ func (b *BackstageService) Object() client.Object {
 	return b.service
 }
 
-func (b *BackstageService) setObject(obj client.Object, name string) {
+func (b *BackstageService) setObject(obj client.Object, backstageName string) {
 	b.service = nil
 	if obj != nil {
 		b.service = obj.(*corev1.Service)
@@ -51,17 +51,14 @@ func (b *BackstageService) setObject(obj client.Object, name string) {
 }
 
 // implementation of RuntimeObject interface
-func (b *BackstageService) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) error {
+func (b *BackstageService) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) (bool, error) {
 	if b.service == nil {
-		return fmt.Errorf("Backstage Service is not initialized, make sure there is service.yaml in default or raw configuration")
+		return false, fmt.Errorf("Backstage Service is not initialized, make sure there is service.yaml in default or raw configuration")
 	}
 	model.backstageService = b
 	model.setRuntimeObject(b)
 
-	b.service.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "service"))
-	utils.GenerateLabel(&b.service.Spec.Selector, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageMeta.Name))
-
-	return nil
+	return true, nil
 
 }
 
@@ -73,4 +70,9 @@ func (b *BackstageService) EmptyObject() client.Object {
 // implementation of RuntimeObject interface
 func (b *BackstageService) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
 	return nil
+}
+
+func (b *BackstageService) setMetaInfo(backstageName string) {
+	b.service.SetName(utils.GenerateRuntimeObjectName(backstageName, "service"))
+	utils.GenerateLabel(&b.service.Spec.Selector, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageName))
 }

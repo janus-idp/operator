@@ -52,7 +52,7 @@ func (b *DbStatefulSet) Object() client.Object {
 	return b.statefulSet
 }
 
-func (b *DbStatefulSet) setObject(obj client.Object, name string) {
+func (b *DbStatefulSet) setObject(obj client.Object, backstageName string) {
 	b.statefulSet = nil
 	if obj != nil {
 		b.statefulSet = obj.(*appsv1.StatefulSet)
@@ -60,24 +60,20 @@ func (b *DbStatefulSet) setObject(obj client.Object, name string) {
 }
 
 // implementation of RuntimeObject interface
-func (b *DbStatefulSet) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) error {
+func (b *DbStatefulSet) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) (bool, error) {
 	if b.statefulSet == nil {
 		if model.localDbEnabled {
-			return fmt.Errorf("LocalDb StatefulSet not configured, make sure there is db-statefulset.yaml.yaml in default or raw configuration")
+			return false, fmt.Errorf("LocalDb StatefulSet not configured, make sure there is db-statefulset.yaml.yaml in default or raw configuration")
 		}
-		return nil
+		return false, nil
 	} else {
 		if !model.localDbEnabled {
-			return nil
+			return false, nil
 		}
 	}
 
 	model.localDbStatefulSet = b
 	model.setRuntimeObject(b)
-
-	b.statefulSet.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "db-statefulset"))
-	utils.GenerateLabel(&b.statefulSet.Spec.Template.ObjectMeta.Labels, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
-	utils.GenerateLabel(&b.statefulSet.Spec.Selector.MatchLabels, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
 
 	// override image with env var
 	// [GA] TODO Do we really need this feature?
@@ -85,7 +81,7 @@ func (b *DbStatefulSet) addToModel(model *BackstageModel, backstageMeta bsv1alph
 		b.container().Image = os.Getenv(LocalDbImageEnvVar)
 	}
 
-	return nil
+	return true, nil
 }
 
 // implementation of RuntimeObject interface
@@ -121,6 +117,12 @@ func (b *DbStatefulSet) setSecretNameEnvFrom(envFrom corev1.EnvFromSource) {
 		b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom = append(b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom, envFrom)
 	}
 	b.secretName = envFrom.SecretRef.Name
+}
+
+func (b *DbStatefulSet) setMetaInfo(backstageName string) {
+	b.statefulSet.SetName(utils.GenerateRuntimeObjectName(backstageName, "db-statefulset"))
+	utils.GenerateLabel(&b.statefulSet.Spec.Template.ObjectMeta.Labels, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageName))
+	utils.GenerateLabel(&b.statefulSet.Spec.Selector.MatchLabels, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageName))
 }
 
 // returns DB container

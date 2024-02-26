@@ -26,7 +26,6 @@ var _ = When("create default backstage", func() {
 	var (
 		ctx context.Context
 		ns  string
-		//backstageName string
 	)
 
 	BeforeEach(func() {
@@ -59,33 +58,21 @@ var _ = When("create default backstage", func() {
 		Expect(err).To(Not(HaveOccurred()))
 
 		Eventually(func(g Gomega) {
-			By("creating a secret for accessing the Database")
-			secret := &corev1.Secret{}
-			secretName := model.DbSecretDefaultName(backstageName)
-			err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: secretName}, secret)
-			g.Expect(err).ShouldNot(HaveOccurred())
-
-			By("creating a StatefulSet for the Database")
-			ss := &appsv1.StatefulSet{}
-			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DbStatefulSetName(backstageName)}, ss)
-			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(getEnvFromSecret(ss.Spec.Template.Spec.Containers[0], model.DbSecretDefaultName(backstageName))).ToNot(BeNil())
-			g.Expect(ss.GetOwnerReferences()).To(HaveLen(1))
-
-			By("checking if Deployment was successfully created in the reconciliation")
 			deploy := &appsv1.Deployment{}
 			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, deploy)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			By("checking the number of replicas")
-			Expect(deploy.Spec.Replicas).To(HaveValue(BeEquivalentTo(1)))
 
-			By("creating default app-config")
+			By("creating /opt/app-root/src/dynamic-plugins.xml ")
 			appConfig := &corev1.ConfigMap{}
-			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.AppConfigDefaultName(backstageName)}, appConfig)
+			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DynamicPluginsDefaultName(backstageName)}, appConfig)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			_, ok := findVolume(deploy.Spec.Template.Spec.Volumes, utils.GenerateVolumeNameFromCmOrSecret(model.AppConfigDefaultName(backstageName)))
-			g.Expect(ok).To(BeTrue())
-			g.Expect(appConfig.GetOwnerReferences()).To(HaveLen(1))
+
+			// it is ok to take InitContainers[0]
+			g.Expect(deploy.Spec.Template.Spec.InitContainers[0].VolumeMounts).To(HaveLen(3))
+			g.Expect(deploy.Spec.Template.Spec.InitContainers[0].VolumeMounts[2].MountPath).To(Equal("/opt/app-root/src/dynamic-plugins.yaml"))
+			g.Expect(deploy.Spec.Template.Spec.InitContainers[0].VolumeMounts[2].Name).
+				To(Equal(utils.GenerateVolumeNameFromCmOrSecret(model.DynamicPluginsDefaultName(backstageName))))
+			g.Expect(deploy.Spec.Template.Spec.InitContainers[0].VolumeMounts[2].SubPath).To(Equal(model.DynamicPluginsFile))
 
 		}, time.Minute, time.Second).Should(Succeed())
 

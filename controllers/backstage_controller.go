@@ -292,16 +292,19 @@ func (r *BackstageReconciler) rawConfigMap(ctx context.Context, backstage bs.Bac
 }
 
 // need pre-read app-configs to be able to put --config argument
-func (r *BackstageReconciler) appConfigMaps(ctx context.Context, backstage bs.Backstage) ([]corev1.ConfigMap, error) {
+func (r *BackstageReconciler) appConfigMaps(ctx context.Context, backstage bs.Backstage) ([]model.SpecifiedConfigMap, error) {
 	// Process AppConfigs
-	result := []corev1.ConfigMap{}
+	result := []model.SpecifiedConfigMap{}
 	if backstage.Spec.Application != nil && backstage.Spec.Application.AppConfig != nil {
 		for _, ac := range backstage.Spec.Application.AppConfig.ConfigMaps {
 			cm := corev1.ConfigMap{}
 			if err := r.Get(ctx, types.NamespacedName{Name: ac.Name, Namespace: backstage.Namespace}, &cm); err != nil {
 				return nil, fmt.Errorf("failed to get configMap %s: %w", ac.Name, err)
 			}
-			result = append(result, cm)
+			result = append(result, model.SpecifiedConfigMap{
+				ConfigMap: cm,
+				Key:       ac.Key,
+			})
 		}
 	}
 	return result, nil

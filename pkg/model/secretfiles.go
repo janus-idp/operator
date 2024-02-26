@@ -15,11 +15,8 @@
 package model
 
 import (
-	"path/filepath"
-
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"k8s.io/utils/pointer"
 
 	"janus-idp.io/backstage-operator/api/v1alpha1"
 	"janus-idp.io/backstage-operator/pkg/utils"
@@ -58,7 +55,7 @@ func (p *SecretFiles) Object() client.Object {
 	return p.Secret
 }
 
-func (p *SecretFiles) setObject(obj client.Object, name string) {
+func (p *SecretFiles) setObject(obj client.Object, backstageName string) {
 	p.Secret = nil
 	if obj != nil {
 		p.Secret = obj.(*corev1.Secret)
@@ -71,12 +68,12 @@ func (p *SecretFiles) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (p *SecretFiles) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) error {
+func (p *SecretFiles) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) (bool, error) {
 	if p.Secret != nil {
 		model.setRuntimeObject(p)
-		p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-secretfiles"))
+		return true, nil
 	}
-	return nil
+	return false, nil
 }
 
 // implementation of RuntimeObject interface
@@ -84,23 +81,13 @@ func (p *SecretFiles) validate(model *BackstageModel, backstage v1alpha1.Backsta
 	return nil
 }
 
-// implementation of PodContributor interface
-func (p *SecretFiles) updatePod(pod *backstagePod) {
+func (p *SecretFiles) setMetaInfo(backstageName string) {
+	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageName, "default-secretfiles"))
+}
 
-	volName := utils.GenerateVolumeNameFromCmOrSecret(p.Secret.Name)
+// implementation of BackstagePodContributor interface
+func (p *SecretFiles) updatePod(depoyment *appsv1.Deployment) {
 
-	volSource := corev1.VolumeSource{
-		Secret: &corev1.SecretVolumeSource{
-			DefaultMode: pointer.Int32(420),
-			SecretName:  p.Secret.Name,
-		},
-	}
-
-	pod.appendVolume(corev1.Volume{
-		Name:         volName,
-		VolumeSource: volSource,
-	})
-
-	vm := corev1.VolumeMount{Name: volName, MountPath: filepath.Join(p.MountPath, p.Secret.Name, p.Key), SubPath: p.Key}
-	pod.container.VolumeMounts = append(pod.container.VolumeMounts, vm)
+	utils.MountFilesFrom(&depoyment.Spec.Template.Spec, &depoyment.Spec.Template.Spec.Containers[0], utils.SecretObjectKind,
+		p.Secret.Name, p.MountPath, p.Key, p.Secret.StringData)
 }

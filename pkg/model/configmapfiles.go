@@ -15,11 +15,8 @@
 package model
 
 import (
-	"path/filepath"
-
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"k8s.io/utils/pointer"
 
 	"janus-idp.io/backstage-operator/api/v1alpha1"
 	"janus-idp.io/backstage-operator/pkg/utils"
@@ -30,7 +27,7 @@ import (
 type ConfigMapFilesFactory struct{}
 
 func (f ConfigMapFilesFactory) newBackstageObject() RuntimeObject {
-	return &ConfigMapFiles{ /*ConfigMap: &corev1.ConfigMap{},*/ MountPath: defaultMountDir}
+	return &ConfigMapFiles{MountPath: defaultMountDir}
 }
 
 type ConfigMapFiles struct {
@@ -58,7 +55,7 @@ func (p *ConfigMapFiles) Object() client.Object {
 	return p.ConfigMap
 }
 
-func (p *ConfigMapFiles) setObject(obj client.Object, name string) {
+func (p *ConfigMapFiles) setObject(obj client.Object, backstageName string) {
 	p.ConfigMap = nil
 	if obj != nil {
 		p.ConfigMap = obj.(*corev1.ConfigMap)
@@ -72,12 +69,12 @@ func (p *ConfigMapFiles) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (p *ConfigMapFiles) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) error {
+func (p *ConfigMapFiles) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) (bool, error) {
 	if p.ConfigMap != nil {
 		model.setRuntimeObject(p)
-		p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-configmapfiles"))
+		return true, nil
 	}
-	return nil
+	return false, nil
 }
 
 // implementation of RuntimeObject interface
@@ -85,23 +82,14 @@ func (p *ConfigMapFiles) validate(model *BackstageModel, backstage v1alpha1.Back
 	return nil
 }
 
-// implementation of PodContributor interface
-func (p *ConfigMapFiles) updatePod(pod *backstagePod) {
+func (p *ConfigMapFiles) setMetaInfo(backstageName string) {
+	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageName, "default-configmapfiles"))
+}
 
-	volName := utils.GenerateVolumeNameFromCmOrSecret(p.ConfigMap.Name)
+// implementation of BackstagePodContributor interface
+func (p *ConfigMapFiles) updatePod(deployment *appsv1.Deployment) {
 
-	volSource := corev1.VolumeSource{
-		ConfigMap: &corev1.ConfigMapVolumeSource{
-			DefaultMode:          pointer.Int32(420),
-			LocalObjectReference: corev1.LocalObjectReference{Name: p.ConfigMap.Name},
-		},
-	}
-	pod.appendVolume(corev1.Volume{
-		Name:         volName,
-		VolumeSource: volSource,
-	})
-
-	vm := corev1.VolumeMount{Name: volName, MountPath: filepath.Join(p.MountPath, p.ConfigMap.Name, p.Key), SubPath: p.Key}
-	pod.container.VolumeMounts = append(pod.container.VolumeMounts, vm)
+	utils.MountFilesFrom(&deployment.Spec.Template.Spec, &deployment.Spec.Template.Spec.Containers[0], utils.ConfigMapObjectKind,
+		p.ConfigMap.Name, p.MountPath, p.Key, p.ConfigMap.Data)
 
 }

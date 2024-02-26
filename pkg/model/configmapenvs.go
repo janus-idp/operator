@@ -17,6 +17,7 @@ package model
 import (
 	"janus-idp.io/backstage-operator/api/v1alpha1"
 	"janus-idp.io/backstage-operator/pkg/utils"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,7 +52,7 @@ func (p *ConfigMapEnvs) Object() client.Object {
 	return p.ConfigMap
 }
 
-func (p *ConfigMapEnvs) setObject(obj client.Object, name string) {
+func (p *ConfigMapEnvs) setObject(obj client.Object, backstageName string) {
 	p.ConfigMap = nil
 	if obj != nil {
 		p.ConfigMap = obj.(*corev1.ConfigMap)
@@ -64,13 +65,12 @@ func (p *ConfigMapEnvs) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (p *ConfigMapEnvs) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) error {
+func (p *ConfigMapEnvs) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) (bool, error) {
 	if p.ConfigMap != nil {
 		model.setRuntimeObject(p)
-		p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageMeta.Name, "default-configmapenvs"))
+		return true, nil
 	}
-
-	return nil
+	return false, nil
 }
 
 // implementation of RuntimeObject interface
@@ -78,25 +78,13 @@ func (p *ConfigMapEnvs) validate(model *BackstageModel, backstage v1alpha1.Backs
 	return nil
 }
 
-// implementation of PodContributor interface
-func (p *ConfigMapEnvs) updatePod(pod *backstagePod) {
+func (p *ConfigMapEnvs) setMetaInfo(backstageName string) {
+	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageName, "default-configmapenvs"))
+}
 
-	if p.Key == "" {
-		pod.addContainerEnvFrom(corev1.EnvFromSource{
-			ConfigMapRef: &corev1.ConfigMapEnvSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: p.ConfigMap.Name}}})
-	} else {
-		envVarSource := &corev1.EnvVarSource{
-			ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: p.ConfigMap.Name,
-				},
-				Key: p.Key,
-			},
-		}
-		pod.container.Env = append(pod.container.Env, corev1.EnvVar{
-			Name:      p.Key,
-			ValueFrom: envVarSource,
-		})
-	}
+// implementation of BackstagePodContributor interface
+func (p *ConfigMapEnvs) updatePod(deployment *appsv1.Deployment) {
+
+	utils.AddEnvVarsFrom(&deployment.Spec.Template.Spec.Containers[0], utils.ConfigMapObjectKind,
+		p.ConfigMap.Name, p.Key)
 }

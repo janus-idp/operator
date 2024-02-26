@@ -50,33 +50,18 @@ func (b *DbSecret) setObject(obj client.Object, backstageName string) {
 	b.secret = nil
 	if obj != nil {
 		b.secret = obj.(*corev1.Secret)
-		b.secret.SetName(DbSecretDefaultName(backstageName))
 	}
 }
 
 // implementation of RuntimeObject interface
-func (b *DbSecret) addToModel(model *BackstageModel, backstage bsv1alpha1.Backstage, ownsRuntime bool) error {
+func (b *DbSecret) addToModel(model *BackstageModel, backstage bsv1alpha1.Backstage, ownsRuntime bool) (bool, error) {
 
 	if b.secret != nil && model.localDbEnabled {
 		model.setRuntimeObject(b)
 		model.LocalDbSecret = b
+		return true, nil
 	}
-	return nil
-	//if b.secret == nil && !backstage.Spec.IsAuthSecretSpecified() {
-	//	return nil
-	//}
-	//
-	//if backstage.Spec.IsAuthSecretSpecified() {
-	//	b.secret = &corev1.Secret{}
-	//	b.secret.SetName(backstage.Spec.Database.AuthSecretName)
-	//} else {
-	//	b.secret.SetName(DbSecretDefaultName(backstage.Name))
-	//}
-	//
-	//model.LocalDbSecret = b
-	//model.setRuntimeObject(b)
-
-	//return nil
+	return false, nil
 }
 
 // implementation of RuntimeObject interface
@@ -105,38 +90,6 @@ func (b *DbSecret) validate(model *BackstageModel, backstage bsv1alpha1.Backstag
 	return nil
 }
 
-//func (b *DbSecret) updateSecret(model *BackstageModel) {
-//
-//	dbservice := model.LocalDbService.service
-//	if b.secret.StringData == nil {
-//		b.secret.StringData = map[string]string{}
-//	}
-//	// fill the host with localDb service name
-//	b.secret.StringData["POSTGRES_HOST"] = dbservice.Name
-//
-//	//// fill the port with localDb service port
-//	b.secret.StringData["POSTGRES_PORT"] = strconv.FormatInt(int64(dbservice.Spec.Ports[0].Port), 10)
-//
-//	// populate db statefulset
-//	model.localDbStatefulSet.setSecretNameEnvFrom(corev1.EnvFromSource{
-//		SecretRef: &corev1.SecretEnvSource{
-//			LocalObjectReference: corev1.LocalObjectReference{Name: b.secret.Name},
-//		},
-//	})
-//
-//	// populate backstage deployment
-//	model.backstageDeployment.pod.addContainerEnvFrom(corev1.EnvFromSource{
-//		SecretRef: &corev1.SecretEnvSource{
-//			LocalObjectReference: corev1.LocalObjectReference{Name: b.secret.Name},
-//		},
-//	})
-//}
-//
-//func generatePassword(length int) (string, error) {
-//	bytes := make([]byte, length)
-//	if _, err := rand.Read(bytes); err != nil {
-//		return "", err
-//	}
-//	// Encode the password to prevent special characters
-//	return base64.StdEncoding.EncodeToString(bytes), nil
-//}
+func (b *DbSecret) setMetaInfo(backstageName string) {
+	b.secret.SetName(DbSecretDefaultName(backstageName))
+}

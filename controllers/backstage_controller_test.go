@@ -298,6 +298,8 @@ var _ = Describe("Backstage controller", func() {
 
 			}, time.Minute, time.Second).Should(Succeed())
 
+			//////////////////////////////////////////////
+
 			backendAuthConfigName := utils.GenerateRuntimeObjectName(backstage.Name, "default-appconfig")
 			backendAuthVolumeName := "vol-" + backendAuthConfigName
 			//fmt.Sprintf("%s-auth-app-config", backstageName)
@@ -331,6 +333,8 @@ var _ = Describe("Backstage controller", func() {
 				}
 				// ********* again owner ref?
 			}, time.Minute, time.Second).Should(Succeed())
+
+			///////////////////////////////////////////
 
 			By("Checking if Deployment was successfully created in the reconciliation")
 			found := &appsv1.Deployment{}
@@ -366,6 +370,7 @@ var _ = Describe("Backstage controller", func() {
 				Expect(backendAuthAppConfigVol.VolumeSource.ConfigMap.DefaultMode).To(HaveValue(Equal(int32(420))))
 				Expect(backendAuthAppConfigVol.VolumeSource.ConfigMap.LocalObjectReference.Name).To(Equal(backendAuthConfigName))
 			})
+
 			// ************ checks Janus specific volumes: dynamic-plugins-root, dynamic-plugins-npmrc ??? What for?
 
 			By("Checking the Number of init containers in the Backstage Deployment")
@@ -844,7 +849,7 @@ plugins: []
 								// dynamic-plugins-npmrc
 								// vol-test-backstage-tiqt4-default-appconfig
 								// vol-my-app-config-1-cm
-								//?
+								// my-dynamic-plugins-config ?
 								Expect(found.Spec.Template.Spec.Volumes).To(HaveLen(6))
 
 								_, ok := findVolume(found.Spec.Template.Spec.Volumes, "dynamic-plugins-root")

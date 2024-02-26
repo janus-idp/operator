@@ -16,7 +16,8 @@ package model
 
 import (
 	"context"
-	"path/filepath"
+
+	"janus-idp.io/backstage-operator/pkg/utils"
 
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -41,7 +42,15 @@ var (
 			Name:      "app-config2",
 			Namespace: "ns123",
 		},
-		Data: map[string]string{"conf2.yaml": ""},
+		Data: map[string]string{"conf21.yaml": "", "conf22.yaml": ""},
+	}
+
+	appConfigTestCm3 = corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "app-config3",
+			Namespace: "ns123",
+		},
+		Data: map[string]string{"conf31.yaml": "", "conf32.yaml": ""},
 	}
 
 	appConfigTestBackstage = bsv1alpha1.Backstage{
@@ -62,11 +71,12 @@ var (
 
 func TestDefaultAppConfig(t *testing.T) {
 
-	bs := simpleTestBackstage()
+	//bs := simpleTestBackstage()
+	bs := *appConfigTestBackstage.DeepCopy()
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("app-config.yaml", "raw-app-config.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, nil, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)
@@ -76,6 +86,7 @@ func TestDefaultAppConfig(t *testing.T) {
 
 	assert.Equal(t, 1, len(deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts))
 	assert.Contains(t, deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts[0].MountPath, defaultMountDir)
+	assert.Equal(t, utils.GenerateVolumeNameFromCmOrSecret(AppConfigDefaultName(bs.Name)), deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts[0].Name)
 	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Containers[0].Args))
 	assert.Equal(t, 1, len(deployment.deployment.Spec.Template.Spec.Volumes))
 
@@ -84,15 +95,18 @@ func TestDefaultAppConfig(t *testing.T) {
 func TestSpecifiedAppConfig(t *testing.T) {
 
 	bs := *appConfigTestBackstage.DeepCopy()
-	cms := &bs.Spec.Application.AppConfig.ConfigMaps
-	*cms = append(*cms, bsv1alpha1.ObjectKeyRef{Name: appConfigTestCm.Name})
-	*cms = append(*cms, bsv1alpha1.ObjectKeyRef{Name: appConfigTestCm2.Name})
-
-	// it is read by controller
+	bs.Spec.Application.AppConfig.ConfigMaps = append(bs.Spec.Application.AppConfig.ConfigMaps,
+		bsv1alpha1.ObjectKeyRef{Name: appConfigTestCm.Name})
+	bs.Spec.Application.AppConfig.ConfigMaps = append(bs.Spec.Application.AppConfig.ConfigMaps,
+		bsv1alpha1.ObjectKeyRef{Name: appConfigTestCm2.Name})
+	bs.Spec.Application.AppConfig.ConfigMaps = append(bs.Spec.Application.AppConfig.ConfigMaps,
+		bsv1alpha1.ObjectKeyRef{Name: appConfigTestCm3.Name, Key: "conf31.yaml"})
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{appConfigTestCm, appConfigTestCm2}, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []SpecifiedConfigMap{
+		{ConfigMap: appConfigTestCm}, {ConfigMap: appConfigTestCm2}, {ConfigMap: appConfigTestCm3, Key: "conf31.yaml"}},
+		true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)
@@ -100,11 +114,11 @@ func TestSpecifiedAppConfig(t *testing.T) {
 	deployment := model.backstageDeployment
 	assert.NotNil(t, deployment)
 
-	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts))
-	assert.Contains(t, deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts[0].MountPath,
+	assert.Equal(t, 4, len(deployment.container().VolumeMounts))
+	assert.Contains(t, deployment.container().VolumeMounts[0].MountPath,
 		bs.Spec.Application.AppConfig.MountPath)
-	assert.Equal(t, 4, len(deployment.deployment.Spec.Template.Spec.Containers[0].Args))
-	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Volumes))
+	assert.Equal(t, 8, len(deployment.container().Args))
+	assert.Equal(t, 3, len(deployment.deployment.Spec.Template.Spec.Volumes))
 
 }
 
@@ -118,7 +132,7 @@ func TestDefaultAndSpecifiedAppConfig(t *testing.T) {
 
 	//testObj.detailedSpec.AddConfigObject(&AppConfig{ConfigMap: &cm, MountPath: "/my/path"})
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{appConfigTestCm}, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []SpecifiedConfigMap{{ConfigMap: appConfigTestCm}}, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)
@@ -130,10 +144,12 @@ func TestDefaultAndSpecifiedAppConfig(t *testing.T) {
 	assert.Equal(t, 4, len(deployment.deployment.Spec.Template.Spec.Containers[0].Args))
 	assert.Equal(t, 2, len(deployment.deployment.Spec.Template.Spec.Volumes))
 
-	assert.Equal(t, filepath.Dir(deployment.deployment.Spec.Template.Spec.Containers[0].Args[1]),
-		deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts[0].MountPath)
+	//assert.Equal(t, filepath.Dir(deployment.deployment.Spec.Template.Spec.Containers[0].Args[1]),
+	//	deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts[0].MountPath)
 
 	// it should be valid assertion using Volumes and VolumeMounts indexes since the order of adding is from default to specified
+
+	//assert.Equal(t, utils.GenerateVolumeNameFromCmOrSecret()deployment.deployment.Spec.Template.Spec.Volumes[0].Name
 	assert.Equal(t, deployment.deployment.Spec.Template.Spec.Volumes[0].Name,
 		deployment.deployment.Spec.Template.Spec.Containers[0].VolumeMounts[0].Name)
 

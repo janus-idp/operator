@@ -19,8 +19,6 @@ import (
 	"os"
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
-
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -28,7 +26,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestImagePullSecrets(t *testing.T) {
+var deploymentTestBackstage = bsv1alpha1.Backstage{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "bs",
+		Namespace: "ns123",
+	},
+	Spec: bsv1alpha1.BackstageSpec{
+		Database: &bsv1alpha1.Database{
+			EnableLocalDb: pointer.Bool(false),
+		},
+		Application: &bsv1alpha1.Application{},
+	},
+}
+
+func TestSpecs(t *testing.T) {
+	bs := *deploymentTestBackstage.DeepCopy()
+	bs.Spec.Application.Image = pointer.String("my-image:1.0.0")
+	bs.Spec.Application.Replicas = pointer.Int32(3)
+	bs.Spec.Application.ImagePullSecrets = []string{"my-secret"}
+
+	testObj := createBackstageTest(bs).withDefaultConfig(true).
+		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")
+
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, nil, true, true, testObj.scheme)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "my-image:1.0.0", model.backstageDeployment.container().Image)
+	assert.Equal(t, int32(3), *model.backstageDeployment.deployment.Spec.Replicas)
+	assert.Equal(t, 1, len(model.backstageDeployment.deployment.Spec.Template.Spec.ImagePullSecrets))
+	assert.Equal(t, "my-secret", model.backstageDeployment.deployment.Spec.Template.Spec.ImagePullSecrets[0].Name)
 
 }
 
@@ -38,31 +64,17 @@ func TestImagePullSecrets(t *testing.T) {
 // for substitution env vars instead.
 // Janus image specific
 func TestOverrideBackstageImage(t *testing.T) {
-	bs := bsv1alpha1.Backstage{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "bs",
-			Namespace: "ns123",
-		},
-		Spec: bsv1alpha1.BackstageSpec{
-			Database: &bsv1alpha1.Database{
-				EnableLocalDb: pointer.Bool(false),
-			},
-		},
-	}
+
+	bs := *deploymentTestBackstage.DeepCopy()
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).
 		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")
 
 	_ = os.Setenv(BackstageImageEnvVar, "dummy")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, nil, true, false, testObj.scheme)
 	assert.NoError(t, err)
 
-	assert.Equal(t, "dummy", model.backstageDeployment.pod.container.Image)
-	assert.Equal(t, "dummy", model.backstageDeployment.deployment.Spec.Template.Spec.InitContainers[0].Image)
-
-	//t.Log(">>>>>>>>>>>>>>>>", model.backstageDeployment.Object().GetOwnerReferences()[0].Kind)
-
-	//t.Log(">>>>>>>>>>>>>>>>", testObj.scheme.AllKnownTypes())
+	assert.Equal(t, "dummy", model.backstageDeployment.container().Image)
 
 }

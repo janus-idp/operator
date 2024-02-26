@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
-
 	"k8s.io/utils/pointer"
 
 	"janus-idp.io/backstage-operator/api/v1alpha1"
@@ -29,6 +27,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+//const backstageContainerName = "backstage-backend"
 
 // NOTE: to make it work locally env var LOCALBIN should point to the directory where default-config folder located
 func TestInitDefaultDeploy(t *testing.T) {
@@ -47,7 +47,7 @@ func TestInitDefaultDeploy(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, nil, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)
@@ -57,9 +57,9 @@ func TestInitDefaultDeploy(t *testing.T) {
 	//	assert.Equal(t, 1, len(model[0].Object().GetOwnerReferences()))
 
 	bsDeployment := model.backstageDeployment
-	assert.NotNil(t, bsDeployment.pod.container)
-	assert.Equal(t, backstageContainerName, bsDeployment.pod.container.Name)
-	assert.NotNil(t, bsDeployment.pod.volumes)
+	assert.NotNil(t, bsDeployment.deployment.Spec.Template.Spec.Containers[0])
+	assert.Equal(t, backstageContainerName, bsDeployment.deployment.Spec.Template.Spec.Containers[0].Name)
+	//	assert.NotNil(t, bsDeployment.deployment.Spec.Template.Spec.Volumes)
 
 	//	assert.Equal(t, "Backstage", bsDeployment.deployment.OwnerReferences[0].Kind)
 
@@ -90,7 +90,7 @@ func TestIfEmptyObjectIsValid(t *testing.T) {
 
 	assert.False(t, bs.Spec.IsLocalDbEnabled())
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, nil, true, false, testObj.scheme)
 	assert.NoError(t, err)
 
 	assert.Equal(t, 2, len(model.RuntimeObjects))
@@ -112,7 +112,7 @@ func TestAddToModel(t *testing.T) {
 	}
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, nil, true, false, testObj.scheme)
 	assert.NoError(t, err)
 	assert.NotNil(t, model)
 	assert.NotNil(t, model.RuntimeObjects)

@@ -17,10 +17,11 @@ package model
 import (
 	"path/filepath"
 
+	appsv1 "k8s.io/api/apps/v1"
+
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 	"janus-idp.io/backstage-operator/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -43,6 +44,10 @@ func init() {
 	registerConfig("app-config.yaml", AppConfigFactory{})
 }
 
+func AppConfigDefaultName(backstageName string) string {
+	return utils.GenerateRuntimeObjectName(backstageName, "default-appconfig")
+}
+
 func newAppConfig(mountPath string, cm *corev1.ConfigMap, key string) *AppConfig {
 	return &AppConfig{
 		ConfigMap: cm,
@@ -61,7 +66,6 @@ func (b *AppConfig) setObject(obj client.Object, backstageName string) {
 	b.ConfigMap = nil
 	if obj != nil {
 		b.ConfigMap = obj.(*corev1.ConfigMap)
-		b.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageName, "default-appconfig"))
 	}
 }
 
@@ -71,11 +75,12 @@ func (b *AppConfig) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (b *AppConfig) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) error {
+func (b *AppConfig) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) (bool, error) {
 	if b.ConfigMap != nil {
 		model.setRuntimeObject(b)
+		return true, nil
 	}
-	return nil
+	return false, nil
 }
 
 // implementation of RuntimeObject interface
@@ -83,31 +88,22 @@ func (b *AppConfig) validate(model *BackstageModel, backstage bsv1alpha1.Backsta
 	return nil
 }
 
-// implementation of PodContributor interface
+func (b *AppConfig) setMetaInfo(backstageName string) {
+	b.ConfigMap.SetName(AppConfigDefaultName(backstageName))
+}
+
+// implementation of BackstagePodContributor interface
 // it contrubutes to Volumes, container.VolumeMounts and contaiter.Args
-func (b *AppConfig) updatePod(pod *backstagePod) {
+func (b *AppConfig) updatePod(deployment *appsv1.Deployment) {
 
-	volName := utils.GenerateVolumeNameFromCmOrSecret(b.ConfigMap.Name)
+	utils.MountFilesFrom(&deployment.Spec.Template.Spec, &deployment.Spec.Template.Spec.Containers[0], utils.ConfigMapObjectKind,
+		b.ConfigMap.Name, b.MountPath, b.Key, b.ConfigMap.Data)
 
-	volSource := corev1.VolumeSource{
-		ConfigMap: &corev1.ConfigMapVolumeSource{
-			DefaultMode:          pointer.Int32(420),
-			LocalObjectReference: corev1.LocalObjectReference{Name: b.ConfigMap.Name},
-		},
-	}
-	pod.appendVolume(corev1.Volume{
-		Name:         volName,
-		VolumeSource: volSource,
-	})
-
-	fileDir := filepath.Join(b.MountPath, b.ConfigMap.Name)
-	vm := corev1.VolumeMount{Name: volName, MountPath: fileDir}
-	pod.container.VolumeMounts = append(pod.container.VolumeMounts, vm)
-
+	fileDir := b.MountPath
 	for file := range b.ConfigMap.Data {
 		if b.Key == "" || b.Key == file {
-			appConfigPath := filepath.Join(fileDir, file)
-			pod.container.Args = append(pod.container.Args, []string{"--config", appConfigPath}...)
+			deployment.Spec.Template.Spec.Containers[0].Args =
+				append(deployment.Spec.Template.Spec.Containers[0].Args, []string{"--config", filepath.Join(fileDir, file)}...)
 		}
 	}
 }

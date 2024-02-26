@@ -20,6 +20,8 @@ import (
 	"os"
 	"strconv"
 
+	"janus-idp.io/backstage-operator/pkg/utils"
+
 	corev1 "k8s.io/api/core/v1"
 
 	"path/filepath"
@@ -31,7 +33,6 @@ import (
 	"k8s.io/utils/pointer"
 
 	controller "janus-idp.io/backstage-operator/controllers"
-	"janus-idp.io/backstage-operator/pkg/utils"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -142,8 +143,16 @@ func createNamespace(ctx context.Context) string {
 
 func NewTestBackstageReconciler(namespace string) *TestBackstageReconciler {
 
-	isOpenshift, err := utils.IsOpenshift()
-	Expect(err).To(Not(HaveOccurred()))
+	var (
+		isOpenshift bool
+		err         error
+	)
+	if *testEnv.UseExistingCluster {
+		isOpenshift, err = utils.IsOpenshift()
+		Expect(err).To(Not(HaveOccurred()))
+	} else {
+		isOpenshift = false
+	}
 
 	return &TestBackstageReconciler{BackstageReconciler: controller.BackstageReconciler{
 		Client:      k8sClient,

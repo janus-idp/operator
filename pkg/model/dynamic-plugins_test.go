@@ -27,39 +27,43 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var testDynamicPluginsBackstage = bsv1alpha1.Backstage{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "bs",
+		Namespace: "ns123",
+	},
+	Spec: bsv1alpha1.BackstageSpec{
+		Database: &bsv1alpha1.Database{
+			EnableLocalDb: pointer.Bool(false),
+		},
+		Application: &bsv1alpha1.Application{},
+	},
+}
+
 func TestDynamicPluginsValidationFailed(t *testing.T) {
 
-	bs := bsv1alpha1.Backstage{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "bs",
-			Namespace: "ns123",
-		},
-		Spec: bsv1alpha1.BackstageSpec{
-			Database: &bsv1alpha1.Database{
-				EnableLocalDb: pointer.Bool(false),
-			},
-		},
-	}
+	bs := testDynamicPluginsBackstage.DeepCopy()
 
-	testObj := createBackstageTest(bs).withDefaultConfig(true).
+	testObj := createBackstageTest(*bs).withDefaultConfig(true).
 		addToDefaultConfig("dynamic-plugins.yaml", "raw-dynamic-plugins.yaml")
 
-	_, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, false, testObj.scheme)
+	_, err := InitObjects(context.TODO(), *bs, testObj.rawConfig, nil, true, false, testObj.scheme)
 
 	//"failed object validation, reason: failed to find initContainer named install-dynamic-plugins")
 	assert.Error(t, err)
 
 }
 
+// Janus pecific test
 func TestDefaultDynamicPlugins(t *testing.T) {
 
-	bs := simpleTestBackstage()
+	bs := testDynamicPluginsBackstage.DeepCopy()
 
-	testObj := createBackstageTest(bs).withDefaultConfig(true).
+	testObj := createBackstageTest(*bs).withDefaultConfig(true).
 		addToDefaultConfig("dynamic-plugins.yaml", "raw-dynamic-plugins.yaml").
 		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), *bs, testObj.rawConfig, nil, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model.backstageDeployment)
@@ -74,27 +78,19 @@ func TestDefaultDynamicPlugins(t *testing.T) {
 	//dynamic-plugins-npmrc
 	//vol-default-dynamic-plugins
 	assert.Equal(t, 3, len(ic.VolumeMounts))
+
 }
 
-func TestSpecifiedDynamicPlugins(t *testing.T) {
+func TestDefaultAndSpecifiedDynamicPlugins(t *testing.T) {
 
-	bs := simpleTestBackstage()
+	bs := testDynamicPluginsBackstage.DeepCopy()
+	bs.Spec.Application.DynamicPluginsConfigMapName = "dplugin"
 
-	testObj := createBackstageTest(bs).withDefaultConfig(true).
+	testObj := createBackstageTest(*bs).withDefaultConfig(true).
 		addToDefaultConfig("dynamic-plugins.yaml", "raw-dynamic-plugins.yaml").
 		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")
 
-	_ = corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "dplugin",
-			Namespace: "ns123",
-		},
-		Data: map[string]string{"dynamic-plugins.yaml": ""},
-	}
-
-	//testObj.detailedSpec.AddConfigObject(&DynamicPlugins{ConfigMap: &cm})
-
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), *bs, testObj.rawConfig, nil, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model)
@@ -105,6 +101,21 @@ func TestSpecifiedDynamicPlugins(t *testing.T) {
 	//dynamic-plugins-npmrc
 	//vol-dplugin
 	assert.Equal(t, 3, len(ic.VolumeMounts))
+	assert.Equal(t, "vol-dplugin", ic.VolumeMounts[2].Name)
+	//t.Log(">>>>>>>>>>>>>>>>", ic.VolumeMounts)
+}
+
+func TestDynamicPluginsFailOnArbitraryDepl(t *testing.T) {
+
+	bs := testDynamicPluginsBackstage.DeepCopy()
+	bs.Spec.Application.DynamicPluginsConfigMapName = "dplugin"
+
+	testObj := createBackstageTest(*bs).withDefaultConfig(true).
+		addToDefaultConfig("dynamic-plugins.yaml", "raw-dynamic-plugins.yaml")
+
+	_, err := InitObjects(context.TODO(), *bs, testObj.rawConfig, nil, true, false, testObj.scheme)
+
+	assert.Error(t, err)
 }
 
 func initContainer(model *BackstageModel) *corev1.Container {

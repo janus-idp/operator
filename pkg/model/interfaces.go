@@ -16,6 +16,7 @@ package model
 
 import (
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -41,15 +42,17 @@ type RuntimeObject interface {
 	// EmptyObject an empty object the same kind as Object
 	EmptyObject() client.Object
 	// adds runtime object to the model and generates default metadata for future applying
-	addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) error
+	addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) (bool, error)
 	// at this stage all the information is updated
 	// set the final references validates the object at the end of initialization
 	validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error
+	// sets object name, labels and other necessary meta information
+	setMetaInfo(backstageName string)
 }
 
-// PodContributor contributing to the pod as an Environment variables or mounting file/directory.
+// BackstagePodContributor contributing to the pod as an Environment variables or mounting file/directory.
 // Usually app-config related
-type PodContributor interface {
+type BackstagePodContributor interface {
 	RuntimeObject
-	updatePod(pod *backstagePod)
+	updatePod(deployment *appsv1.Deployment)
 }

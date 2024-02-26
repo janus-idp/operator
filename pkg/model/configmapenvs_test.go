@@ -20,8 +20,6 @@ import (
 
 	"k8s.io/utils/pointer"
 
-	corev1 "k8s.io/api/core/v1"
-
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -44,12 +42,12 @@ func TestDefaultConfigMapEnvFrom(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("configmap-envs.yaml", "raw-cm-envs.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, nil, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model)
 
-	bscontainer := model.backstageDeployment.pod.container
+	bscontainer := model.backstageDeployment.deployment.Spec.Template.Spec.Containers[0]
 	assert.NotNil(t, bscontainer)
 
 	assert.Equal(t, 1, len(bscontainer.EnvFrom))
@@ -78,12 +76,12 @@ func TestSpecifiedConfigMapEnvs(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []corev1.ConfigMap{}, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, nil, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model)
 
-	bscontainer := model.backstageDeployment.pod.container
+	bscontainer := model.backstageDeployment.deployment.Spec.Template.Spec.Containers[0]
 	assert.NotNil(t, bscontainer)
 	assert.Equal(t, 1, len(bscontainer.Env))
 	assert.NotNil(t, bscontainer.Env[0])

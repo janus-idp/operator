@@ -17,24 +17,24 @@ package model
 import (
 	"fmt"
 	"os"
-	"path/filepath"
+
+	appsv1 "k8s.io/api/apps/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"janus-idp.io/backstage-operator/pkg/utils"
-	"k8s.io/utils/pointer"
-
 	"janus-idp.io/backstage-operator/api/v1alpha1"
+	"janus-idp.io/backstage-operator/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const dynamicPluginInitContainerName = "install-dynamic-plugins"
+const DynamicPluginsFile = "dynamic-plugins.yaml"
 
 type DynamicPluginsFactory struct{}
 
 func (f DynamicPluginsFactory) newBackstageObject() RuntimeObject {
-	return &DynamicPlugins{ /*ConfigMap: &corev1.ConfigMap{}*/ }
+	return &DynamicPlugins{}
 }
 
 type DynamicPlugins struct {
@@ -43,6 +43,10 @@ type DynamicPlugins struct {
 
 func init() {
 	registerConfig("dynamic-plugins.yaml", DynamicPluginsFactory{})
+}
+
+func DynamicPluginsDefaultName(backstageName string) string {
+	return utils.GenerateRuntimeObjectName(backstageName, "default-dynamic-plugins")
 }
 
 func newDynamicPlugins(configMapName string) *DynamicPlugins {
@@ -60,7 +64,6 @@ func (p *DynamicPlugins) setObject(obj client.Object, backstageName string) {
 	p.ConfigMap = nil
 	if obj != nil {
 		p.ConfigMap = obj.(*corev1.ConfigMap)
-		p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageName, "default-dynamic-plugins"))
 	}
 
 }
@@ -71,15 +74,17 @@ func (p *DynamicPlugins) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (p *DynamicPlugins) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) error {
-	if p.ConfigMap != nil {
-		model.setRuntimeObject(p)
+func (p *DynamicPlugins) addToModel(model *BackstageModel, backstage v1alpha1.Backstage, ownsRuntime bool) (bool, error) {
+
+	if p.ConfigMap == nil || (backstage.Spec.Application != nil && backstage.Spec.Application.DynamicPluginsConfigMapName != "") {
+		return false, nil
 	}
-	return nil
+	model.setRuntimeObject(p)
+	return true, nil
 }
 
-// implementation of PodContributor interface
-func (p *DynamicPlugins) updatePod(pod *backstagePod) {
+// implementation of BackstagePodContributor interface
+func (p *DynamicPlugins) updatePod(deployment *appsv1.Deployment) {
 
 	//it relies on implementation where dynamic-plugin initContainer
 	//uses specified ConfigMap for producing app-config with dynamic-plugins
@@ -91,33 +96,16 @@ func (p *DynamicPlugins) updatePod(pod *backstagePod) {
 
 	//it creates a volume with dynamic-plugins ConfigMap (there should be a key named "dynamic-plugins.yaml")
 	//and mount it to the dynamic-plugin initContainer's WorkingDir (what if not specified?)
-	initContainer := dynamicPluginsInitContainer(pod.parent.Spec.Template.Spec.InitContainers)
+
+	initContainer := dynamicPluginsInitContainer(deployment.Spec.Template.Spec.InitContainers)
 	if initContainer == nil {
 		// it will fail on validate
 		return
 	}
 
-	volName := utils.GenerateVolumeNameFromCmOrSecret(p.ConfigMap.Name)
+	utils.MountFilesFrom(&deployment.Spec.Template.Spec, &deployment.Spec.Template.Spec.InitContainers[0], utils.ConfigMapObjectKind,
+		p.ConfigMap.Name, initContainer.WorkingDir, DynamicPluginsFile, p.ConfigMap.Data)
 
-	volSource := corev1.VolumeSource{
-		ConfigMap: &corev1.ConfigMapVolumeSource{
-			DefaultMode:          pointer.Int32(420),
-			LocalObjectReference: corev1.LocalObjectReference{Name: p.ConfigMap.Name},
-		},
-	}
-	pod.appendVolume(corev1.Volume{
-		Name:         volName,
-		VolumeSource: volSource,
-	})
-
-	for file := range p.ConfigMap.Data {
-		pod.appendOrReplaceInitContainerVolumeMount(corev1.VolumeMount{
-			Name:      volName,
-			MountPath: filepath.Join(initContainer.WorkingDir, file),
-			SubPath:   file,
-			ReadOnly:  true,
-		}, dynamicPluginInitContainerName)
-	}
 }
 
 // implementation of RuntimeObject interface
@@ -137,6 +125,10 @@ func (p *DynamicPlugins) validate(model *BackstageModel, backstage v1alpha1.Back
 		initContainer.Image = os.Getenv(BackstageImageEnvVar)
 	}
 	return nil
+}
+
+func (p *DynamicPlugins) setMetaInfo(backstageName string) {
+	p.ConfigMap.SetName(DynamicPluginsDefaultName(backstageName))
 }
 
 // returns initContainer supposed to initialize DynamicPlugins

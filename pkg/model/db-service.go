@@ -46,7 +46,7 @@ func (b *DbService) Object() client.Object {
 	return b.service
 }
 
-func (b *DbService) setObject(obj client.Object, name string) {
+func (b *DbService) setObject(obj client.Object, backstageName string) {
 	b.service = nil
 	if obj != nil {
 		b.service = obj.(*corev1.Service)
@@ -54,25 +54,22 @@ func (b *DbService) setObject(obj client.Object, name string) {
 }
 
 // implementation of RuntimeObject interface
-func (b *DbService) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) error {
+func (b *DbService) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) (bool, error) {
 	if b.service == nil {
 		if model.localDbEnabled {
-			return fmt.Errorf("LocalDb Service not initialized, make sure there is db-service.yaml.yaml in default or raw configuration")
+			return false, fmt.Errorf("LocalDb Service not initialized, make sure there is db-service.yaml.yaml in default or raw configuration")
 		}
-		return nil
+		return false, nil
 	} else {
 		if !model.localDbEnabled {
-			return nil
+			return false, nil
 		}
 	}
 
 	model.LocalDbService = b
 	model.setRuntimeObject(b)
 
-	b.service.SetName(DbServiceName(backstageMeta.Name))
-	utils.GenerateLabel(&b.service.Spec.Selector, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageMeta.Name))
-
-	return nil
+	return true, nil
 }
 
 // implementation of RuntimeObject interface
@@ -83,4 +80,9 @@ func (b *DbService) EmptyObject() client.Object {
 // implementation of RuntimeObject interface
 func (b *DbService) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
 	return nil
+}
+
+func (b *DbService) setMetaInfo(backstageName string) {
+	b.service.SetName(DbServiceName(backstageName))
+	utils.GenerateLabel(&b.service.Spec.Selector, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageName))
 }
