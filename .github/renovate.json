@@ -1,0 +1,22 @@
+{
+  "extends": [
+    "config:best-practices",
+    ":gitSignOff",
+    ":rebaseStalePrs",
+    "docker:enableMajor",
+    "group:allNonMajor",
+    "group:linters",
+    "group:test"
+  ],
+  "constraints": {
+    "go": "1.20"
+  },
+  "packageRules": [
+    {
+      "matchDatasources": [
+        "docker"
+      ],
+      "pinDigests": false
+    }
+  ]  
+}
