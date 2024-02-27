@@ -67,12 +67,14 @@ var _ = When("create default backstage", func() {
 			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DynamicPluginsDefaultName(backstageName)}, appConfig)
 			g.Expect(err).ShouldNot(HaveOccurred())
 
+			g.Expect(deploy.Spec.Template.Spec.InitContainers).To(HaveLen(1))
 			// it is ok to take InitContainers[0]
-			g.Expect(deploy.Spec.Template.Spec.InitContainers[0].VolumeMounts).To(HaveLen(3))
-			g.Expect(deploy.Spec.Template.Spec.InitContainers[0].VolumeMounts[2].MountPath).To(Equal("/opt/app-root/src/dynamic-plugins.yaml"))
-			g.Expect(deploy.Spec.Template.Spec.InitContainers[0].VolumeMounts[2].Name).
+			initCont := deploy.Spec.Template.Spec.InitContainers[0]
+			g.Expect(initCont.VolumeMounts).To(HaveLen(3))
+			g.Expect(initCont.VolumeMounts[2].MountPath).To(Equal("/opt/app-root/src/dynamic-plugins.yaml"))
+			g.Expect(initCont.VolumeMounts[2].Name).
 				To(Equal(utils.GenerateVolumeNameFromCmOrSecret(model.DynamicPluginsDefaultName(backstageName))))
-			g.Expect(deploy.Spec.Template.Spec.InitContainers[0].VolumeMounts[2].SubPath).To(Equal(model.DynamicPluginsFile))
+			g.Expect(initCont.VolumeMounts[2].SubPath).To(Equal(model.DynamicPluginsFile))
 
 		}, time.Minute, time.Second).Should(Succeed())
 

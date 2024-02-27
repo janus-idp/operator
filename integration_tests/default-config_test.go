@@ -64,6 +64,9 @@ var _ = When("create default backstage", func() {
 			secretName := model.DbSecretDefaultName(backstageName)
 			err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: secretName}, secret)
 			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(len(secret.Data)).To(Equal(5))
+			g.Expect(secret.Data).To(HaveKeyWithValue("POSTGRES_USER", []uint8("postgres")))
+			//g.Expect(secret.Data).To(ContainElement(ContainSubstring("postgres"), &stash))
 
 			By("creating a StatefulSet for the Database")
 			ss := &appsv1.StatefulSet{}
@@ -72,12 +75,18 @@ var _ = When("create default backstage", func() {
 			g.Expect(getEnvFromSecret(ss.Spec.Template.Spec.Containers[0], model.DbSecretDefaultName(backstageName))).ToNot(BeNil())
 			g.Expect(ss.GetOwnerReferences()).To(HaveLen(1))
 
-			By("checking if Deployment was successfully created in the reconciliation")
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: model.DbServiceName(backstageName), Namespace: ns}, &corev1.Service{})
+			g.Expect(err).To(Not(HaveOccurred()))
+
+			By("creating Deployment")
 			deploy := &appsv1.Deployment{}
 			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, deploy)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			By("checking the number of replicas")
 			Expect(deploy.Spec.Replicas).To(HaveValue(BeEquivalentTo(1)))
+			g.Expect(deploy.Spec.Template.Spec.Volumes).To(HaveLen(4))
+			g.Expect(deploy.Spec.Template.Spec.Volumes[0].Name).To(Equal("dynamic-plugins-root"))
+			g.Expect(deploy.Spec.Template.Spec.Volumes).To(HaveValue(Equal("dynamic-plugins-root")))
 
 			By("creating default app-config")
 			appConfig := &corev1.ConfigMap{}
@@ -86,6 +95,12 @@ var _ = When("create default backstage", func() {
 			_, ok := findVolume(deploy.Spec.Template.Spec.Volumes, utils.GenerateVolumeNameFromCmOrSecret(model.AppConfigDefaultName(backstageName)))
 			g.Expect(ok).To(BeTrue())
 			g.Expect(appConfig.GetOwnerReferences()).To(HaveLen(1))
+
+			By("setting Backstage status")
+			bs := &bsv1alpha1.Backstage{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: backstageName}, bs)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(bs.Status.Conditions[0].Reason).To(Equal("Deployed"))
 
 		}, time.Minute, time.Second).Should(Succeed())
 

@@ -449,7 +449,7 @@ var _ = Describe("Backstage controller", func() {
 			Expect(err).To(Not(HaveOccurred()))
 			//Expect(secName).Should(Equal(utils.GenerateRuntimeObjectName(backstage.Name, "default-dbsecret")))
 
-			// ******** check DB secret AGAIN
+			// ******** check DB secret
 
 			By("Checking the latest Status added to the Backstage instance")
 			verifyBackstageInstance(ctx)
@@ -464,7 +464,7 @@ var _ = Describe("Backstage controller", func() {
 				//g.Expect(isLocalDbDeployed(backstage)).To(BeTrue())
 			}, time.Minute, time.Second).Should(Succeed())
 
-			// hecking the localDb Sync Status in the Backstage instance, Again?
+			// hecking the localDb Sync Status in the Backstage instance,
 
 			By("Checking the localdb statefulset has been created")
 			Eventually(func(g Gomega) {
@@ -483,7 +483,7 @@ var _ = Describe("Backstage controller", func() {
 				g.Expect(err).To(Not(HaveOccurred()))
 			}, time.Minute, time.Second).Should(Succeed())
 
-			// ************** Checking the localdb services have been created. wow
+			// ************** Checking the localdb services have been created
 
 			By("Checking the localdb secret has been gnerated")
 			Eventually(func(g Gomega) {
@@ -492,7 +492,7 @@ var _ = Describe("Backstage controller", func() {
 			}, time.Minute, time.Second).Should(Succeed())
 
 			// ************* Checking the localdb secret has been gnerated. Again
-
+			//// PAUSED HERE FOR UPDATE
 			By("Updating custom resource by disabling local db")
 			var enableLocalDb = false
 			Eventually(func(g Gomega) {
@@ -527,6 +527,7 @@ var _ = Describe("Backstage controller", func() {
 				//g.Expect(isLocalDbDeployed(backstage)).To(BeFalse())
 			}, time.Minute, time.Second).Should(Succeed())
 
+			//// RESUME
 			// ************* .... reconsile and check all is good
 
 			By("Checking that the local db statefulset has been deleted")
