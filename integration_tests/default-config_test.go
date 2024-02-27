@@ -85,8 +85,9 @@ var _ = When("create default backstage", func() {
 			By("checking the number of replicas")
 			Expect(deploy.Spec.Replicas).To(HaveValue(BeEquivalentTo(1)))
 			g.Expect(deploy.Spec.Template.Spec.Volumes).To(HaveLen(4))
+			// TODO better matchers for volumes
 			g.Expect(deploy.Spec.Template.Spec.Volumes[0].Name).To(Equal("dynamic-plugins-root"))
-			g.Expect(deploy.Spec.Template.Spec.Volumes).To(HaveValue(Equal("dynamic-plugins-root")))
+			//g.Expect(deploy.Spec.Template.Spec.Volumes).To(HaveValue(Equal("dynamic-plugins-root")))
 
 			By("creating default app-config")
 			appConfig := &corev1.ConfigMap{}
@@ -100,6 +101,7 @@ var _ = When("create default backstage", func() {
 			bs := &bsv1alpha1.Backstage{}
 			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: backstageName}, bs)
 			g.Expect(err).ShouldNot(HaveOccurred())
+			// TODO better matcher for Conditions
 			g.Expect(bs.Status.Conditions[0].Reason).To(Equal("Deployed"))
 
 		}, time.Minute, time.Second).Should(Succeed())
