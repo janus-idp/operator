@@ -402,8 +402,8 @@ show-img:
 show-container-engine:
 	@echo -n $(CONTAINER_ENGINE)
 
-.PHONY: deployment-script
-deployment-manifest: manifests kustomize ## Generate operator manifest in a file ready to be deployed.
+.PHONY: deployment-manifest
+deployment-manifest: manifests kustomize ## Generate manifest to deploy operator.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/default > rhdh-operator-${VERSION}.yaml
 	@echo "Generated operator script rhdh-operator-${VERSION}.yaml"
