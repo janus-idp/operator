@@ -57,9 +57,9 @@ make run
 make deploy [IMG=<your-registry>/backstage-operator:tag]
 ```
 
-- To generate deployment script use:
+- To generate deployment manifest, use:
 ```sh
-make deployment-script [IMG=<your-registry>/backstage-operator:tag]
+make deployment-manifest [IMG=<your-registry>/backstage-operator:tag]
 ```
 it will create the file rhdh-operator-${VERSION}.yaml on the project root and you will be able to share it to make it possible to deploy operator with:
 ```sh
