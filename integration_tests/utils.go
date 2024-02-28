@@ -1,6 +1,8 @@
 package integration_tests
 
-import corev1 "k8s.io/api/core/v1"
+import (
+	corev1 "k8s.io/api/core/v1"
+)
 
 func getEnvFromSecret(container corev1.Container, name string) *corev1.EnvFromSource {
 	for _, from := range container.EnvFrom {
