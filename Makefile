@@ -403,7 +403,7 @@ show-container-engine:
 	@echo -n $(CONTAINER_ENGINE)
 
 .PHONY: deployment-script
-deployment-script: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+deployment-manifest: manifests kustomize ## Generate operator manifest in a file ready to be deployed.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/default > rhdh-operator-${VERSION}.yaml
 	@echo "Generated operator script rhdh-operator-${VERSION}.yaml"
