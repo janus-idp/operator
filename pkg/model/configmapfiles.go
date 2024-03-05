@@ -16,7 +16,6 @@ package model
 
 import (
 	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"janus-idp.io/backstage-operator/api/v1alpha1"
 	"janus-idp.io/backstage-operator/pkg/utils"
@@ -40,13 +39,24 @@ func init() {
 	registerConfig("configmap-files.yaml", ConfigMapFilesFactory{})
 }
 
-func newConfigMapFiles(mountPath string, name string, key string) *ConfigMapFiles {
-	return &ConfigMapFiles{
-		ConfigMap: &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{Name: name},
-		},
-		MountPath: mountPath,
-		Key:       key,
+func addConfigMapFiles(spec v1alpha1.BackstageSpec, deployment *appsv1.Deployment, model *BackstageModel) {
+
+	if spec.Application == nil || spec.Application.ExtraFiles == nil || spec.Application.ExtraFiles.ConfigMaps == nil {
+		return
+	}
+	mp := defaultMountDir
+	if spec.Application.ExtraFiles.MountPath != "" {
+		mp = spec.Application.ExtraFiles.MountPath
+	}
+
+	for _, configMap := range spec.Application.ExtraFiles.ConfigMaps {
+		cm := model.ExternalConfig.ExtraFileConfigMaps[configMap.Name]
+		cmf := ConfigMapFiles{
+			ConfigMap: &cm,
+			MountPath: mp,
+			Key:       configMap.Key,
+		}
+		cmf.updatePod(deployment)
 	}
 }
 

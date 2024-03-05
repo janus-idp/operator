@@ -19,11 +19,12 @@ import (
 	"os"
 	"path/filepath"
 
+	corev1 "k8s.io/api/core/v1"
+
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
 	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
@@ -35,53 +36,27 @@ import (
 // withDefaultConfig(useDef bool)
 // addToDefaultConfig(key, fileName)
 type testBackstageObject struct {
-	backstage bsv1alpha1.Backstage
-	rawConfig map[string]string
-	//appConfigs map[string][]string
-	scheme *runtime.Scheme
-}
-
-// simple bsv1alpha1.Backstage
-func simpleTestBackstage() bsv1alpha1.Backstage {
-	return bsv1alpha1.Backstage{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "bs",
-			Namespace: "ns123",
-		},
-		Spec: bsv1alpha1.BackstageSpec{
-			Database: &bsv1alpha1.Database{
-				EnableLocalDb: pointer.Bool(false),
-			},
-		},
-	}
-
+	backstage      bsv1alpha1.Backstage
+	externalConfig ExternalConfig
+	scheme         *runtime.Scheme
 }
 
 // initialises testBackstageObject object
 func createBackstageTest(bs bsv1alpha1.Backstage) *testBackstageObject {
-	b := &testBackstageObject{backstage: bs, rawConfig: map[string]string{}, scheme: runtime.NewScheme()}
+	ec := ExternalConfig{
+		RawConfig:           map[string]string{},
+		AppConfigs:          map[string]corev1.ConfigMap{},
+		ExtraFileConfigMaps: map[string]corev1.ConfigMap{},
+		ExtraEnvConfigMaps:  map[string]corev1.ConfigMap{},
+	}
+	b := &testBackstageObject{backstage: bs, externalConfig: ec, scheme: runtime.NewScheme()}
 	utilruntime.Must(bsv1alpha1.AddToScheme(b.scheme))
-	//b.rawConfig = map[string]string{}
 	return b
 }
 
 // enables LocalDB
 func (b *testBackstageObject) withLocalDb() *testBackstageObject {
 	b.backstage.Spec.Database.EnableLocalDb = pointer.Bool(true)
-	//if secretName == "" {
-	//	secretName =
-	//}
-
-	//if dbSecret == nil {
-	//	if name == "" {
-	//		b.detailedSpec.LocalDbSecret = GenerateDbSecret()
-	//	} else {
-	//		b.detailedSpec.LocalDbSecret = NewDbSecretFromSpec(name)
-	//	}
-	//	return b
-	//}
-	//
-	//b.detailedSpec.LocalDbSecret = *dbSecret
 	return b
 }
 
@@ -104,21 +79,11 @@ func (b *testBackstageObject) addToDefaultConfig(key string, fileName string) *t
 	if err != nil {
 		panic(err)
 	}
-	b.rawConfig[key] = string(yaml)
+
+	b.externalConfig.RawConfig[key] = string(yaml)
 
 	return b
 }
-
-//func (b *testBackstageObject) addAppConfigs(appConfigs []corev1.ConfigMap) *testBackstageObject {
-//
-//	for _, v := range appConfigs {
-//		b.appConfigs[v.Name] = []string{}
-//		for k := range b.appConfigs[v.Name].Data {
-//			b.appConfigs[v.Name] = append(b.appConfigs[v.Name], k)
-//		}
-//	}
-//	return b
-//}
 
 // reads file from ./testdata
 func readTestYamlFile(name string) ([]byte, error) {

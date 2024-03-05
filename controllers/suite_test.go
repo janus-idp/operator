@@ -59,7 +59,6 @@ var _ = BeforeSuite(func() {
 		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
 	}
-	//testEnv.UseExistingCluster = pointer.Bool(true)
 
 	var err error
 	// cfg is defined in this file globally.

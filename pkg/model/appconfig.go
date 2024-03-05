@@ -48,11 +48,24 @@ func AppConfigDefaultName(backstageName string) string {
 	return utils.GenerateRuntimeObjectName(backstageName, "default-appconfig")
 }
 
-func newAppConfig(mountPath string, cm *corev1.ConfigMap, key string) *AppConfig {
-	return &AppConfig{
-		ConfigMap: cm,
-		MountPath: mountPath,
-		Key:       key,
+func addAppConfigs(spec bsv1alpha1.BackstageSpec, deployment *appsv1.Deployment, model *BackstageModel) {
+
+	if spec.Application == nil || spec.Application.AppConfig == nil || spec.Application.AppConfig.ConfigMaps == nil {
+		return
+	}
+
+	for _, configMap := range spec.Application.AppConfig.ConfigMaps {
+		cm := model.ExternalConfig.AppConfigs[configMap.Name]
+		mp := defaultMountDir
+		if spec.Application.AppConfig.MountPath != "" {
+			mp = spec.Application.AppConfig.MountPath
+		}
+		ac := AppConfig{
+			ConfigMap: &cm,
+			MountPath: mp,
+			Key:       configMap.Key,
+		}
+		ac.updatePod(deployment)
 	}
 }
 
@@ -75,7 +88,7 @@ func (b *AppConfig) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (b *AppConfig) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) (bool, error) {
+func (b *AppConfig) addToModel(model *BackstageModel, backstage bsv1alpha1.Backstage, ownsRuntime bool) (bool, error) {
 	if b.ConfigMap != nil {
 		model.setRuntimeObject(b)
 		return true, nil

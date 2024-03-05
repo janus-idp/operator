@@ -47,6 +47,22 @@ func newConfigMapEnvs(name string, key string) *ConfigMapEnvs {
 	}
 }
 
+func addConfigMapEnvs(spec v1alpha1.BackstageSpec, deployment *appsv1.Deployment, model *BackstageModel) {
+
+	if spec.Application == nil || spec.Application.ExtraEnvs == nil || spec.Application.ExtraEnvs.ConfigMaps == nil {
+		return
+	}
+
+	for _, configMap := range spec.Application.ExtraEnvs.ConfigMaps {
+		cm := model.ExternalConfig.ExtraEnvConfigMaps[configMap.Name]
+		cmf := ConfigMapEnvs{
+			ConfigMap: &cm,
+			Key:       configMap.Key,
+		}
+		cmf.updatePod(deployment)
+	}
+}
+
 // Object implements RuntimeObject interface
 func (p *ConfigMapEnvs) Object() client.Object {
 	return p.ConfigMap

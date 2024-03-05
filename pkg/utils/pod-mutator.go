@@ -19,7 +19,17 @@ type PodMutator struct {
 	Container *corev1.Container
 }
 
-func MountFilesFrom(podSpec *corev1.PodSpec, container *corev1.Container, kind ObjectKind, objectName string, mountPath string, singleFileName string, data map[string]string) {
+// MountFilesFrom adds Volume to specified podSpec and related VolumeMounts to specified belonging to this podSpec container
+// from ConfigMap or Secret volume source
+// podSpec - PodSpec to add Volume to
+// container - container to add VolumeMount(s) to
+// kind - kind of source, can be ConfigMap or Secret
+// object name - name of source object
+// mountPath - mount path, default one or  as it specified in BackstageCR.spec.Application.AppConfig|ExtraFiles
+// fileDir - either absolute or related to mountPath path to the files' directory.
+// fileName - file name which fits one of the object's key, otherwise error will be returned.
+// data - key:value pairs from the object. should be specified if fileName specified
+func MountFilesFrom(podSpec *corev1.PodSpec, container *corev1.Container, kind ObjectKind, objectName, mountPath, fileName string, data map[string]string) {
 
 	volName := GenerateVolumeNameFromCmOrSecret(objectName)
 	volSrc := corev1.VolumeSource{}
@@ -27,11 +37,13 @@ func MountFilesFrom(podSpec *corev1.PodSpec, container *corev1.Container, kind O
 		volSrc.ConfigMap = &corev1.ConfigMapVolumeSource{
 			LocalObjectReference: corev1.LocalObjectReference{Name: objectName},
 			DefaultMode:          pointer.Int32(420),
+			Optional:             pointer.Bool(false),
 		}
 	} else if kind == SecretObjectKind {
 		volSrc.Secret = &corev1.SecretVolumeSource{
 			SecretName:  objectName,
 			DefaultMode: pointer.Int32(420),
+			Optional:    pointer.Bool(false),
 		}
 	}
 
@@ -39,7 +51,7 @@ func MountFilesFrom(podSpec *corev1.PodSpec, container *corev1.Container, kind O
 
 	if data != nil {
 		for file := range data {
-			if singleFileName == "" || singleFileName == file {
+			if fileName == "" || fileName == file {
 				vm := corev1.VolumeMount{Name: volName, MountPath: filepath.Join(mountPath, file), SubPath: file, ReadOnly: true}
 				container.VolumeMounts = append(container.VolumeMounts, vm)
 			}
@@ -51,9 +63,9 @@ func MountFilesFrom(podSpec *corev1.PodSpec, container *corev1.Container, kind O
 
 }
 
-func AddEnvVarsFrom(container *corev1.Container, kind ObjectKind, objectName string, singleVarName string) {
+func AddEnvVarsFrom(container *corev1.Container, kind ObjectKind, objectName string, varName string) {
 
-	if singleVarName == "" {
+	if varName == "" {
 		envFromSrc := corev1.EnvFromSource{}
 		if kind == ConfigMapObjectKind {
 			envFromSrc.ConfigMapRef = &corev1.ConfigMapEnvSource{
@@ -70,18 +82,18 @@ func AddEnvVarsFrom(container *corev1.Container, kind ObjectKind, objectName str
 				LocalObjectReference: corev1.LocalObjectReference{
 					Name: objectName,
 				},
-				Key: singleVarName,
+				Key: varName,
 			}
 		} else if kind == SecretObjectKind {
 			envVarSrc.SecretKeyRef = &corev1.SecretKeySelector{
 				LocalObjectReference: corev1.LocalObjectReference{
 					Name: objectName,
 				},
-				Key: singleVarName,
+				Key: varName,
 			}
 		}
 		container.Env = append(container.Env, corev1.EnvVar{
-			Name:      singleVarName,
+			Name:      varName,
 			ValueFrom: envVarSrc,
 		})
 	}

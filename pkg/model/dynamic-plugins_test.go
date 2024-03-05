@@ -47,7 +47,7 @@ func TestDynamicPluginsValidationFailed(t *testing.T) {
 	testObj := createBackstageTest(*bs).withDefaultConfig(true).
 		addToDefaultConfig("dynamic-plugins.yaml", "raw-dynamic-plugins.yaml")
 
-	_, err := InitObjects(context.TODO(), *bs, testObj.rawConfig, nil, true, false, testObj.scheme)
+	_, err := InitObjects(context.TODO(), *bs, testObj.externalConfig, true, false, testObj.scheme)
 
 	//"failed object validation, reason: failed to find initContainer named install-dynamic-plugins")
 	assert.Error(t, err)
@@ -63,7 +63,7 @@ func TestDefaultDynamicPlugins(t *testing.T) {
 		addToDefaultConfig("dynamic-plugins.yaml", "raw-dynamic-plugins.yaml").
 		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")
 
-	model, err := InitObjects(context.TODO(), *bs, testObj.rawConfig, nil, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), *bs, testObj.externalConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model.backstageDeployment)
@@ -90,7 +90,9 @@ func TestDefaultAndSpecifiedDynamicPlugins(t *testing.T) {
 		addToDefaultConfig("dynamic-plugins.yaml", "raw-dynamic-plugins.yaml").
 		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")
 
-	model, err := InitObjects(context.TODO(), *bs, testObj.rawConfig, nil, true, false, testObj.scheme)
+	testObj.externalConfig.DynamicPlugins = corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "dplugin"}}
+
+	model, err := InitObjects(context.TODO(), *bs, testObj.externalConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model)
@@ -108,12 +110,12 @@ func TestDefaultAndSpecifiedDynamicPlugins(t *testing.T) {
 func TestDynamicPluginsFailOnArbitraryDepl(t *testing.T) {
 
 	bs := testDynamicPluginsBackstage.DeepCopy()
-	bs.Spec.Application.DynamicPluginsConfigMapName = "dplugin"
+	//bs.Spec.Application.DynamicPluginsConfigMapName = "dplugin"
 
 	testObj := createBackstageTest(*bs).withDefaultConfig(true).
 		addToDefaultConfig("dynamic-plugins.yaml", "raw-dynamic-plugins.yaml")
 
-	_, err := InitObjects(context.TODO(), *bs, testObj.rawConfig, nil, true, false, testObj.scheme)
+	_, err := InitObjects(context.TODO(), *bs, testObj.externalConfig, true, false, testObj.scheme)
 
 	assert.Error(t, err)
 }

@@ -18,7 +18,8 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
+
+	"k8s.io/utils/pointer"
 
 	"janus-idp.io/backstage-operator/pkg/utils"
 
@@ -29,8 +30,6 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"k8s.io/utils/pointer"
 
 	controller "janus-idp.io/backstage-operator/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -56,7 +55,8 @@ import (
 var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
-var testOnExistingCluster = false
+
+//var testOnExistingCluster = false
 
 type TestBackstageReconciler struct {
 	controller.BackstageReconciler
@@ -65,7 +65,7 @@ type TestBackstageReconciler struct {
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
-	testOnExistingCluster, _ = strconv.ParseBool(os.Getenv("TEST_ON_EXISTING_CLUSTER"))
+	//testOnExistingCluster, _ = strconv.ParseBool(os.Getenv("TEST_ON_EXISTING_CLUSTER"))
 }
 
 func TestAPIs(t *testing.T) {
@@ -84,7 +84,12 @@ var _ = BeforeSuite(func() {
 		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
 	}
-	testEnv.UseExistingCluster = pointer.Bool(testOnExistingCluster)
+
+	if _, ok := os.LookupEnv("USE_EXISTING_CLUSTER"); ok {
+		testEnv.UseExistingCluster = pointer.Bool(true)
+	} else {
+		testEnv.UseExistingCluster = pointer.Bool(false)
+	}
 
 	var err error
 	// cfg is defined in this file globally.
@@ -142,7 +147,6 @@ func createNamespace(ctx context.Context) string {
 }
 
 func NewTestBackstageReconciler(namespace string) *TestBackstageReconciler {
-
 	var (
 		isOpenshift bool
 		err         error
@@ -164,6 +168,7 @@ func NewTestBackstageReconciler(namespace string) *TestBackstageReconciler {
 }
 
 func (t *TestBackstageReconciler) ReconcileLocalCluster(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+
 	if !*testEnv.UseExistingCluster {
 		// Ignore requests for other namespaces, if specified.
 		// To overcome a limitation of EnvTest about namespace deletion.

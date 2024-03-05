@@ -61,11 +61,11 @@ var (
 
 func TestDefaultConfigMapFiles(t *testing.T) {
 
-	bs := simpleTestBackstage()
+	bs := *configMapFilesTestBackstage.DeepCopy()
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("configmap-files.yaml", "raw-cm-files.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, nil, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 
@@ -86,7 +86,7 @@ func TestSpecifiedConfigMapFiles(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, nil, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)
@@ -108,7 +108,7 @@ func TestDefaultAndSpecifiedConfigMapFiles(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("configmap-files.yaml", "raw-cm-files.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, nil, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)

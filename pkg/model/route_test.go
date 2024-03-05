@@ -48,7 +48,7 @@ func TestDefaultRoute(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("route.yaml", "raw-route.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, nil, true, true, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, true, testObj.scheme)
 
 	assert.NoError(t, err)
 
@@ -81,7 +81,7 @@ func TestSpecifiedRoute(t *testing.T) {
 
 	// Test w/o default route configured
 	testObjNoDef := createBackstageTest(bs).withDefaultConfig(true)
-	model, err := InitObjects(context.TODO(), bs, testObjNoDef.rawConfig, nil, true, true, testObjNoDef.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObjNoDef.externalConfig, true, true, testObjNoDef.scheme)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model.route)
@@ -92,7 +92,7 @@ func TestSpecifiedRoute(t *testing.T) {
 
 	// Test with default route configured
 	testObjWithDef := testObjNoDef.addToDefaultConfig("route.yaml", "raw-route.yaml")
-	model, err = InitObjects(context.TODO(), bs, testObjWithDef.rawConfig, nil, true, true, testObjWithDef.scheme)
+	model, err = InitObjects(context.TODO(), bs, testObjWithDef.externalConfig, true, true, testObjWithDef.scheme)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model.route)

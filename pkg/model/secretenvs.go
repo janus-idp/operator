@@ -15,6 +15,8 @@
 package model
 
 import (
+	"fmt"
+
 	"janus-idp.io/backstage-operator/api/v1alpha1"
 	"janus-idp.io/backstage-operator/pkg/utils"
 	appsv1 "k8s.io/api/apps/v1"
@@ -52,6 +54,25 @@ func newSecretEnvs(name string, key string) *SecretEnvs {
 	}
 }
 
+func addSecretEnvs(spec v1alpha1.BackstageSpec, deployment *appsv1.Deployment) error {
+
+	if spec.Application == nil || spec.Application.ExtraEnvs == nil || spec.Application.ExtraEnvs.Secrets == nil {
+		return nil
+	}
+
+	for _, sec := range spec.Application.ExtraEnvs.Secrets {
+		if sec.Key == "" {
+			return fmt.Errorf("injecting secrets w/o specified Key is not allowed %s", sec.Name)
+		}
+		se := SecretEnvs{
+			Secret: &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: sec.Name}},
+			Key:    sec.Key,
+		}
+		se.updatePod(deployment)
+	}
+	return nil
+}
+
 func (p *SecretEnvs) setObject(obj client.Object, backstageName string) {
 	p.Secret = nil
 	if obj != nil {
@@ -85,6 +106,6 @@ func (p *SecretEnvs) setMetaInfo(backstageName string) {
 // implementation of BackstagePodContributor interface
 func (p *SecretEnvs) updatePod(deployment *appsv1.Deployment) {
 
-	utils.AddEnvVarsFrom(&deployment.Spec.Template.Spec.Containers[0], utils.ConfigMapObjectKind,
+	utils.AddEnvVarsFrom(&deployment.Spec.Template.Spec.Containers[0], utils.SecretObjectKind,
 		p.Secret.Name, p.Key)
 }

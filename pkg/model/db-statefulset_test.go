@@ -19,8 +19,24 @@ import (
 	"os"
 	"testing"
 
+	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
+
 	"github.com/stretchr/testify/assert"
 )
+
+var dbStatefulSetBackstage = &bsv1alpha1.Backstage{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "bs",
+		Namespace: "ns123",
+	},
+	Spec: bsv1alpha1.BackstageSpec{
+		Database: &bsv1alpha1.Database{
+			EnableLocalDb: pointer.Bool(false),
+		},
+	},
+}
 
 // It tests the overriding image feature
 // [GA] if we need this (and like this) feature
@@ -28,14 +44,14 @@ import (
 // for substitution env vars instead.
 // Current implementation is not good
 func TestOverrideDbImage(t *testing.T) {
-	bs := simpleTestBackstage()
+	bs := *dbStatefulSetBackstage.DeepCopy()
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).
 		addToDefaultConfig("db-statefulset.yaml", "janus-db-statefulset.yaml").withLocalDb()
 
 	_ = os.Setenv(LocalDbImageEnvVar, "dummy")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, nil, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, false, testObj.scheme)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "dummy", model.localDbStatefulSet.statefulSet.Spec.Template.Spec.Containers[0].Image)

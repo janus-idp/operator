@@ -109,27 +109,25 @@ func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// 1. Preliminary read and prepare external config objects from the specs (configMaps, Secrets)
 	// 2. Make some validation to fail fast
-	rawConfig, err := r.rawConfigMap(ctx, backstage)
+	externalConfig, err := r.preprocessSpec(ctx, backstage)
 	if err != nil {
-		return ctrl.Result{}, errorAndStatus(&backstage, "failed to preprocess backstage raw spec", err)
+		return ctrl.Result{}, errorAndStatus(&backstage, "failed to preprocess backstage spec", err)
 	}
-
-	appConfigs, err := r.appConfigMaps(ctx, backstage)
-	if err != nil {
-		return ctrl.Result{}, errorAndStatus(&backstage, "failed to preprocess backstage spec app-configs", err)
-	}
+	//rawConfig, err := r.rawConfigMap(ctx, backstage)
+	//if err != nil {
+	//	return ctrl.Result{}, errorAndStatus(&backstage, "failed to preprocess backstage raw spec", err)
+	//}
+	//
+	//appConfigs, err := r.appConfigMaps(ctx, backstage)
+	//if err != nil {
+	//	return ctrl.Result{}, errorAndStatus(&backstage, "failed to preprocess backstage spec app-configs", err)
+	//}
 
 	// This creates array of model objects to be reconsiled
-	bsModel, err := model.InitObjects(ctx, backstage, rawConfig, appConfigs, r.OwnsRuntime, r.IsOpenShift, r.Scheme)
+	bsModel, err := model.InitObjects(ctx, backstage, externalConfig, r.OwnsRuntime, r.IsOpenShift, r.Scheme)
 	if err != nil {
 		return ctrl.Result{}, errorAndStatus(&backstage, "failed to initialize backstage model", err)
 	}
-
-	//if backstage.Spec.IsLocalDbEnabled() && !backstage.Spec.IsAuthSecretSpecified() {
-	//	if err := dbsecret.Generate(ctx, r.Client, backstage, bsModel.LocalDbService, r.Scheme); err != nil {
-	//		return ctrl.Result{}, errorAndStatus(&backstage, "failed to generate db-secret", err)
-	//	}
-	//}
 
 	err = r.applyObjects(ctx, bsModel.RuntimeObjects)
 	if err != nil {

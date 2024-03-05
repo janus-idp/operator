@@ -34,7 +34,7 @@ var (
 			Name:      "app-config1",
 			Namespace: "ns123",
 		},
-		Data: map[string]string{"conf.yaml": ""},
+		Data: map[string]string{"conf.yaml": "conf.yaml data"},
 	}
 
 	appConfigTestCm2 = corev1.ConfigMap{
@@ -76,7 +76,7 @@ func TestDefaultAppConfig(t *testing.T) {
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("app-config.yaml", "raw-app-config.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, nil, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)
@@ -103,9 +103,9 @@ func TestSpecifiedAppConfig(t *testing.T) {
 		bsv1alpha1.ObjectKeyRef{Name: appConfigTestCm3.Name, Key: "conf31.yaml"})
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true)
-
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []SpecifiedConfigMap{
-		{ConfigMap: appConfigTestCm}, {ConfigMap: appConfigTestCm2}, {ConfigMap: appConfigTestCm3, Key: "conf31.yaml"}},
+	testObj.externalConfig.AppConfigs = map[string]corev1.ConfigMap{appConfigTestCm.Name: appConfigTestCm, appConfigTestCm2.Name: appConfigTestCm2,
+		appConfigTestCm3.Name: appConfigTestCm3}
+	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig,
 		true, false, testObj.scheme)
 
 	assert.NoError(t, err)
@@ -131,8 +131,9 @@ func TestDefaultAndSpecifiedAppConfig(t *testing.T) {
 	testObj := createBackstageTest(bs).withDefaultConfig(true).addToDefaultConfig("app-config.yaml", "raw-app-config.yaml")
 
 	//testObj.detailedSpec.AddConfigObject(&AppConfig{ConfigMap: &cm, MountPath: "/my/path"})
+	testObj.externalConfig.AppConfigs[appConfigTestCm.Name] = appConfigTestCm
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, []SpecifiedConfigMap{{ConfigMap: appConfigTestCm}}, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)

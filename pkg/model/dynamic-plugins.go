@@ -55,6 +55,22 @@ func newDynamicPlugins(configMapName string) *DynamicPlugins {
 	}}
 }
 
+func addDynamicPlugins(spec v1alpha1.BackstageSpec, deployment *appsv1.Deployment, model *BackstageModel) error {
+
+	if spec.Application == nil || spec.Application.DynamicPluginsConfigMapName == "" {
+		return nil
+	}
+
+	if dynamicPluginsInitContainer(deployment.Spec.Template.Spec.InitContainers) == nil {
+		return fmt.Errorf("deployment validation failed, dynamic plugin name configured but no InitContainer %s defined", dynamicPluginInitContainerName)
+	}
+
+	dp := DynamicPlugins{ConfigMap: &model.ExternalConfig.DynamicPlugins}
+	dp.updatePod(deployment)
+	return nil
+
+}
+
 // implementation of RuntimeObject interface
 func (p *DynamicPlugins) Object() client.Object {
 	return p.ConfigMap

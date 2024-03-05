@@ -62,12 +62,22 @@ type BackstageModel struct {
 
 	RuntimeObjects []RuntimeObject
 
-	appConfigs []SpecifiedConfigMap
+	ExternalConfig ExternalConfig
+
+	//appConfigs []SpecifiedConfigMap
 }
 
 type SpecifiedConfigMap struct {
 	ConfigMap corev1.ConfigMap
 	Key       string
+}
+
+type ExternalConfig struct {
+	RawConfig           map[string]string
+	AppConfigs          map[string]corev1.ConfigMap
+	ExtraFileConfigMaps map[string]corev1.ConfigMap
+	ExtraEnvConfigMaps  map[string]corev1.ConfigMap
+	DynamicPlugins      corev1.ConfigMap
 }
 
 func (m *BackstageModel) setRuntimeObject(object RuntimeObject) {
@@ -98,7 +108,7 @@ func registerConfig(key string, factory ObjectFactory) {
 }
 
 // InitObjects performs a main loop for configuring and making the array of objects to reconcile
-func InitObjects(ctx context.Context, backstage bsv1alpha1.Backstage, rawConfig map[string]string, appConfigs []SpecifiedConfigMap, ownsRuntime bool, isOpenshift bool, scheme *runtime.Scheme) (*BackstageModel, error) {
+func InitObjects(ctx context.Context, backstage bsv1alpha1.Backstage, externalConfig ExternalConfig, ownsRuntime bool, isOpenshift bool, scheme *runtime.Scheme) (*BackstageModel, error) {
 
 	// 3 phases of Backstage configuration:
 	// 1- load from Operator defaults, modify metadata (labels, selectors..) and namespace as needed
@@ -109,10 +119,7 @@ func InitObjects(ctx context.Context, backstage bsv1alpha1.Backstage, rawConfig 
 	lg := log.FromContext(ctx)
 	lg.V(1)
 
-	if appConfigs == nil {
-		appConfigs = []SpecifiedConfigMap{}
-	}
-	model := &BackstageModel{RuntimeObjects: make([]RuntimeObject, 0), appConfigs: appConfigs, localDbEnabled: backstage.Spec.IsLocalDbEnabled(), isOpenshift: isOpenshift}
+	model := &BackstageModel{RuntimeObjects: make([]RuntimeObject, 0), ExternalConfig: externalConfig, localDbEnabled: backstage.Spec.IsLocalDbEnabled(), isOpenshift: isOpenshift}
 
 	// looping through the registered runtimeConfig objects initializing the model
 	for _, conf := range runtimeConfig {
@@ -131,7 +138,7 @@ func InitObjects(ctx context.Context, backstage bsv1alpha1.Backstage, rawConfig 
 
 		// reading configuration defined in BackstageCR.Spec.RawConfigContent ConfigMap
 		// if present, backstageObject's default configuration will be overridden
-		overlay, overlayExist := rawConfig[conf.Key]
+		overlay, overlayExist := externalConfig.RawConfig[conf.Key]
 		if overlayExist {
 			if err := utils.ReadYaml([]byte(overlay), obj); err != nil {
 				return nil, fmt.Errorf("failed to read overlay value for the key %s, reason: %s", conf.Key, err)

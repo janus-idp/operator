@@ -1318,12 +1318,12 @@ plugins: []
 				err := k8sClient.Create(ctx, envConfig1Cm)
 				Expect(err).To(Not(HaveOccurred()))
 
-				envConfig2Secret := buildSecret(envConfig2SecretNameAll, map[string][]byte{
-					"MY_ENV_VAR_1_FROM_SECRET": []byte("value 21"),
-					"MY_ENV_VAR_2_FROM_SECRET": []byte("value 22"),
-				})
-				err = k8sClient.Create(ctx, envConfig2Secret)
-				Expect(err).To(Not(HaveOccurred()))
+				//envConfig2Secret := buildSecret(envConfig2SecretNameAll, map[string][]byte{
+				//	"MY_ENV_VAR_1_FROM_SECRET": []byte("value 21"),
+				//	"MY_ENV_VAR_2_FROM_SECRET": []byte("value 22"),
+				//})
+				//err = k8sClient.Create(ctx, envConfig2Secret)
+				//Expect(err).To(Not(HaveOccurred()))
 
 				envConfig1CmSingle := buildConfigMap(envConfig1CmNameSingle, map[string]string{
 					"MY_ENV_VAR_1_FROM_CM_SINGLE": "value 11 single",

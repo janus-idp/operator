@@ -48,7 +48,7 @@ func TestSpecs(t *testing.T) {
 	testObj := createBackstageTest(bs).withDefaultConfig(true).
 		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, nil, true, true, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, true, testObj.scheme)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "my-image:1.0.0", model.backstageDeployment.container().Image)
@@ -72,7 +72,7 @@ func TestOverrideBackstageImage(t *testing.T) {
 
 	_ = os.Setenv(BackstageImageEnvVar, "dummy")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, nil, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, false, testObj.scheme)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "dummy", model.backstageDeployment.container().Image)

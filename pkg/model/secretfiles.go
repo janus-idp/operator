@@ -15,6 +15,8 @@
 package model
 
 import (
+	"fmt"
+
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -27,7 +29,7 @@ import (
 type SecretFilesFactory struct{}
 
 func (f SecretFilesFactory) newBackstageObject() RuntimeObject {
-	return &SecretFiles{ /*Secret: &corev1.Secret{},*/ MountPath: defaultMountDir}
+	return &SecretFiles{MountPath: defaultMountDir}
 }
 
 type SecretFiles struct {
@@ -48,6 +50,35 @@ func newSecretFiles(mountPath string, name string, key string) *SecretFiles {
 		MountPath: mountPath,
 		Key:       key,
 	}
+}
+
+func addSecretFiles(spec v1alpha1.BackstageSpec, deployment *appsv1.Deployment) error {
+
+	if spec.Application == nil || spec.Application.ExtraFiles == nil || spec.Application.ExtraFiles.Secrets == nil {
+		return nil
+	}
+	mp := defaultMountDir
+	if spec.Application.ExtraFiles.MountPath != "" {
+		mp = spec.Application.ExtraFiles.MountPath
+	}
+
+	for _, sec := range spec.Application.ExtraFiles.Secrets {
+		if sec.Key == "" {
+			return fmt.Errorf("mounting secrets w/o specified Key is not allowed %s", sec.Name)
+		}
+		sf := SecretFiles{
+			Secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: sec.Name},
+				// TODO it is not correct, there may not be such a secret key
+				// it is done for 0.1.0 compatibility only
+				StringData: map[string]string{sec.Key: ""},
+			},
+			MountPath: mp,
+			Key:       sec.Key,
+		}
+		sf.updatePod(deployment)
+	}
+	return nil
 }
 
 // implementation of RuntimeObject interface

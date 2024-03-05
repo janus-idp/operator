@@ -104,56 +104,27 @@ func (b *BackstageDeployment) validate(model *BackstageModel, backstage bsv1alph
 		}
 	}
 
-	if backstage.Spec.Application != nil {
-		application := backstage.Spec.Application
-		// AppConfig
-		if application.AppConfig != nil {
-			mountPath := application.AppConfig.MountPath
-			for _, cm := range model.appConfigs {
-				newAppConfig(mountPath, &cm.ConfigMap, cm.Key).updatePod(b.deployment)
-			}
+	addAppConfigs(backstage.Spec, b.deployment, model)
 
-			//for _, spec := range application.AppConfig.ConfigMaps {
-			//	configMap, err := getAppConfigMap(spec.Name, spec.Key, model.appConfigs)
-			//	if err != nil {
-			//		return fmt.Errorf("app-config configuration failed %w", err)
-			//	}
-			//	newAppConfig(mountPath, configMap, spec.Key).updatePod(b.deployment)
-			//}
-		}
+	addConfigMapFiles(backstage.Spec, b.deployment, model)
 
-		//DynaPlugins
-		if application.DynamicPluginsConfigMapName != "" {
-			if dynamicPluginsInitContainer(b.deployment.Spec.Template.Spec.InitContainers) == nil {
-				return fmt.Errorf("deployment validation failed, dynamic plugin name configured but no InitContainer %s defined", dynamicPluginInitContainerName)
-			}
-			newDynamicPlugins(application.DynamicPluginsConfigMapName).updatePod(b.deployment)
-		}
-		//Ext (4)
-		if application.ExtraFiles != nil {
-			mountPath := application.ExtraFiles.MountPath
-			for _, spec := range application.ExtraFiles.ConfigMaps {
-				newConfigMapFiles(mountPath, spec.Name, spec.Key).updatePod(b.deployment)
-			}
-			for _, spec := range application.ExtraFiles.Secrets {
-				newSecretFiles(mountPath, spec.Name, spec.Key).updatePod(b.deployment)
-			}
-		}
-		if application.ExtraEnvs != nil {
-			for _, spec := range application.ExtraEnvs.ConfigMaps {
-				newConfigMapEnvs(spec.Name, spec.Key).updatePod(b.deployment)
-			}
-			for _, spec := range application.ExtraEnvs.Secrets {
-				newSecretEnvs(spec.Name, spec.Key).updatePod(b.deployment)
-			}
-		}
+	addConfigMapEnvs(backstage.Spec, b.deployment, model)
+
+	if err := addSecretFiles(backstage.Spec, b.deployment); err != nil {
+		return err
+	}
+
+	if err := addSecretEnvs(backstage.Spec, b.deployment); err != nil {
+		return err
+	}
+	if err := addDynamicPlugins(backstage.Spec, b.deployment, model); err != nil {
+		return err
 	}
 
 	//DbSecret
 	if model.LocalDbSecret != nil {
 		utils.AddEnvVarsFrom(&b.deployment.Spec.Template.Spec.Containers[0], utils.SecretObjectKind,
 			model.LocalDbSecret.secret.Name, "")
-		//b.pod.setEnvsFromSecret(model.LocalDbSecret.secret.Name)
 	}
 
 	return nil
@@ -167,6 +138,10 @@ func (b *BackstageDeployment) setMetaInfo(backstageName string) {
 
 func (b *BackstageDeployment) container() *corev1.Container {
 	return &b.deployment.Spec.Template.Spec.Containers[0]
+}
+
+func (b *BackstageDeployment) podSpec() *corev1.PodSpec {
+	return &b.deployment.Spec.Template.Spec
 }
 
 // sets the amount of replicas (used by CR config)

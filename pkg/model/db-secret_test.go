@@ -18,12 +18,28 @@ import (
 	"context"
 	"testing"
 
+	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
+
 	"github.com/stretchr/testify/assert"
 )
 
+var dbSecretBackstage = &bsv1alpha1.Backstage{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "bs",
+		Namespace: "ns123",
+	},
+	Spec: bsv1alpha1.BackstageSpec{
+		Database: &bsv1alpha1.Database{
+			EnableLocalDb: pointer.Bool(false),
+		},
+	},
+}
+
 //func TestDefaultWithDefinedSecrets(t *testing.T) {
 //
-//	bs := simpleTestBackstage()
+//	bs := *dbSecretBackstage.DeepCopy()
 //
 //	// expected generatePassword = false (default db-secret defined) will come from preprocess
 //	testObj := createBackstageTest(bs).withDefaultConfig(true).withLocalDb().addToDefaultConfig("db-secret.yaml", "db-defined-secret.yaml")
@@ -44,23 +60,16 @@ import (
 
 func TestEmptyDbSecret(t *testing.T) {
 
-	bs := simpleTestBackstage()
+	bs := *dbSecretBackstage.DeepCopy()
 
 	// expected generatePassword = false (default db-secret defined) will come from preprocess
 	testObj := createBackstageTest(bs).withDefaultConfig(true).withLocalDb().addToDefaultConfig("db-secret.yaml", "db-empty-secret.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, nil, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model.LocalDbSecret)
 	assert.Equal(t, "bs-default-dbsecret", model.LocalDbSecret.secret.Name)
-	// NO data as it should be generated
-	//assert.NotEmpty(t, model.LocalDbSecret.secret.StringData["POSTGRES_USER"])
-	//_, ok := model.LocalDbSecret.secret.StringData["POSTGRES_PASSWORD"]
-	//assert.True(t, ok)
-	////	assert.NotEmpty(t, model.LocalDbSecret.secret.StringData["POSTGRES_PASSWORD"])
-	//
-	//assert.Equal(t, "postgres", model.LocalDbSecret.secret.StringData["POSTGRES_USER"])
 
 	dbss := model.localDbStatefulSet
 	assert.NotNil(t, dbss)
@@ -70,12 +79,12 @@ func TestEmptyDbSecret(t *testing.T) {
 }
 
 func TestDefaultWithGeneratedSecrets(t *testing.T) {
-	bs := simpleTestBackstage()
+	bs := *dbSecretBackstage.DeepCopy()
 
 	// expected generatePassword = true (no db-secret defined) will come from preprocess
 	testObj := createBackstageTest(bs).withDefaultConfig(true).withLocalDb().addToDefaultConfig("db-secret.yaml", "db-generated-secret.yaml")
 
-	model, err := InitObjects(context.TODO(), bs, testObj.rawConfig, nil, true, false, testObj.scheme)
+	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "bs-default-dbsecret", model.LocalDbSecret.secret.Name)
@@ -90,7 +99,7 @@ func TestDefaultWithGeneratedSecrets(t *testing.T) {
 }
 
 //func TestSpecifiedSecret(t *testing.T) {
-//	bs := simpleTestBackstage()
+//	bs := *dbSecretBackstage.DeepCopy()
 //	bs.Spec.Database.AuthSecretName = "custom-db-secret"
 //
 //	// expected generatePassword = false (db-secret defined in the spec) will come from preprocess
