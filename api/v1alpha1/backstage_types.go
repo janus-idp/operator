@@ -266,21 +266,21 @@ func init() {
 	SchemeBuilder.Register(&Backstage{}, &BackstageList{})
 }
 
-func (s BackstageSpec) IsLocalDbEnabled() bool {
+func (s *BackstageSpec) IsLocalDbEnabled() bool {
 	if s.Database == nil {
 		return true
 	}
 	return pointer.BoolDeref(s.Database.EnableLocalDb, true)
 }
 
-func (s BackstageSpec) IsRouteEnabled() bool {
+func (s *BackstageSpec) IsRouteEnabled() bool {
 	if s.Application == nil || s.Application.Route == nil {
 		return false
 	}
 	return pointer.BoolDeref(s.Application.Route.Enabled, true)
 }
 
-func (s BackstageSpec) IsRouteEmpty() bool {
+func (s *BackstageSpec) IsRouteEmpty() bool {
 	route := s.Application.Route
 	if route.Host != "" && route.Subdomain != "" && route.TLS != nil && *route.TLS != (TLS{}) {
 		return true
@@ -288,6 +288,6 @@ func (s BackstageSpec) IsRouteEmpty() bool {
 	return false
 }
 
-func (s BackstageSpec) IsAuthSecretSpecified() bool {
+func (s *BackstageSpec) IsAuthSecretSpecified() bool {
 	return s.Database != nil && s.Database.AuthSecretName != ""
 }
