@@ -18,7 +18,8 @@ import (
 	"context"
 	"testing"
 
-	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
+	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+
 	"k8s.io/utils/pointer"
 
 	corev1 "k8s.io/api/core/v1"

@@ -30,9 +30,10 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 
-	"janus-idp.io/backstage-operator/pkg/model"
+	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
 
-	bs "janus-idp.io/backstage-operator/api/v1alpha1"
+	bs "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"

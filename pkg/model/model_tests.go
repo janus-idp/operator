@@ -27,7 +27,7 @@ import (
 
 	"k8s.io/utils/pointer"
 
-	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
+	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
 )
 
 // testBackstageObject it is a helper object to simplify testing model component allowing to customize and isolate testing configuration

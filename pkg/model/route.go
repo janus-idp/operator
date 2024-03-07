@@ -15,9 +15,10 @@
 package model
 
 import (
+	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
+
 	openshift "github.com/openshift/api/route/v1"
-	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
-	"janus-idp.io/backstage-operator/pkg/utils"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

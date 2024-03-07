@@ -17,8 +17,9 @@ package model
 import (
 	"fmt"
 
-	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
-	"janus-idp.io/backstage-operator/pkg/utils"
+	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
+
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

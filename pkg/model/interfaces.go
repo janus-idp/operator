@@ -15,7 +15,8 @@
 package model
 
 import (
-	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
+	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+
 	appsv1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

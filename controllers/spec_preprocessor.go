@@ -18,9 +18,10 @@ import (
 	"context"
 	"fmt"
 
-	bs "janus-idp.io/backstage-operator/api/v1alpha1"
+	bs "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
 
-	"janus-idp.io/backstage-operator/pkg/model"
+	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )

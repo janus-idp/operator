@@ -15,8 +15,9 @@
 package model
 
 import (
-	"janus-idp.io/backstage-operator/api/v1alpha1"
-	"janus-idp.io/backstage-operator/pkg/utils"
+	"redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

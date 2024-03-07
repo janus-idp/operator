@@ -21,7 +21,7 @@ import (
 
 	"k8s.io/utils/pointer"
 
-	"janus-idp.io/backstage-operator/pkg/utils"
+	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -31,7 +31,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	controller "janus-idp.io/backstage-operator/controllers"
+	controller "redhat-developer/red-hat-developer-hub-operator/controllers"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -40,7 +41,8 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/rand"
 
-	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
+	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"

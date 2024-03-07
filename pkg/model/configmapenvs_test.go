@@ -22,7 +22,8 @@ import (
 
 	"k8s.io/utils/pointer"
 
-	bsv1alpha1 "janus-idp.io/backstage-operator/api/v1alpha1"
+	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stretchr/testify/assert"
