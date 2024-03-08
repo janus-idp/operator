@@ -81,7 +81,7 @@ type Application struct {
 	// +optional
 	ExtraFiles *ExtraFiles `json:"extraFiles,omitempty"`
 
-	// Extra environment variables
+	// Extra environment variables.
 	// +optional
 	ExtraEnvs *ExtraEnvs `json:"extraEnvs,omitempty"`
 
