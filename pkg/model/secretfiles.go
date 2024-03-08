@@ -43,16 +43,6 @@ func init() {
 	registerConfig("secret-files.yaml", SecretFilesFactory{})
 }
 
-func newSecretFiles(mountPath string, name string, key string) *SecretFiles {
-	return &SecretFiles{
-		Secret: &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: name},
-		},
-		MountPath: mountPath,
-		Key:       key,
-	}
-}
-
 func addSecretFiles(spec v1alpha1.BackstageSpec, deployment *appsv1.Deployment) error {
 
 	if spec.Application == nil || spec.Application.ExtraFiles == nil || spec.Application.ExtraFiles.Secrets == nil {

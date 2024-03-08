@@ -44,15 +44,6 @@ func (p *SecretEnvs) Object() client.Object {
 	return p.Secret
 }
 
-func newSecretEnvs(name string, key string) *SecretEnvs {
-	return &SecretEnvs{
-		Secret: &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: name},
-		},
-		Key: key,
-	}
-}
-
 func addSecretEnvs(spec v1alpha1.BackstageSpec, deployment *appsv1.Deployment) error {
 
 	if spec.Application == nil || spec.Application.ExtraEnvs == nil || spec.Application.ExtraEnvs.Secrets == nil {

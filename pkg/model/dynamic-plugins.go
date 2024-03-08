@@ -20,8 +20,6 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
 	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 
@@ -48,12 +46,6 @@ func init() {
 
 func DynamicPluginsDefaultName(backstageName string) string {
 	return utils.GenerateRuntimeObjectName(backstageName, "default-dynamic-plugins")
-}
-
-func newDynamicPlugins(configMapName string) *DynamicPlugins {
-	return &DynamicPlugins{ConfigMap: &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{Name: configMapName},
-	}}
 }
 
 func addDynamicPlugins(spec v1alpha1.BackstageSpec, deployment *appsv1.Deployment, model *BackstageModel) error {
