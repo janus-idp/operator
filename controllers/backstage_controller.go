@@ -268,47 +268,6 @@ func setStatusCondition(backstage *bs.Backstage, condType bs.BackstageConditionT
 	})
 }
 
-// need pre-read raw config (if any) for runtime objects
-func (r *BackstageReconciler) rawConfigMap(ctx context.Context, backstage bs.Backstage) (map[string]string, error) {
-	//lg := log.FromContext(ctx)
-
-	bsSpec := backstage.Spec
-	ns := backstage.Namespace
-	result := map[string]string{}
-
-	// Process RawRuntimeConfig
-	if backstage.Spec.RawRuntimeConfig != "" {
-		cm := corev1.ConfigMap{}
-		if err := r.Get(ctx, types.NamespacedName{Name: bsSpec.RawRuntimeConfig, Namespace: ns}, &cm); err != nil {
-			return nil, fmt.Errorf("failed to load rawConfig %s: %w", bsSpec.RawRuntimeConfig, err)
-		}
-		for key, value := range cm.Data {
-			result[key] = value
-		}
-	}
-
-	return result, nil
-}
-
-// need pre-read app-configs to be able to put --config argument
-func (r *BackstageReconciler) appConfigMaps(ctx context.Context, backstage bs.Backstage) ([]model.SpecifiedConfigMap, error) {
-	// Process AppConfigs
-	result := []model.SpecifiedConfigMap{}
-	if backstage.Spec.Application != nil && backstage.Spec.Application.AppConfig != nil {
-		for _, ac := range backstage.Spec.Application.AppConfig.ConfigMaps {
-			cm := corev1.ConfigMap{}
-			if err := r.Get(ctx, types.NamespacedName{Name: ac.Name, Namespace: backstage.Namespace}, &cm); err != nil {
-				return nil, fmt.Errorf("failed to get configMap %s: %w", ac.Name, err)
-			}
-			result = append(result, model.SpecifiedConfigMap{
-				ConfigMap: cm,
-				Key:       ac.Key,
-			})
-		}
-	}
-	return result, nil
-}
-
 // SetupWithManager sets up the controller with the Manager.
 func (r *BackstageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 

@@ -53,7 +53,8 @@ func GenerateRuntimeObjectName(backstageCRName string, objectType string) string
 
 // GenerateVolumeNameFromCmOrSecret generates volume name for mounting ConfigMap or Secret
 func GenerateVolumeNameFromCmOrSecret(cmOrSecretName string) string {
-	return fmt.Sprintf("vol-%s", cmOrSecretName)
+	//return fmt.Sprintf("vol-%s", cmOrSecretName)
+	return cmOrSecretName
 }
 
 func ReadYaml(manifest []byte, object interface{}) error {

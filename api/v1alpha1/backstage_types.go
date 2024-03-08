@@ -37,10 +37,19 @@ type BackstageSpec struct {
 	Application *Application `json:"application,omitempty"`
 
 	// Raw Runtime RuntimeObjects configuration. For Advanced scenarios.
-	RawRuntimeConfig string `json:"rawRuntimeConfig,omitempty"`
+	//RawConfig string `json:"rawConfig,omitempty"`
+
+	RawRuntimeConfig *RuntimeConfig `json:"rawRuntimeConfig,omitempty"`
 
 	// Configuration for database access. Optional.
 	Database *Database `json:"database,omitempty"`
+}
+
+type RuntimeConfig struct {
+	// Name of ConfigMap containing Backstage runtime objects configuration
+	BackstageConfigName string `json:"backstageConfig,omitempty"`
+	// Name of ConfigMap containing LocalDb (PostgreSQL) runtime objects configuration
+	LocalDbConfigName string `json:"localDbConfig,omitempty"`
 }
 
 type Database struct {

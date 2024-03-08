@@ -155,7 +155,14 @@ func (b *BackstageDeployment) setReplicas(replicas *int32) {
 // sets container image name of Backstage Container
 func (b *BackstageDeployment) setImage(image *string) {
 	if image != nil {
-		b.container().Image = *image
+		// TODO this is a workaround for RHDH/Janus configuration
+		// it is not a fact that all the containers should be updated
+		// in general case need something smarter (probably annotation based)
+		// to mark/recognize containers for update
+		VisitContainers(b.podSpec(), func(container *corev1.Container) {
+			container.Image = *image
+		})
+		//b.container().Image = *image
 		//b.deployment.Spec.Template.Spec.Containers[0].Image = *image
 	}
 }
@@ -186,19 +193,18 @@ func (b *BackstageDeployment) setImagePullSecrets(pullSecrets []string) {
 	}
 }
 
-// find, validate and return app-config's configMap
-//func getAppConfigMap(name, key string, configs []corev1.ConfigMap) (*corev1.ConfigMap, error) {
-//	for _, cm := range configs {
-//		if cm.Name == name {
-//			if key != "" {
-//				if _, ok := cm.Data[key]; ok {
-//					return &cm, nil
-//				} else {
-//					return nil, fmt.Errorf("key %s not found", key)
-//				}
-//			}
-//			return &cm, nil
-//		}
-//	}
-//	return nil, fmt.Errorf("configMap %s not found", name)
-//}
+// ContainerVisitor is called with each container
+type ContainerVisitor func(container *corev1.Container)
+
+// visitContainers invokes the visitor function for every container in the given pod template spec
+func VisitContainers(podTemplateSpec *corev1.PodSpec, visitor ContainerVisitor) {
+	for i := range podTemplateSpec.InitContainers {
+		visitor(&podTemplateSpec.InitContainers[i])
+	}
+	for i := range podTemplateSpec.Containers {
+		visitor(&podTemplateSpec.Containers[i])
+	}
+	for i := range podTemplateSpec.EphemeralContainers {
+		visitor((*corev1.Container)(&podTemplateSpec.EphemeralContainers[i].EphemeralContainerCommon))
+	}
+}

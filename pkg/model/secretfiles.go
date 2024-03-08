@@ -65,7 +65,7 @@ func addSecretFiles(spec v1alpha1.BackstageSpec, deployment *appsv1.Deployment) 
 
 	for _, sec := range spec.Application.ExtraFiles.Secrets {
 		if sec.Key == "" {
-			return fmt.Errorf("mounting secrets w/o specified Key is not allowed %s", sec.Name)
+			return fmt.Errorf("key is required to mount extra file with secret %s", sec.Name)
 		}
 		sf := SecretFiles{
 			Secret: &corev1.Secret{

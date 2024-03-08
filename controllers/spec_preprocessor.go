@@ -41,14 +41,25 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.B
 		ExtraEnvConfigMaps:  map[string]corev1.ConfigMap{},
 	}
 
-	// Process RawRuntimeConfig
-	if bsSpec.RawRuntimeConfig != "" {
-		cm := corev1.ConfigMap{}
-		if err := r.Get(ctx, types.NamespacedName{Name: bsSpec.RawRuntimeConfig, Namespace: ns}, &cm); err != nil {
-			return result, fmt.Errorf("failed to load rawConfig %s: %w", bsSpec.RawRuntimeConfig, err)
+	// Process RawConfig
+	if bsSpec.RawRuntimeConfig != nil {
+		if bsSpec.RawRuntimeConfig.BackstageConfigName != "" {
+			cm := corev1.ConfigMap{}
+			if err := r.Get(ctx, types.NamespacedName{Name: bsSpec.RawRuntimeConfig.BackstageConfigName, Namespace: ns}, &cm); err != nil {
+				return result, fmt.Errorf("failed to load rawConfig %s: %w", bsSpec.RawRuntimeConfig.BackstageConfigName, err)
+			}
+			for key, value := range cm.Data {
+				result.RawConfig[key] = value
+			}
 		}
-		for key, value := range cm.Data {
-			result.RawConfig[key] = value
+		if bsSpec.RawRuntimeConfig.LocalDbConfigName != "" {
+			cm := corev1.ConfigMap{}
+			if err := r.Get(ctx, types.NamespacedName{Name: bsSpec.RawRuntimeConfig.LocalDbConfigName, Namespace: ns}, &cm); err != nil {
+				return result, fmt.Errorf("failed to load rawConfig %s: %w", bsSpec.RawRuntimeConfig.LocalDbConfigName, err)
+			}
+			for key, value := range cm.Data {
+				result.RawConfig[key] = value
+			}
 		}
 	}
 

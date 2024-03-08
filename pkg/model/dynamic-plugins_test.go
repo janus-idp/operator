@@ -16,6 +16,7 @@ package model
 
 import (
 	"context"
+	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 	"testing"
 
 	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
@@ -104,7 +105,7 @@ func TestDefaultAndSpecifiedDynamicPlugins(t *testing.T) {
 	//dynamic-plugins-npmrc
 	//vol-dplugin
 	assert.Equal(t, 3, len(ic.VolumeMounts))
-	assert.Equal(t, "vol-dplugin", ic.VolumeMounts[2].Name)
+	assert.Equal(t, utils.GenerateVolumeNameFromCmOrSecret("dplugin"), ic.VolumeMounts[2].Name)
 	//t.Log(">>>>>>>>>>>>>>>>", ic.VolumeMounts)
 }
 

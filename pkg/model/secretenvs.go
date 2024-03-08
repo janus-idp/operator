@@ -15,8 +15,6 @@
 package model
 
 import (
-	"fmt"
-
 	"redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
 	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 
@@ -62,9 +60,6 @@ func addSecretEnvs(spec v1alpha1.BackstageSpec, deployment *appsv1.Deployment) e
 	}
 
 	for _, sec := range spec.Application.ExtraEnvs.Secrets {
-		if sec.Key == "" {
-			return fmt.Errorf("injecting secrets w/o specified Key is not allowed %s", sec.Name)
-		}
 		se := SecretEnvs{
 			Secret: &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: sec.Name}},
 			Key:    sec.Key,

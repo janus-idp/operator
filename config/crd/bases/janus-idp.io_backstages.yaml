@@ -284,9 +284,16 @@ spec:
                     type: boolean
                 type: object
               rawRuntimeConfig:
-                description: Raw Runtime RuntimeObjects configuration. For Advanced
-                  scenarios.
-                type: string
+                properties:
+                  backstageConfig:
+                    description: Name of ConfigMap containing Backstage runtime objects
+                      configuration
+                    type: string
+                  localDbConfig:
+                    description: Name of ConfigMap containing LocalDb (PostgreSQL)
+                      runtime objects configuration
+                    type: string
+                type: object
             type: object
           status:
             description: BackstageStatus defines the observed state of Backstage
