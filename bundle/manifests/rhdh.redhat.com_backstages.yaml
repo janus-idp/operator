@@ -87,7 +87,7 @@ spec:
                       The ConfigMap object must have an existing key named: ''dynamic-plugins.yaml''.'
                     type: string
                   extraEnvs:
-                    description: Extra environment variables
+                    description: Extra environment variables.
                     properties:
                       configMaps:
                         description: List of references to ConfigMaps objects to inject
