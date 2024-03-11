@@ -12,8 +12,11 @@ spec:
       labels:
         janus-idp.io/app:  # placeholder for 'backstage-<cr-name>'
     spec:
-      securityContext:
-        fsGroup: 26
+      #Error: EACCES: permission denied, open '/dynamic-plugins-root/backstage-plugin-scaffolder-backend-module-github-dynamic-0.2.2.tgz'
+#      securityContext:
+#        fsGroup: 1001
+#        runAsUser: 1001
+#        runAsGroup: 1001
       volumes:
         - ephemeral:
             volumeClaimTemplate:
@@ -30,15 +33,17 @@ spec:
             optional: true
             secretName: dynamic-plugins-npmrc
       initContainers:
-        - command:
+        - name: install-dynamic-plugins
+          command:
             - ./install-dynamic-plugins.sh
             - /dynamic-plugins-root
+          image: quay.io/janus-idp/backstage-showcase:latest # will be replaced with the actual image quay.io/janus-idp/backstage-showcase:next
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
           env:
             - name: NPM_CONFIG_USERCONFIG
               value: /opt/app-root/src/.npmrc.dynamic-plugins
-          image: quay.io/janus-idp/backstage-showcase:latest # will be replaced with the actual image quay.io/janus-idp/backstage-showcase:next
-          imagePullPolicy: IfNotPresent
-          name: install-dynamic-plugins
           volumeMounts:
             - mountPath: /dynamic-plugins-root
               name: dynamic-plugins-root
@@ -54,6 +59,11 @@ spec:
           args:
             - "--config"
             - "dynamic-plugins-root/app-config.dynamic-plugins.yaml"
+#          securityContext:
+#            runAsUser: 1001
+#            runAsGroup: 0
+#            runAsNonRoot: true
+#            allowPrivilegeEscalation: false
           readinessProbe:
             failureThreshold: 3
             httpGet:

@@ -15,6 +15,8 @@ spec:
         janus-idp.io/app: backstage-psql-cr1 # placeholder for 'backstage-psql-<cr-name>'
       name: backstage-db-cr1 # placeholder for 'backstage-psql-<cr-name>'
     spec:
+#      securityContext:
+#        runAsGroup: 26
       persistentVolumeClaimRetentionPolicy:
         whenDeleted: Retain
         whenScaled: Retain
@@ -29,6 +31,8 @@ spec:
           image: quay.io/fedora/postgresql-15:latest # will be replaced with the actual image
           imagePullPolicy: IfNotPresent
           securityContext:
+            runAsUser: 26
+            runAsGroup: 0
             runAsNonRoot: true
             allowPrivilegeEscalation: false
             seccompProfile:
@@ -77,8 +81,6 @@ spec:
             - mountPath: /var/lib/pgsql/data
               name: data
       restartPolicy: Always
-      securityContext:
-        fsGroup: 26
       serviceAccountName: default
       volumes:
         - emptyDir:
