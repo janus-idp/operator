@@ -9,6 +9,9 @@ rules:
   - ""
   resources:
   - configmaps
+  - persistentvolumeclaims
+  - persistentvolumes
+  - secrets
   - services
   verbs:
   - create
@@ -18,22 +21,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - ""
-  resources:
-  - persistentvolumeclaims
-  - persistentvolumes
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - create
-  - delete
 - apiGroups:
   - apps
   resources:
@@ -59,7 +46,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - rhdh.redhat.com
+  - janus-idp.io
   resources:
   - backstages
   verbs:
@@ -71,13 +58,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - rhdh.redhat.com
+  - janus-idp.io
   resources:
   - backstages/finalizers
   verbs:
   - update
 - apiGroups:
-  - rhdh.redhat.com
+  - janus-idp.io
   resources:
   - backstages/status
   verbs:

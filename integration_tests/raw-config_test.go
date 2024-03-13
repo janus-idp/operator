@@ -37,7 +37,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = When("create backstage with CR configured", func() {
+var _ = When("create backstage with raw configuration", func() {
 
 	var (
 		ctx context.Context
@@ -185,15 +185,3 @@ var _ = When("create backstage with CR configured", func() {
 
 	})
 })
-
-// Duplicated files in different CMs
-// Message: "Deployment.apps \"test-backstage-ro86g-deployment\" is invalid: spec.template.spec.containers[0].volumeMounts[4].mountPath: Invalid value: \"/my/mount/path/key12\": must be unique",
-
-// No CM configured
-//failed to preprocess backstage spec app-configs failed to get configMap app-config3: configmaps "app-config3" not found
-
-// If no such a key - no reaction, it is just not included
-
-// mounting/injecting secret by key only
-
-// TODO test for Raw Config https://github.com/janus-idp/operator/issues/202

@@ -37,7 +37,6 @@ func (f DbStatefulSetFactory) newBackstageObject() RuntimeObject {
 
 type DbStatefulSet struct {
 	statefulSet *appsv1.StatefulSet
-	secretName  string
 }
 
 func init() {
@@ -100,25 +99,25 @@ func (b *DbStatefulSet) validate(model *BackstageModel, backstage bsv1alpha1.Bac
 
 // Injects DB Secret name as an env variable of DB container
 // Local DB pod considered to have single container
-func (b *DbStatefulSet) setSecretNameEnvFrom(envFrom corev1.EnvFromSource) {
-
-	// it is possible that Secret name already set by default configuration
-	// has to be overriden in this case
-	if b.secretName != "" {
-		//var ind int
-		for i, v := range b.container().EnvFrom {
-			if v.SecretRef.Name == b.secretName {
-				b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom[i] = envFrom
-				//ind = i
-				break
-			}
-		}
-
-	} else {
-		b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom = append(b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom, envFrom)
-	}
-	b.secretName = envFrom.SecretRef.Name
-}
+//func (b *DbStatefulSet) setSecretNameEnvFrom(envFrom corev1.EnvFromSource) {
+//
+//	// it is possible that Secret name already set by default configuration
+//	// has to be overriden in this case
+//	if b.secretName != "" {
+//		//var ind int
+//		for i, v := range b.container().EnvFrom {
+//			if v.SecretRef.Name == b.secretName {
+//				b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom[i] = envFrom
+//				//ind = i
+//				break
+//			}
+//		}
+//
+//	} else {
+//		b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom = append(b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom, envFrom)
+//	}
+//	b.secretName = envFrom.SecretRef.Name
+//}
 
 func (b *DbStatefulSet) setMetaInfo(backstageName string) {
 	b.statefulSet.SetName(utils.GenerateRuntimeObjectName(backstageName, "db-statefulset"))

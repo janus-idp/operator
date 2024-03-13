@@ -16,8 +16,9 @@ package integration_tests
 
 import (
 	"context"
-	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 	"time"
+
+	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 
 	appsv1 "k8s.io/api/apps/v1"
 
@@ -40,7 +41,6 @@ var _ = When("create default backstage", func() {
 	var (
 		ctx context.Context
 		ns  string
-		//backstageName string
 	)
 
 	BeforeEach(func() {
@@ -60,6 +60,8 @@ var _ = When("create default backstage", func() {
 
 		backstageName := createBackstage(ctx, bsv1alpha1.BackstageSpec{}, ns)
 
+		By("Checking if the custom resource was successfully created")
+
 		Eventually(func() error {
 			found := &bsv1alpha1.Backstage{}
 			return k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, found)
@@ -71,53 +73,23 @@ var _ = When("create default backstage", func() {
 		Expect(err).To(Not(HaveOccurred()))
 
 		Eventually(func(g Gomega) {
-			By("creating a secret for accessing the Database")
-			secret := &corev1.Secret{}
-			secretName := model.DbSecretDefaultName(backstageName)
-			err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: secretName}, secret)
-			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(len(secret.Data)).To(Equal(5))
-			g.Expect(secret.Data).To(HaveKeyWithValue("POSTGRES_USER", []uint8("postgres")))
-
-			By("creating a StatefulSet for the Database")
-			ss := &appsv1.StatefulSet{}
-			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DbStatefulSetName(backstageName)}, ss)
-			g.Expect(err).ShouldNot(HaveOccurred())
-
-			By("injecting default DB Secret as an env var for Db container")
-			g.Expect(model.DbSecretDefaultName(backstageName)).To(BeEnvFromForContainer(ss.Spec.Template.Spec.Containers[0]))
-			g.Expect(ss.GetOwnerReferences()).To(HaveLen(1))
-
-			By("creating a Service for the Database")
-			err = k8sClient.Get(ctx, types.NamespacedName{Name: model.DbServiceName(backstageName), Namespace: ns}, &corev1.Service{})
-			g.Expect(err).To(Not(HaveOccurred()))
-
-			By("creating Deployment")
 			deploy := &appsv1.Deployment{}
 			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, deploy)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			Expect(deploy.Spec.Replicas).To(HaveValue(BeEquivalentTo(1)))
 
-			By("creating OwnerReference to all the runtime objects")
-			or := deploy.GetOwnerReferences()
-			g.Expect(or).To(HaveLen(1))
-			g.Expect(or[0].Name).To(Equal(backstageName))
-
-			By("creating default app-config")
+			By("creating /opt/app-root/src/dynamic-plugins.xml ")
 			appConfig := &corev1.ConfigMap{}
-			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.AppConfigDefaultName(backstageName)}, appConfig)
+			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DynamicPluginsDefaultName(backstageName)}, appConfig)
 			g.Expect(err).ShouldNot(HaveOccurred())
 
-			By("mounting Volume defined in default app-config")
-			g.Expect(utils.GenerateVolumeNameFromCmOrSecret(model.AppConfigDefaultName(backstageName))).
-				To(BeAddedAsVolumeToPodSpec(deploy.Spec.Template.Spec))
-
-			By("setting Backstage status")
-			bs := &bsv1alpha1.Backstage{}
-			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: backstageName}, bs)
-			g.Expect(err).ShouldNot(HaveOccurred())
-			// TODO better matcher for Conditions
-			g.Expect(bs.Status.Conditions[0].Reason).To(Equal("Deployed"))
+			g.Expect(deploy.Spec.Template.Spec.InitContainers).To(HaveLen(1))
+			// it is ok to take InitContainers[0]
+			initCont := deploy.Spec.Template.Spec.InitContainers[0]
+			g.Expect(initCont.VolumeMounts).To(HaveLen(3))
+			g.Expect(initCont.VolumeMounts[2].MountPath).To(Equal("/opt/app-root/src/dynamic-plugins.yaml"))
+			g.Expect(initCont.VolumeMounts[2].Name).
+				To(Equal(utils.GenerateVolumeNameFromCmOrSecret(model.DynamicPluginsDefaultName(backstageName))))
+			g.Expect(initCont.VolumeMounts[2].SubPath).To(Equal(model.DynamicPluginsFile))
 
 		}, time.Minute, time.Second).Should(Succeed())
 
