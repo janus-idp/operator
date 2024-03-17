@@ -39,7 +39,6 @@ func (f BackstageDeploymentFactory) newBackstageObject() RuntimeObject {
 
 type BackstageDeployment struct {
 	deployment *appsv1.Deployment
-	//	pod        *backstagePod
 }
 
 func init() {
@@ -47,7 +46,7 @@ func init() {
 }
 
 func DeploymentName(backstageName string) string {
-	return utils.GenerateRuntimeObjectName(backstageName, "deployment")
+	return utils.GenerateRuntimeObjectName(backstageName, "backstage")
 }
 
 // implementation of RuntimeObject interface
@@ -55,7 +54,7 @@ func (b *BackstageDeployment) Object() client.Object {
 	return b.deployment
 }
 
-func (b *BackstageDeployment) setObject(obj client.Object, backstageName string) {
+func (b *BackstageDeployment) setObject(obj client.Object) {
 	b.deployment = nil
 	if obj != nil {
 		b.deployment = obj.(*appsv1.Deployment)
@@ -68,25 +67,17 @@ func (b *BackstageDeployment) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (b *BackstageDeployment) addToModel(model *BackstageModel, backstage bsv1alpha1.Backstage, ownsRuntime bool) (bool, error) {
+func (b *BackstageDeployment) addToModel(model *BackstageModel, _ bsv1alpha1.Backstage) (bool, error) {
 	if b.deployment == nil {
 		return false, fmt.Errorf("Backstage Deployment is not initialized, make sure there is deployment.yaml in default or raw configuration")
 	}
 	model.backstageDeployment = b
 	model.setRuntimeObject(b)
 
-	if backstage.Spec.Application != nil {
-		b.setReplicas(backstage.Spec.Application.Replicas)
-		b.setImagePullSecrets(backstage.Spec.Application.ImagePullSecrets)
-		b.setImage(backstage.Spec.Application.Image)
-		b.addExtraEnvs(backstage.Spec.Application.ExtraEnvs)
-	}
-
 	// override image with env var
 	// [GA] TODO Do we need this feature?
 	if os.Getenv(BackstageImageEnvVar) != "" {
 		b.deployment.Spec.Template.Spec.Containers[0].Image = os.Getenv(BackstageImageEnvVar)
-		// TODO workaround for the (janus-idp, rhdh) case where we have
 		// exactly the same image for initContainer and want it to be overriden
 		// the same way as Backstage's one
 		for i := range b.deployment.Spec.Template.Spec.InitContainers {
@@ -99,6 +90,14 @@ func (b *BackstageDeployment) addToModel(model *BackstageModel, backstage bsv1al
 
 // implementation of RuntimeObject interface
 func (b *BackstageDeployment) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
+
+	if backstage.Spec.Application != nil {
+		b.setReplicas(backstage.Spec.Application.Replicas)
+		b.setImagePullSecrets(backstage.Spec.Application.ImagePullSecrets)
+		b.setImage(backstage.Spec.Application.Image)
+		b.addExtraEnvs(backstage.Spec.Application.ExtraEnvs)
+	}
+
 	for _, bso := range model.RuntimeObjects {
 		if bs, ok := bso.(BackstagePodContributor); ok {
 			bs.updatePod(b.deployment)
@@ -162,8 +161,6 @@ func (b *BackstageDeployment) setImage(image *string) {
 		VisitContainers(b.podSpec(), func(container *corev1.Container) {
 			container.Image = *image
 		})
-		//b.container().Image = *image
-		//b.deployment.Spec.Template.Spec.Containers[0].Image = *image
 	}
 }
 

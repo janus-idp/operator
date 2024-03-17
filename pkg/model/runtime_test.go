@@ -52,20 +52,15 @@ func TestInitDefaultDeploy(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.True(t, len(model.RuntimeObjects) > 0)
-	assert.Equal(t, "bs-deployment", model.backstageDeployment.Object().GetName())
+	assert.Equal(t, DeploymentName(bs.Name), model.backstageDeployment.Object().GetName())
 	assert.Equal(t, "ns123", model.backstageDeployment.Object().GetNamespace())
 	assert.Equal(t, 2, len(model.backstageDeployment.Object().GetLabels()))
-	//	assert.Equal(t, 1, len(model[0].Object().GetOwnerReferences()))
 
 	bsDeployment := model.backstageDeployment
 	assert.NotNil(t, bsDeployment.deployment.Spec.Template.Spec.Containers[0])
-	//assert.Equal(t, backstageContainerName, bsDeployment.deployment.Spec.Template.Spec.Containers[0].Name)
-	//	assert.NotNil(t, bsDeployment.deployment.Spec.Template.Spec.Volumes)
-
-	//	assert.Equal(t, "Backstage", bsDeployment.deployment.OwnerReferences[0].Kind)
 
 	bsService := model.backstageService
-	assert.Equal(t, "bs-service", bsService.service.Name)
+	assert.Equal(t, ServiceName(bs.Name), bsService.service.Name)
 	assert.True(t, len(bsService.service.Spec.Ports) > 0)
 
 	assert.Equal(t, fmt.Sprintf("backstage-%s", "bs"), bsDeployment.deployment.Spec.Template.ObjectMeta.Labels[backstageAppLabel])
@@ -134,7 +129,7 @@ func TestAddToModel(t *testing.T) {
 	testService := *model.backstageService
 
 	// add to rm
-	testService.addToModel(&rm, bs, true)
+	testService.addToModel(&rm, bs)
 	assert.Equal(t, 1, len(rm.RuntimeObjects))
 	assert.NotNil(t, rm.backstageService)
 	assert.Nil(t, rm.backstageDeployment)

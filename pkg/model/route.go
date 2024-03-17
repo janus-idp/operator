@@ -33,7 +33,7 @@ type BackstageRoute struct {
 }
 
 func RouteName(backstageName string) string {
-	return utils.GenerateRuntimeObjectName(backstageName, "route")
+	return utils.GenerateRuntimeObjectName(backstageName, "backstage")
 }
 
 func (b *BackstageRoute) setRoute(specified bsv1alpha1.Route) {
@@ -42,7 +42,6 @@ func (b *BackstageRoute) setRoute(specified bsv1alpha1.Route) {
 
 	if len(specified.Host) > 0 {
 		b.route.Spec.Host = specified.Host
-		//b.route.Spec.To =
 	}
 	if len(specified.Subdomain) > 0 {
 		b.route.Spec.Subdomain = specified.Subdomain
@@ -91,7 +90,7 @@ func (b *BackstageRoute) Object() client.Object {
 	return b.route
 }
 
-func (b *BackstageRoute) setObject(obj client.Object, name string) {
+func (b *BackstageRoute) setObject(obj client.Object) {
 	b.route = nil
 	if obj != nil {
 		b.route = obj.(*openshift.Route)
@@ -104,7 +103,7 @@ func (b *BackstageRoute) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (b *BackstageRoute) addToModel(model *BackstageModel, backstage bsv1alpha1.Backstage, ownsRuntime bool) (bool, error) {
+func (b *BackstageRoute) addToModel(model *BackstageModel, backstage bsv1alpha1.Backstage) (bool, error) {
 	if (b.route == nil && !backstage.Spec.IsRouteEnabled()) || !model.isOpenshift {
 		// no route
 		return false, nil
@@ -112,10 +111,6 @@ func (b *BackstageRoute) addToModel(model *BackstageModel, backstage bsv1alpha1.
 
 	// load from spec
 	if backstage.Spec.IsRouteEnabled() && !backstage.Spec.IsRouteEmpty() {
-		//if model.route == nil {
-		//	br := BackstageRoute{route: &openshift.Route{}}
-		//	br.addToModel(model, backstageMeta, ownsRuntime)
-		//}
 		b.setRoute(*backstage.Spec.Application.Route)
 	}
 
@@ -126,7 +121,7 @@ func (b *BackstageRoute) addToModel(model *BackstageModel, backstage bsv1alpha1.
 }
 
 // implementation of RuntimeObject interface
-func (b *BackstageRoute) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
+func (b *BackstageRoute) validate(model *BackstageModel, _ bsv1alpha1.Backstage) error {
 	b.route.Spec.To.Name = model.backstageService.service.Name
 	return nil
 }

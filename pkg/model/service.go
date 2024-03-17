@@ -38,12 +38,16 @@ func init() {
 	registerConfig("service.yaml", BackstageServiceFactory{})
 }
 
+func ServiceName(backstageName string) string {
+	return utils.GenerateRuntimeObjectName(backstageName, "backstage")
+}
+
 // implementation of RuntimeObject interface
 func (b *BackstageService) Object() client.Object {
 	return b.service
 }
 
-func (b *BackstageService) setObject(obj client.Object, backstageName string) {
+func (b *BackstageService) setObject(obj client.Object) {
 	b.service = nil
 	if obj != nil {
 		b.service = obj.(*corev1.Service)
@@ -51,7 +55,7 @@ func (b *BackstageService) setObject(obj client.Object, backstageName string) {
 }
 
 // implementation of RuntimeObject interface
-func (b *BackstageService) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) (bool, error) {
+func (b *BackstageService) addToModel(model *BackstageModel, _ bsv1alpha1.Backstage) (bool, error) {
 	if b.service == nil {
 		return false, fmt.Errorf("Backstage Service is not initialized, make sure there is service.yaml in default or raw configuration")
 	}
@@ -68,11 +72,11 @@ func (b *BackstageService) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (b *BackstageService) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
+func (b *BackstageService) validate(_ *BackstageModel, _ bsv1alpha1.Backstage) error {
 	return nil
 }
 
 func (b *BackstageService) setMetaInfo(backstageName string) {
-	b.service.SetName(utils.GenerateRuntimeObjectName(backstageName, "service"))
+	b.service.SetName(ServiceName(backstageName))
 	utils.GenerateLabel(&b.service.Spec.Selector, backstageAppLabel, fmt.Sprintf("backstage-%s", backstageName))
 }

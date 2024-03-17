@@ -32,7 +32,7 @@ const LocalDbImageEnvVar = "RELATED_IMAGE_postgresql"
 type DbStatefulSetFactory struct{}
 
 func (f DbStatefulSetFactory) newBackstageObject() RuntimeObject {
-	return &DbStatefulSet{ /*statefulSet: &appsv1.StatefulSet{}*/ }
+	return &DbStatefulSet{}
 }
 
 type DbStatefulSet struct {
@@ -44,7 +44,7 @@ func init() {
 }
 
 func DbStatefulSetName(backstageName string) string {
-	return utils.GenerateRuntimeObjectName(backstageName, "db-statefulset")
+	return utils.GenerateRuntimeObjectName(backstageName, "backstage-db")
 }
 
 // implementation of RuntimeObject interface
@@ -52,7 +52,7 @@ func (b *DbStatefulSet) Object() client.Object {
 	return b.statefulSet
 }
 
-func (b *DbStatefulSet) setObject(obj client.Object, backstageName string) {
+func (b *DbStatefulSet) setObject(obj client.Object) {
 	b.statefulSet = nil
 	if obj != nil {
 		b.statefulSet = obj.(*appsv1.StatefulSet)
@@ -60,7 +60,7 @@ func (b *DbStatefulSet) setObject(obj client.Object, backstageName string) {
 }
 
 // implementation of RuntimeObject interface
-func (b *DbStatefulSet) addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) (bool, error) {
+func (b *DbStatefulSet) addToModel(model *BackstageModel, _ bsv1alpha1.Backstage) (bool, error) {
 	if b.statefulSet == nil {
 		if model.localDbEnabled {
 			return false, fmt.Errorf("LocalDb StatefulSet not configured, make sure there is db-statefulset.yaml.yaml in default or raw configuration")
@@ -90,37 +90,15 @@ func (b *DbStatefulSet) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (b *DbStatefulSet) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
+func (b *DbStatefulSet) validate(model *BackstageModel, _ bsv1alpha1.Backstage) error {
 	if model.LocalDbSecret != nil {
 		b.setDbEnvsFromSecret(model.LocalDbSecret.secret.Name)
 	}
 	return nil
 }
 
-// Injects DB Secret name as an env variable of DB container
-// Local DB pod considered to have single container
-//func (b *DbStatefulSet) setSecretNameEnvFrom(envFrom corev1.EnvFromSource) {
-//
-//	// it is possible that Secret name already set by default configuration
-//	// has to be overriden in this case
-//	if b.secretName != "" {
-//		//var ind int
-//		for i, v := range b.container().EnvFrom {
-//			if v.SecretRef.Name == b.secretName {
-//				b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom[i] = envFrom
-//				//ind = i
-//				break
-//			}
-//		}
-//
-//	} else {
-//		b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom = append(b.statefulSet.Spec.Template.Spec.Containers[0].EnvFrom, envFrom)
-//	}
-//	b.secretName = envFrom.SecretRef.Name
-//}
-
 func (b *DbStatefulSet) setMetaInfo(backstageName string) {
-	b.statefulSet.SetName(utils.GenerateRuntimeObjectName(backstageName, "db-statefulset"))
+	b.statefulSet.SetName(DbStatefulSetName(backstageName))
 	utils.GenerateLabel(&b.statefulSet.Spec.Template.ObjectMeta.Labels, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageName))
 	utils.GenerateLabel(&b.statefulSet.Spec.Selector.MatchLabels, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageName))
 }

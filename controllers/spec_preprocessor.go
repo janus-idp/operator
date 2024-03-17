@@ -63,8 +63,12 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.B
 		}
 	}
 
+	if bsSpec.Application == nil {
+		bsSpec.Application = &bs.Application{}
+	}
+
 	// Process AppConfigs
-	if bsSpec.Application != nil && bsSpec.Application.AppConfig != nil {
+	if bsSpec.Application.AppConfig != nil {
 		//mountPath := bsSpec.Application.AppConfig.MountPath
 		for _, ac := range bsSpec.Application.AppConfig.ConfigMaps {
 			cm := corev1.ConfigMap{}
@@ -76,7 +80,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.B
 	}
 
 	// Process ConfigMapFiles
-	if bsSpec.Application != nil && bsSpec.Application.ExtraFiles != nil && bsSpec.Application.ExtraFiles.ConfigMaps != nil {
+	if bsSpec.Application.ExtraFiles != nil && bsSpec.Application.ExtraFiles.ConfigMaps != nil {
 		for _, ef := range bsSpec.Application.ExtraFiles.ConfigMaps {
 			cm := corev1.ConfigMap{}
 			if err := r.Get(ctx, types.NamespacedName{Name: ef.Name, Namespace: ns}, &cm); err != nil {
@@ -87,7 +91,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.B
 	}
 
 	// Process ConfigMapEnvs
-	if bsSpec.Application != nil && bsSpec.Application.ExtraEnvs != nil && bsSpec.Application.ExtraEnvs.ConfigMaps != nil {
+	if bsSpec.Application.ExtraEnvs != nil && bsSpec.Application.ExtraEnvs.ConfigMaps != nil {
 		for _, ee := range bsSpec.Application.ExtraEnvs.ConfigMaps {
 			cm := corev1.ConfigMap{}
 			if err := r.Get(ctx, types.NamespacedName{Name: ee.Name, Namespace: ns}, &cm); err != nil {
@@ -98,7 +102,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.B
 	}
 
 	// Process DynamicPlugins
-	if bsSpec.Application != nil && bsSpec.Application.DynamicPluginsConfigMapName != "" {
+	if bsSpec.Application.DynamicPluginsConfigMapName != "" {
 		cm := corev1.ConfigMap{}
 		if err := r.Get(ctx, types.NamespacedName{Name: bsSpec.Application.DynamicPluginsConfigMapName,
 			Namespace: ns}, &cm); err != nil {

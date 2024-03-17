@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Registered Object configuring Backstage deployment
+// Registered Object configuring Backstage runtime model
 type ObjectConfig struct {
 	// Factory to create the object
 	ObjectFactory ObjectFactory
@@ -30,6 +30,7 @@ type ObjectConfig struct {
 	Key string
 }
 
+// Interface for Runtime Objects factory method
 type ObjectFactory interface {
 	newBackstageObject() RuntimeObject
 }
@@ -39,11 +40,12 @@ type RuntimeObject interface {
 	// Object underlying Kubernetes object
 	Object() client.Object
 	// setObject sets object
-	setObject(obj client.Object, backstageName string)
+	setObject(obj client.Object)
 	// EmptyObject an empty object the same kind as Object
 	EmptyObject() client.Object
-	// adds runtime object to the model and generates default metadata for future applying
-	addToModel(model *BackstageModel, backstageMeta bsv1alpha1.Backstage, ownsRuntime bool) (bool, error)
+	// adds runtime object to the model
+	// returns false if the object was not added to the model (not configured)
+	addToModel(model *BackstageModel, backstage bsv1alpha1.Backstage) (bool, error)
 	// at this stage all the information is updated
 	// set the final references validates the object at the end of initialization
 	validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error

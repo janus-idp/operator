@@ -45,7 +45,7 @@ func init() {
 }
 
 func DynamicPluginsDefaultName(backstageName string) string {
-	return utils.GenerateRuntimeObjectName(backstageName, "default-dynamic-plugins")
+	return utils.GenerateRuntimeObjectName(backstageName, "backstage-dynamic-plugins")
 }
 
 func addDynamicPlugins(spec v1alpha1.BackstageSpec, deployment *appsv1.Deployment, model *BackstageModel) error {
@@ -69,7 +69,7 @@ func (p *DynamicPlugins) Object() client.Object {
 	return p.ConfigMap
 }
 
-func (p *DynamicPlugins) setObject(obj client.Object, backstageName string) {
+func (p *DynamicPlugins) setObject(obj client.Object) {
 	p.ConfigMap = nil
 	if obj != nil {
 		p.ConfigMap = obj.(*corev1.ConfigMap)
@@ -83,7 +83,7 @@ func (p *DynamicPlugins) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (p *DynamicPlugins) addToModel(model *BackstageModel, backstage v1alpha1.Backstage, ownsRuntime bool) (bool, error) {
+func (p *DynamicPlugins) addToModel(model *BackstageModel, backstage v1alpha1.Backstage) (bool, error) {
 
 	if p.ConfigMap == nil || (backstage.Spec.Application != nil && backstage.Spec.Application.DynamicPluginsConfigMapName != "") {
 		return false, nil
@@ -119,7 +119,7 @@ func (p *DynamicPlugins) updatePod(deployment *appsv1.Deployment) {
 
 // implementation of RuntimeObject interface
 // ConfigMap name must be the same as (deployment.yaml).spec.template.spec.volumes.name.dynamic-plugins-conf.ConfigMap.name
-func (p *DynamicPlugins) validate(model *BackstageModel, backstage v1alpha1.Backstage) error {
+func (p *DynamicPlugins) validate(model *BackstageModel, _ v1alpha1.Backstage) error {
 
 	initContainer := dynamicPluginsInitContainer(model.backstageDeployment.deployment.Spec.Template.Spec.InitContainers)
 	if initContainer == nil {

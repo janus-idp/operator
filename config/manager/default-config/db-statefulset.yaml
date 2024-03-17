@@ -16,7 +16,7 @@ spec:
       name: backstage-db-cr1 # placeholder for 'backstage-psql-<cr-name>'
     spec:
 #      securityContext:
-#        runAsGroup: 26
+#        fsGroup: 26
       automountServiceAccountToken: false
       ## https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/
       ## The optional .spec.persistentVolumeClaimRetentionPolicy field controls if and how PVCs are deleted during the lifecycle of a StatefulSet.
@@ -35,8 +35,8 @@ spec:
           image: quay.io/fedora/postgresql-15:latest # will be replaced with the actual image
           imagePullPolicy: IfNotPresent
           securityContext:
-#            runAsUser: 26
-#            runAsGroup: 0
+            runAsUser: 26
+            runAsGroup: 0
             runAsNonRoot: true
             allowPrivilegeEscalation: false
             seccompProfile:

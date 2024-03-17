@@ -82,12 +82,12 @@ func DefFile(key string) string {
 }
 
 func GeneratePassword(length int) (string, error) {
-	_bytes := make([]byte, length)
-	if _, err := rand.Read(_bytes); err != nil {
+	buff := make([]byte, length)
+	if _, err := rand.Read(buff); err != nil {
 		return "", err
 	}
 	// Encode the password to prevent special characters
-	return base64.StdEncoding.EncodeToString(_bytes), nil
+	return base64.StdEncoding.EncodeToString(buff), nil
 }
 
 // Automatically detects if the cluster the operator running on is OpenShift

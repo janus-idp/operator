@@ -46,7 +46,7 @@ func init() {
 }
 
 func AppConfigDefaultName(backstageName string) string {
-	return utils.GenerateRuntimeObjectName(backstageName, "default-appconfig")
+	return utils.GenerateRuntimeObjectName(backstageName, "backstage-appconfig")
 }
 
 func addAppConfigs(spec bsv1alpha1.BackstageSpec, deployment *appsv1.Deployment, model *BackstageModel) {
@@ -76,7 +76,7 @@ func (b *AppConfig) Object() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (b *AppConfig) setObject(obj client.Object, backstageName string) {
+func (b *AppConfig) setObject(obj client.Object) {
 	b.ConfigMap = nil
 	if obj != nil {
 		b.ConfigMap = obj.(*corev1.ConfigMap)
@@ -89,7 +89,7 @@ func (b *AppConfig) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (b *AppConfig) addToModel(model *BackstageModel, backstage bsv1alpha1.Backstage, ownsRuntime bool) (bool, error) {
+func (b *AppConfig) addToModel(model *BackstageModel, _ bsv1alpha1.Backstage) (bool, error) {
 	if b.ConfigMap != nil {
 		model.setRuntimeObject(b)
 		return true, nil
@@ -98,7 +98,7 @@ func (b *AppConfig) addToModel(model *BackstageModel, backstage bsv1alpha1.Backs
 }
 
 // implementation of RuntimeObject interface
-func (b *AppConfig) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
+func (b *AppConfig) validate(_ *BackstageModel, _ bsv1alpha1.Backstage) error {
 	return nil
 }
 

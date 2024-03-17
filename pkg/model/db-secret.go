@@ -39,7 +39,7 @@ func init() {
 }
 
 func DbSecretDefaultName(backstageName string) string {
-	return utils.GenerateRuntimeObjectName(backstageName, "default-dbsecret")
+	return utils.GenerateRuntimeObjectName(backstageName, "backstage-db")
 }
 
 // implementation of RuntimeObject interface
@@ -47,7 +47,8 @@ func (b *DbSecret) Object() client.Object {
 	return b.secret
 }
 
-func (b *DbSecret) setObject(obj client.Object, backstageName string) {
+// implementation of RuntimeObject interface
+func (b *DbSecret) setObject(obj client.Object) {
 	b.secret = nil
 	if obj != nil {
 		b.secret = obj.(*corev1.Secret)
@@ -55,7 +56,7 @@ func (b *DbSecret) setObject(obj client.Object, backstageName string) {
 }
 
 // implementation of RuntimeObject interface
-func (b *DbSecret) addToModel(model *BackstageModel, backstage bsv1alpha1.Backstage, ownsRuntime bool) (bool, error) {
+func (b *DbSecret) addToModel(model *BackstageModel, _ bsv1alpha1.Backstage) (bool, error) {
 
 	if b.secret != nil && model.localDbEnabled {
 		model.setRuntimeObject(b)

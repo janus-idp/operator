@@ -70,7 +70,7 @@ func TestEmptyDbSecret(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model.LocalDbSecret)
-	assert.Equal(t, "bs-default-dbsecret", model.LocalDbSecret.secret.Name)
+	assert.Equal(t, DbSecretDefaultName(bs.Name), model.LocalDbSecret.secret.Name)
 
 	dbss := model.localDbStatefulSet
 	assert.NotNil(t, dbss)
@@ -88,7 +88,7 @@ func TestDefaultWithGeneratedSecrets(t *testing.T) {
 	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "bs-default-dbsecret", model.LocalDbSecret.secret.Name)
+	assert.Equal(t, DbSecretDefaultName(bs.Name), model.LocalDbSecret.secret.Name)
 	//should be generated
 	//	assert.NotEmpty(t, model.LocalDbSecret.secret.StringData["POSTGRES_USER"])
 	//	assert.NotEmpty(t, model.LocalDbSecret.secret.StringData["POSTGRES_PASSWORD"])

@@ -66,7 +66,7 @@ func (p *ConfigMapFiles) Object() client.Object {
 	return p.ConfigMap
 }
 
-func (p *ConfigMapFiles) setObject(obj client.Object, backstageName string) {
+func (p *ConfigMapFiles) setObject(obj client.Object) {
 	p.ConfigMap = nil
 	if obj != nil {
 		p.ConfigMap = obj.(*corev1.ConfigMap)
@@ -80,7 +80,7 @@ func (p *ConfigMapFiles) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (p *ConfigMapFiles) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) (bool, error) {
+func (p *ConfigMapFiles) addToModel(model *BackstageModel, _ v1alpha1.Backstage) (bool, error) {
 	if p.ConfigMap != nil {
 		model.setRuntimeObject(p)
 		return true, nil
@@ -89,12 +89,12 @@ func (p *ConfigMapFiles) addToModel(model *BackstageModel, backstageMeta v1alpha
 }
 
 // implementation of RuntimeObject interface
-func (p *ConfigMapFiles) validate(model *BackstageModel, backstage v1alpha1.Backstage) error {
+func (p *ConfigMapFiles) validate(_ *BackstageModel, _ v1alpha1.Backstage) error {
 	return nil
 }
 
 func (p *ConfigMapFiles) setMetaInfo(backstageName string) {
-	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageName, "default-configmapfiles"))
+	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageName, "backstage-files"))
 }
 
 // implementation of BackstagePodContributor interface

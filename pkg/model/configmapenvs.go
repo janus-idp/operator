@@ -59,7 +59,7 @@ func (p *ConfigMapEnvs) Object() client.Object {
 	return p.ConfigMap
 }
 
-func (p *ConfigMapEnvs) setObject(obj client.Object, backstageName string) {
+func (p *ConfigMapEnvs) setObject(obj client.Object) {
 	p.ConfigMap = nil
 	if obj != nil {
 		p.ConfigMap = obj.(*corev1.ConfigMap)
@@ -72,7 +72,7 @@ func (p *ConfigMapEnvs) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (p *ConfigMapEnvs) addToModel(model *BackstageModel, backstageMeta v1alpha1.Backstage, ownsRuntime bool) (bool, error) {
+func (p *ConfigMapEnvs) addToModel(model *BackstageModel, _ v1alpha1.Backstage) (bool, error) {
 	if p.ConfigMap != nil {
 		model.setRuntimeObject(p)
 		return true, nil
@@ -81,12 +81,12 @@ func (p *ConfigMapEnvs) addToModel(model *BackstageModel, backstageMeta v1alpha1
 }
 
 // implementation of RuntimeObject interface
-func (p *ConfigMapEnvs) validate(model *BackstageModel, backstage v1alpha1.Backstage) error {
+func (p *ConfigMapEnvs) validate(_ *BackstageModel, _ v1alpha1.Backstage) error {
 	return nil
 }
 
 func (p *ConfigMapEnvs) setMetaInfo(backstageName string) {
-	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageName, "default-configmapenvs"))
+	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageName, "backstage-envs"))
 }
 
 // implementation of BackstagePodContributor interface

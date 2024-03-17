@@ -24,8 +24,6 @@ import (
 
 	"k8s.io/utils/pointer"
 
-	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,7 +53,7 @@ func TestDefaultRoute(t *testing.T) {
 
 	assert.NotNil(t, model.route)
 
-	assert.Equal(t, utils.GenerateRuntimeObjectName(bs.Name, "route"), model.route.route.Name)
+	assert.Equal(t, RouteName(bs.Name), model.route.route.Name)
 	assert.Equal(t, model.backstageService.service.Name, model.route.route.Spec.To.Name)
 
 	//	assert.Empty(t, model.route.route.Spec.Host)
@@ -88,7 +86,7 @@ func TestSpecifiedRoute(t *testing.T) {
 	assert.NotNil(t, model.route)
 
 	// check if what we have is what we specified in bs
-	assert.Equal(t, utils.GenerateRuntimeObjectName(bs.Name, "route"), model.route.route.Name)
+	assert.Equal(t, RouteName(bs.Name), model.route.route.Name)
 	assert.Equal(t, bs.Spec.Application.Route.Host, model.route.route.Spec.Host)
 
 	// Test with default route configured
@@ -99,6 +97,6 @@ func TestSpecifiedRoute(t *testing.T) {
 	assert.NotNil(t, model.route)
 
 	// check if what we have is what we specified in bs
-	assert.Equal(t, utils.GenerateRuntimeObjectName(bs.Name, "route"), model.route.route.Name)
+	assert.Equal(t, RouteName(bs.Name), model.route.route.Name)
 	assert.Equal(t, bs.Spec.Application.Route.Host, model.route.route.Spec.Host)
 }
