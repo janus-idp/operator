@@ -129,7 +129,7 @@ func TestAddToModel(t *testing.T) {
 	testService := *model.backstageService
 
 	// add to rm
-	testService.addToModel(&rm, bs)
+	_, _ = testService.addToModel(&rm, bs)
 	assert.Equal(t, 1, len(rm.RuntimeObjects))
 	assert.NotNil(t, rm.backstageService)
 	assert.Nil(t, rm.backstageDeployment)
