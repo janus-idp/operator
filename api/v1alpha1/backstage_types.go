@@ -16,7 +16,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 type BackstageConditionReason string
@@ -280,7 +280,7 @@ func (s *BackstageSpec) IsLocalDbEnabled() bool {
 	if s.Database == nil {
 		return true
 	}
-	return pointer.BoolDeref(s.Database.EnableLocalDb, true)
+	return ptr.Deref(s.Database.EnableLocalDb, true)
 	//return ptr.Deref(s.Database.EnableLocalDb, true)
 }
 
@@ -288,7 +288,7 @@ func (s *BackstageSpec) IsRouteEnabled() bool {
 	if s.Application == nil || s.Application.Route == nil {
 		return false
 	}
-	return pointer.BoolDeref(s.Application.Route.Enabled, true)
+	return ptr.Deref(s.Application.Route.Enabled, true)
 	//return ptr.Deref(s.Application.Route.Enabled, true)
 }
 

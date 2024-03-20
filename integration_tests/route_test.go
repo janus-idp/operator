@@ -19,8 +19,9 @@ import (
 	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
 	"time"
 
+	"k8s.io/utils/ptr"
+
 	openshift "github.com/openshift/api/route/v1"
-	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -65,7 +66,7 @@ var _ = When("create default backstage", func() {
 			Application: &bsv1alpha1.Application{
 				Route: &bsv1alpha1.Route{
 					Host:      "localhost",
-					Enabled:   pointer.Bool(true),
+					Enabled:   ptr.To(true),
 					Subdomain: "test",
 				},
 			},

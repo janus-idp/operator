@@ -18,10 +18,11 @@ import (
 	"context"
 	"testing"
 
+	"k8s.io/utils/ptr"
+
 	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,31 +34,10 @@ var dbSecretBackstage = &bsv1alpha1.Backstage{
 	},
 	Spec: bsv1alpha1.BackstageSpec{
 		Database: &bsv1alpha1.Database{
-			EnableLocalDb: pointer.Bool(false),
+			EnableLocalDb: ptr.To(false),
 		},
 	},
 }
-
-//func TestDefaultWithDefinedSecrets(t *testing.T) {
-//
-//	bs := *dbSecretBackstage.DeepCopy()
-//
-//	// expected generatePassword = false (default db-secret defined) will come from preprocess
-//	testObj := createBackstageTest(bs).withDefaultConfig(true).withLocalDb().addToDefaultConfig("db-secret.yaml", "db-defined-secret.yaml")
-//
-//	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
-//
-//	assert.NoError(t, err)
-//	assert.NotNil(t, model.LocalDbSecret)
-//	assert.Equal(t, "postgres-secrets", model.LocalDbSecret.secret.Name)
-//	assert.Equal(t, "postgres", model.LocalDbSecret.secret.StringData["POSTGRES_USER"])
-//
-//	dbss := model.localDbStatefulSet
-//	assert.NotNil(t, dbss)
-//	assert.Equal(t, 1, len(dbss.container().EnvFrom))
-//
-//	assert.Equal(t, model.LocalDbSecret.secret.Name, dbss.container().EnvFrom[0].SecretRef.Name)
-//}
 
 func TestEmptyDbSecret(t *testing.T) {
 

@@ -20,10 +20,10 @@ import (
 	"os"
 	"strconv"
 
+	"k8s.io/utils/ptr"
+
 	openshift "github.com/openshift/api/route/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-
-	"k8s.io/utils/pointer"
 
 	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 
@@ -90,11 +90,11 @@ var _ = BeforeSuite(func() {
 		ErrorIfCRDPathMissing: true,
 	}
 
-	testEnv.UseExistingCluster = pointer.Bool(false)
+	testEnv.UseExistingCluster = ptr.To(false)
 	if val, ok := os.LookupEnv("USE_EXISTING_CLUSTER"); ok {
 		boolValue, err := strconv.ParseBool(val)
 		if err == nil {
-			testEnv.UseExistingCluster = pointer.Bool(boolValue)
+			testEnv.UseExistingCluster = ptr.To(boolValue)
 		}
 	}
 
@@ -169,7 +169,6 @@ func NewTestBackstageReconciler(namespace string) *TestBackstageReconciler {
 	)
 	isOpenshift = isOpenshiftCluster()
 	if *testEnv.UseExistingCluster {
-		isOpenshift, err = utils.IsOpenshift()
 		Expect(err).To(Not(HaveOccurred()))
 		if isOpenshift {
 			utilruntime.Must(openshift.Install(sch))

@@ -19,13 +19,13 @@ import (
 	"os"
 	"path/filepath"
 
+	"k8s.io/utils/ptr"
+
 	corev1 "k8s.io/api/core/v1"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"k8s.io/apimachinery/pkg/runtime"
-
-	"k8s.io/utils/pointer"
 
 	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
 )
@@ -56,7 +56,7 @@ func createBackstageTest(bs bsv1alpha1.Backstage) *testBackstageObject {
 
 // enables LocalDB
 func (b *testBackstageObject) withLocalDb() *testBackstageObject {
-	b.backstage.Spec.Database.EnableLocalDb = pointer.Bool(true)
+	b.backstage.Spec.Database.EnableLocalDb = ptr.To(true)
 	return b
 }
 

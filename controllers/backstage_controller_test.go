@@ -21,7 +21,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -1481,7 +1481,7 @@ spec:
 			It("should successfully reconcile a custom resource for default Backstage with existing secret", func() {
 				backstage := buildBackstageCR(bsv1alpha1.BackstageSpec{
 					Database: &bsv1alpha1.Database{
-						EnableLocalDb:  pointer.Bool(false),
+						EnableLocalDb:  ptr.To(false),
 						AuthSecretName: "existing-secret",
 					},
 				})
@@ -1522,7 +1522,7 @@ spec:
 		It("should reconcile a custom resource for default Backstage without existing secret", func() {
 			backstage := buildBackstageCR(bsv1alpha1.BackstageSpec{
 				Database: &bsv1alpha1.Database{
-					EnableLocalDb: pointer.Bool(false),
+					EnableLocalDb: ptr.To(false),
 				},
 			})
 			err := k8sClient.Create(ctx, backstage)

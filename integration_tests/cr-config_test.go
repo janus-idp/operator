@@ -18,7 +18,7 @@ import (
 	"context"
 	"time"
 
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -213,7 +213,7 @@ var _ = When("create backstage with CR configured", func() {
 		err = k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, update)
 		Expect(err).To(Not(HaveOccurred()))
 		update.Spec.Application = &bsv1alpha1.Application{}
-		update.Spec.Application.Replicas = pointer.Int32(2)
+		update.Spec.Application.Replicas = ptr.To(int32(2))
 		err = k8sClient.Update(ctx, update)
 		Expect(err).To(Not(HaveOccurred()))
 		_, err = NewTestBackstageReconciler(ns).ReconcileAny(ctx, reconcile.Request{

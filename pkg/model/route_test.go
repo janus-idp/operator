@@ -18,11 +18,11 @@ import (
 	"context"
 	"testing"
 
+	"k8s.io/utils/ptr"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
-
-	"k8s.io/utils/pointer"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,7 +36,7 @@ func TestDefaultRoute(t *testing.T) {
 		Spec: bsv1alpha1.BackstageSpec{
 			Application: &bsv1alpha1.Application{
 				Route: &bsv1alpha1.Route{
-					Enabled: pointer.Bool(true),
+					Enabled: ptr.To(true),
 					Host:    "TestSpecifiedRoute",
 					TLS:     nil,
 				},
@@ -68,7 +68,7 @@ func TestSpecifiedRoute(t *testing.T) {
 		Spec: bsv1alpha1.BackstageSpec{
 			Application: &bsv1alpha1.Application{
 				Route: &bsv1alpha1.Route{
-					Enabled: pointer.Bool(true),
+					Enabled: ptr.To(true),
 					Host:    "TestSpecifiedRoute",
 					TLS:     nil,
 				},

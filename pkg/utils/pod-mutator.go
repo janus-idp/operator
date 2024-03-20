@@ -17,8 +17,9 @@ package utils
 import (
 	"path/filepath"
 
+	"k8s.io/utils/ptr"
+
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
 )
 
 const (
@@ -50,14 +51,14 @@ func MountFilesFrom(podSpec *corev1.PodSpec, container *corev1.Container, kind O
 	if kind == ConfigMapObjectKind {
 		volSrc.ConfigMap = &corev1.ConfigMapVolumeSource{
 			LocalObjectReference: corev1.LocalObjectReference{Name: objectName},
-			DefaultMode:          pointer.Int32(420),
-			Optional:             pointer.Bool(false),
+			DefaultMode:          ptr.To(int32(420)),
+			Optional:             ptr.To(false),
 		}
 	} else if kind == SecretObjectKind {
 		volSrc.Secret = &corev1.SecretVolumeSource{
 			SecretName:  objectName,
-			DefaultMode: pointer.Int32(420),
-			Optional:    pointer.Bool(false),
+			DefaultMode: ptr.To(int32(420)),
+			Optional:    ptr.To(false),
 		}
 	}
 

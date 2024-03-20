@@ -18,9 +18,9 @@ import (
 	"context"
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/ptr"
 
-	"k8s.io/utils/pointer"
+	corev1 "k8s.io/api/core/v1"
 
 	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
 
@@ -38,7 +38,7 @@ func TestDefaultConfigMapEnvFrom(t *testing.T) {
 		},
 		Spec: bsv1alpha1.BackstageSpec{
 			Database: &bsv1alpha1.Database{
-				EnableLocalDb: pointer.Bool(false),
+				EnableLocalDb: ptr.To(false),
 			},
 		},
 	}

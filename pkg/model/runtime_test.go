@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"testing"
 
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
 	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
@@ -41,7 +41,7 @@ func TestInitDefaultDeploy(t *testing.T) {
 		},
 		Spec: v1alpha1.BackstageSpec{
 			Database: &v1alpha1.Database{
-				EnableLocalDb: pointer.Bool(false),
+				EnableLocalDb: ptr.To(false),
 			},
 		},
 	}
@@ -77,7 +77,7 @@ func TestIfEmptyObjectIsValid(t *testing.T) {
 		},
 		Spec: bsv1alpha1.BackstageSpec{
 			Database: &bsv1alpha1.Database{
-				EnableLocalDb: pointer.Bool(false),
+				EnableLocalDb: ptr.To(false),
 			},
 		},
 	}
@@ -102,7 +102,7 @@ func TestAddToModel(t *testing.T) {
 		},
 		Spec: v1alpha1.BackstageSpec{
 			Database: &v1alpha1.Database{
-				EnableLocalDb: pointer.Bool(false),
+				EnableLocalDb: ptr.To(false),
 			},
 		},
 	}

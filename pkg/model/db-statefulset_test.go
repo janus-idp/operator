@@ -19,10 +19,11 @@ import (
 	"os"
 	"testing"
 
+	"k8s.io/utils/ptr"
+
 	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -34,7 +35,7 @@ var dbStatefulSetBackstage = &bsv1alpha1.Backstage{
 	},
 	Spec: bsv1alpha1.BackstageSpec{
 		Database: &bsv1alpha1.Database{
-			EnableLocalDb: pointer.Bool(false),
+			EnableLocalDb: ptr.To(false),
 		},
 	},
 }

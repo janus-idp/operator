@@ -19,10 +19,11 @@ import (
 	"os"
 	"testing"
 
+	"k8s.io/utils/ptr"
+
 	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -34,7 +35,7 @@ var deploymentTestBackstage = bsv1alpha1.Backstage{
 	},
 	Spec: bsv1alpha1.BackstageSpec{
 		Database: &bsv1alpha1.Database{
-			EnableLocalDb: pointer.Bool(false),
+			EnableLocalDb: ptr.To(false),
 		},
 		Application: &bsv1alpha1.Application{},
 	},
@@ -42,8 +43,8 @@ var deploymentTestBackstage = bsv1alpha1.Backstage{
 
 func TestSpecs(t *testing.T) {
 	bs := *deploymentTestBackstage.DeepCopy()
-	bs.Spec.Application.Image = pointer.String("my-image:1.0.0")
-	bs.Spec.Application.Replicas = pointer.Int32(3)
+	bs.Spec.Application.Image = ptr.To("my-image:1.0.0")
+	bs.Spec.Application.Replicas = ptr.To(int32(3))
 	bs.Spec.Application.ImagePullSecrets = []string{"my-secret"}
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).

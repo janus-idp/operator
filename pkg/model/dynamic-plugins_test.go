@@ -19,9 +19,9 @@ import (
 	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 	"testing"
 
-	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	"k8s.io/utils/ptr"
 
-	"k8s.io/utils/pointer"
+	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,7 +36,7 @@ var testDynamicPluginsBackstage = bsv1alpha1.Backstage{
 	},
 	Spec: bsv1alpha1.BackstageSpec{
 		Database: &bsv1alpha1.Database{
-			EnableLocalDb: pointer.Bool(false),
+			EnableLocalDb: ptr.To(false),
 		},
 		Application: &bsv1alpha1.Application{},
 	},
