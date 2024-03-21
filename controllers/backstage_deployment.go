@@ -195,11 +195,23 @@ func (r *BackstageReconciler) validateAndUpdatePsqlSecretRef(backstage bs.Backst
 
 func (r *BackstageReconciler) setDefaultDeploymentImage(deployment *appsv1.Deployment) {
 	if envBackstageImage != "" {
-		visitContainers(&deployment.Spec.Template, func(container *v1.Container) {
-			container.Image = envBackstageImage
-
-		})
+		for _, c := range deployment.Spec.Template.Spec.Containers {
+			if c.Name == _defaultBackstageMainContainerName {
+				c.Image = envBackstageImage
+			}
+		}
+		for _, c := range deployment.Spec.Template.Spec.InitContainers {
+			if c.Name == _defaultBackstageInitContainerName {
+				c.Image = envBackstageImage
+			}
+		}
 	}
+	//if envBackstageImage != "" {
+	//	visitContainers(&deployment.Spec.Template, func(container *v1.Container) {
+	//		container.Image = envBackstageImage
+	//
+	//	})
+	//}
 }
 
 func (r *BackstageReconciler) applyBackstageLabels(backstage bs.Backstage, deployment *appsv1.Deployment) {
