@@ -21,14 +21,12 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
 	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
 
 	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/types"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -40,7 +38,6 @@ var _ = When("create default backstage", func() {
 	var (
 		ctx context.Context
 		ns  string
-		//backstageName string
 	)
 
 	BeforeEach(func() {
@@ -49,26 +46,12 @@ var _ = When("create default backstage", func() {
 	})
 
 	AfterEach(func() {
-		// NOTE: Be aware of the current delete namespace limitations.
-		// More info: https://book.kubebuilder.io/reference/envtest.html#testing-considerations
-		_ = k8sClient.Delete(ctx, &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{Name: ns},
-		})
+		deleteNamespace(ctx, ns)
 	})
 
 	It("creates runtime objects", func() {
 
-		backstageName := createBackstage(ctx, bsv1alpha1.BackstageSpec{}, ns)
-
-		Eventually(func() error {
-			found := &bsv1alpha1.Backstage{}
-			return k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, found)
-		}, time.Minute, time.Second).Should(Succeed())
-
-		_, err := NewTestBackstageReconciler(ns).ReconcileAny(ctx, reconcile.Request{
-			NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
-		})
-		Expect(err).To(Not(HaveOccurred()))
+		backstageName := createAndReconcileBackstage(ctx, ns, bsv1alpha1.BackstageSpec{})
 
 		Eventually(func(g Gomega) {
 			By("creating a secret for accessing the Database")
@@ -126,80 +109,27 @@ var _ = When("create default backstage", func() {
 			}
 
 		}, 5*time.Minute, time.Second).Should(Succeed())
-
 	})
 
 	It("creates runtime object using raw configuration ", func() {
 
-		bsConf := map[string]string{
-			"deployment.yaml": `
-apiVersion: apps/v1
-kind: Deployment
-metadata:
- name: bs1-deployment
- labels:
-   app: bs1
-spec:
- replicas: 1
- selector:
-   matchLabels:
-     app: bs1
- template:
-   metadata:
-     labels:
-       app: bs1
-   spec:
-     containers:
-       - name: bs1
-         image: busybox
-`,
-		}
+		bsConf := map[string]string{"deployment.yaml": readTestYamlFile("raw-deployment.yaml")}
+		dbConf := map[string]string{"db-statefulset.yaml": readTestYamlFile("raw-statefulset.yaml")}
 
-		dbConf := map[string]string{
-			"db-statefulset.yaml": `
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
- name: db-statefulset
-spec:
- replicas: 1
- selector:
-   matchLabels:
-     app: db
- template:
-   metadata:
-     labels:
-       app: db
-   spec:
-     containers:
-       - name: db
-         image: busybox
-`,
-		}
 		generateConfigMap(ctx, k8sClient, "bsraw", ns, bsConf)
 		generateConfigMap(ctx, k8sClient, "dbraw", ns, dbConf)
 
-		backstageName := createBackstage(ctx, bsv1alpha1.BackstageSpec{
+		backstageName := createAndReconcileBackstage(ctx, ns, bsv1alpha1.BackstageSpec{
 			RawRuntimeConfig: &bsv1alpha1.RuntimeConfig{
 				BackstageConfigName: "bsraw",
 				LocalDbConfigName:   "dbraw",
 			},
-		}, ns)
-
-		Eventually(func() error {
-			found := &bsv1alpha1.Backstage{}
-			return k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, found)
-		}, time.Minute, time.Second).Should(Succeed())
-
-		_, err := NewTestBackstageReconciler(ns).ReconcileAny(ctx, reconcile.Request{
-			NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
 		})
-		Expect(err).To(Not(HaveOccurred()))
 
 		Eventually(func(g Gomega) {
 			By("creating Deployment")
 			deploy := &appsv1.Deployment{}
-			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, deploy)
+			err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, deploy)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(deploy.Spec.Replicas).To(HaveValue(BeEquivalentTo(1)))
 			g.Expect(deploy.Spec.Template.Spec.Containers).To(HaveLen(1))
@@ -215,4 +145,5 @@ spec:
 		}, time.Minute, time.Second).Should(Succeed())
 
 	})
+
 })

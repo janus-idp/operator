@@ -21,7 +21,6 @@ import (
 	"k8s.io/utils/ptr"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 
@@ -52,11 +51,7 @@ var _ = When("create backstage with CR configured", func() {
 	})
 
 	AfterEach(func() {
-		// NOTE: Be aware of the current delete namespace limitations.
-		// More info: https://book.kubebuilder.io/reference/envtest.html#testing-considerations
-		_ = k8sClient.Delete(ctx, &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{Name: ns},
-		})
+		deleteNamespace(ctx, ns)
 	})
 
 	It("creates Backstage with configuration ", func() {
@@ -111,24 +106,11 @@ var _ = When("create backstage with CR configured", func() {
 				},
 			},
 		}
-
-		backstageName := createBackstage(ctx, bs, ns)
-
-		By("Checking if the custom resource was successfully created")
-
-		Eventually(func() error {
-			found := &bsv1alpha1.Backstage{}
-			return k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, found)
-		}, time.Minute, time.Second).Should(Succeed())
-
-		_, err := NewTestBackstageReconciler(ns).ReconcileAny(ctx, reconcile.Request{
-			NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
-		})
-		Expect(err).To(Not(HaveOccurred()))
+		backstageName := createAndReconcileBackstage(ctx, ns, bs)
 
 		Eventually(func(g Gomega) {
 			deploy := &appsv1.Deployment{}
-			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, deploy)
+			err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, deploy)
 			g.Expect(err).ShouldNot(HaveOccurred())
 
 			podSpec := deploy.Spec.Template.Spec
@@ -184,33 +166,23 @@ var _ = When("create backstage with CR configured", func() {
 				}
 			}
 		}, 5*time.Minute, time.Second).Should(Succeed(), controllerMessage())
-
 	})
 
 	It("creates default Backstage and then update CR ", func() {
-		backstageName := createBackstage(ctx, bsv1alpha1.BackstageSpec{}, ns)
 
-		Eventually(func() error {
-			found := &bsv1alpha1.Backstage{}
-			return k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, found)
-		}, time.Minute, time.Second).Should(Succeed())
-
-		_, err := NewTestBackstageReconciler(ns).ReconcileAny(ctx, reconcile.Request{
-			NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
-		})
-		Expect(err).To(Not(HaveOccurred()))
+		backstageName := createAndReconcileBackstage(ctx, ns, bsv1alpha1.BackstageSpec{})
 
 		Eventually(func(g Gomega) {
 			By("creating Deployment with replicas=1 by default")
 			deploy := &appsv1.Deployment{}
-			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, deploy)
+			err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, deploy)
 			g.Expect(err).To(Not(HaveOccurred()))
 
 		}, time.Minute, time.Second).Should(Succeed())
 
 		By("updating Backstage")
 		update := &bsv1alpha1.Backstage{}
-		err = k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, update)
+		err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, update)
 		Expect(err).To(Not(HaveOccurred()))
 		update.Spec.Application = &bsv1alpha1.Application{}
 		update.Spec.Application.Replicas = ptr.To(int32(2))

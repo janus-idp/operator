@@ -27,8 +27,6 @@ import (
 
 	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -40,7 +38,6 @@ var _ = When("create default backstage", func() {
 	var (
 		ctx context.Context
 		ns  string
-		//backstageName string
 	)
 
 	BeforeEach(func() {
@@ -49,11 +46,7 @@ var _ = When("create default backstage", func() {
 	})
 
 	AfterEach(func() {
-		// NOTE: Be aware of the current delete namespace limitations.
-		// More info: https://book.kubebuilder.io/reference/envtest.html#testing-considerations
-		_ = k8sClient.Delete(ctx, &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{Name: ns},
-		})
+		deleteNamespace(ctx, ns)
 	})
 
 	It("creates Backstage object (on Openshift)", func() {
@@ -62,7 +55,7 @@ var _ = When("create default backstage", func() {
 			Skip("Skip non-Openshift test")
 		}
 
-		backstageName := createBackstage(ctx, bsv1alpha1.BackstageSpec{
+		backstageName := createAndReconcileBackstage(ctx, ns, bsv1alpha1.BackstageSpec{
 			Application: &bsv1alpha1.Application{
 				Route: &bsv1alpha1.Route{
 					Host:      "localhost",
@@ -70,7 +63,7 @@ var _ = When("create default backstage", func() {
 					Subdomain: "test",
 				},
 			},
-		}, ns)
+		})
 
 		Eventually(func() error {
 			found := &bsv1alpha1.Backstage{}

@@ -20,6 +20,9 @@ import (
 	"os"
 	"strconv"
 
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
 	"k8s.io/utils/ptr"
 
 	openshift "github.com/openshift/api/route/v1"
@@ -151,6 +154,22 @@ func createBackstage(ctx context.Context, spec bsv1alpha1.BackstageSpec, ns stri
 	return backstageName
 }
 
+func createAndReconcileBackstage(ctx context.Context, ns string, spec bsv1alpha1.BackstageSpec) string {
+	backstageName := createBackstage(ctx, spec, ns)
+
+	Eventually(func() error {
+		found := &bsv1alpha1.Backstage{}
+		return k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, found)
+	}, time.Minute, time.Second).Should(Succeed())
+
+	_, err := NewTestBackstageReconciler(ns).ReconcileAny(ctx, reconcile.Request{
+		NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
+	})
+	Expect(err).To(Not(HaveOccurred()))
+
+	return backstageName
+}
+
 func createNamespace(ctx context.Context) string {
 	ns := fmt.Sprintf("ns-%d-%s", GinkgoParallelProcess(), randString(5))
 	err := k8sClient.Create(ctx, &corev1.Namespace{
@@ -158,6 +177,12 @@ func createNamespace(ctx context.Context) string {
 	})
 	Expect(err).To(Not(HaveOccurred()))
 	return ns
+}
+
+func deleteNamespace(ctx context.Context, ns string) {
+	_ = k8sClient.Delete(ctx, &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{Name: ns},
+	})
 }
 
 func NewTestBackstageReconciler(namespace string) *TestBackstageReconciler {

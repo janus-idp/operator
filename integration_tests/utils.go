@@ -17,6 +17,8 @@ package integration_tests
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,4 +50,11 @@ func generateSecret(ctx context.Context, k8sClient client.Client, name, namespac
 		},
 		StringData: data,
 	})).To(Not(HaveOccurred()))
+}
+
+func readTestYamlFile(name string) string {
+
+	b, err := os.ReadFile(filepath.Join("testdata", name)) // #nosec G304, path is constructed internally
+	Expect(err).NotTo(HaveOccurred())
+	return string(b)
 }

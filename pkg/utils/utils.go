@@ -65,7 +65,7 @@ func ReadYaml(manifest []byte, object interface{}) error {
 	return nil
 }
 
-func ReadYamlFile(path string, object /*metav1.Object*/ interface{}) error {
+func ReadYamlFile(path string, object interface{}) error {
 	fpath := filepath.Clean(path)
 	if _, err := os.Stat(fpath); err != nil {
 		return err

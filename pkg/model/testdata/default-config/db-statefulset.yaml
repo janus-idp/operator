@@ -15,6 +15,7 @@ spec:
         rhdh.redhat.com/app: backstage-psql-cr1 # placeholder for 'backstage-psql-<cr-name>'
       name: backstage-db-cr1 # placeholder for 'backstage-psql-<cr-name>'
     spec:
+      automountServiceAccountToken: false
       containers:
         - env:
             - name: POSTGRESQL_PORT_NUMBER
@@ -23,9 +24,6 @@ spec:
               value: /var/lib/pgsql/data
             - name: PGDATA
               value: /var/lib/pgsql/data/userdata
-#          envFrom:
-#            - secretRef:
-#                name: postgres-secrets
           image: quay.io/fedora/postgresql-15:latest
           imagePullPolicy: IfNotPresent
           securityContext:
@@ -70,7 +68,9 @@ spec:
               cpu: 250m
               memory: 256Mi
             limits:
+              cpu: 250m
               memory: 1024Mi
+              ephemeral-storage: 20Mi
           volumeMounts:
             - mountPath: /dev/shm
               name: dshm
