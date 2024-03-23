@@ -56,49 +56,49 @@ var _ = When("create backstage with CR configured", func() {
 
 	It("creates Backstage with configuration ", func() {
 
-		generateConfigMap(ctx, k8sClient, "app-config1", ns, map[string]string{"key11": "app:", "key12": "app:"})
-		generateConfigMap(ctx, k8sClient, "app-config2", ns, map[string]string{"key21": "app:", "key22": "app:"})
+		appConfig1 := generateConfigMap(ctx, k8sClient, "app-config1", ns, map[string]string{"key11": "app:", "key12": "app:"})
+		appConfig2 := generateConfigMap(ctx, k8sClient, "app-config2", ns, map[string]string{"key21": "app:", "key22": "app:"})
 
-		generateConfigMap(ctx, k8sClient, "cm-file1", ns, map[string]string{"cm11": "11", "cm12": "12"})
-		generateConfigMap(ctx, k8sClient, "cm-file2", ns, map[string]string{"cm21": "21", "cm22": "22"})
+		cmFile1 := generateConfigMap(ctx, k8sClient, "cm-file1", ns, map[string]string{"cm11": "11", "cm12": "12"})
+		cmFile2 := generateConfigMap(ctx, k8sClient, "cm-file2", ns, map[string]string{"cm21": "21", "cm22": "22"})
 
-		generateSecret(ctx, k8sClient, "secret-file1", ns, []string{"sec11", "sec12"})
-		generateSecret(ctx, k8sClient, "secret-file2", ns, []string{"sec21", "sec22"})
+		secretFile1 := generateSecret(ctx, k8sClient, "secret-file1", ns, []string{"sec11", "sec12"})
+		secretFile2 := generateSecret(ctx, k8sClient, "secret-file2", ns, []string{"sec21", "sec22"})
 
-		generateConfigMap(ctx, k8sClient, "cm-env1", ns, map[string]string{"cm11": "11", "cm12": "12"})
-		generateConfigMap(ctx, k8sClient, "cm-env2", ns, map[string]string{"cm21": "21", "cm22": "22"})
+		cmEnv1 := generateConfigMap(ctx, k8sClient, "cm-env1", ns, map[string]string{"cm11": "11", "cm12": "12"})
+		cmEnv2 := generateConfigMap(ctx, k8sClient, "cm-env2", ns, map[string]string{"cm21": "21", "cm22": "22"})
 
-		generateSecret(ctx, k8sClient, "secret-env1", ns, []string{"sec11", "sec12"})
-		generateSecret(ctx, k8sClient, "secret-env2", ns, []string{"sec21", "sec22"})
+		secretEnv1 := generateSecret(ctx, k8sClient, "secret-env1", ns, []string{"sec11", "sec12"})
+		_ = generateSecret(ctx, k8sClient, "secret-env2", ns, []string{"sec21", "sec22"})
 
 		bs := bsv1alpha1.BackstageSpec{
 			Application: &bsv1alpha1.Application{
 				AppConfig: &bsv1alpha1.AppConfig{
 					MountPath: "/my/mount/path",
 					ConfigMaps: []bsv1alpha1.ObjectKeyRef{
-						{Name: "app-config1"},
-						{Name: "app-config2", Key: "key21"},
+						{Name: appConfig1},
+						{Name: appConfig2, Key: "key21"},
 					},
 				},
 				//DynamicPluginsConfigMapName: "",
 				ExtraFiles: &bsv1alpha1.ExtraFiles{
 					MountPath: "/my/file/path",
 					ConfigMaps: []bsv1alpha1.ObjectKeyRef{
-						{Name: "cm-file1"},
-						{Name: "cm-file2", Key: "cm21"},
+						{Name: cmFile1},
+						{Name: cmFile2, Key: "cm21"},
 					},
 					Secrets: []bsv1alpha1.ObjectKeyRef{
-						{Name: "secret-file1", Key: "sec11"},
-						{Name: "secret-file2", Key: "sec21"},
+						{Name: secretFile1, Key: "sec11"},
+						{Name: secretFile2, Key: "sec21"},
 					},
 				},
 				ExtraEnvs: &bsv1alpha1.ExtraEnvs{
 					ConfigMaps: []bsv1alpha1.ObjectKeyRef{
-						{Name: "cm-env1"},
-						{Name: "cm-env2", Key: "cm21"},
+						{Name: cmEnv1},
+						{Name: cmEnv2, Key: "cm21"},
 					},
 					Secrets: []bsv1alpha1.ObjectKeyRef{
-						{Name: "secret-env1", Key: "sec11"},
+						{Name: secretEnv1, Key: "sec11"},
 					},
 					Envs: []bsv1alpha1.Env{
 						{Name: "env1", Value: "val1"},
@@ -117,8 +117,8 @@ var _ = When("create backstage with CR configured", func() {
 			c := podSpec.Containers[0]
 
 			By("checking if app-config volumes are added to PodSpec")
-			g.Expect(utils.GenerateVolumeNameFromCmOrSecret("app-config1")).To(BeAddedAsVolumeToPodSpec(podSpec))
-			g.Expect(utils.GenerateVolumeNameFromCmOrSecret("app-config2")).To(BeAddedAsVolumeToPodSpec(podSpec))
+			g.Expect(utils.GenerateVolumeNameFromCmOrSecret(appConfig1)).To(BeAddedAsVolumeToPodSpec(podSpec))
+			g.Expect(utils.GenerateVolumeNameFromCmOrSecret(appConfig2)).To(BeAddedAsVolumeToPodSpec(podSpec))
 
 			By("checking if app-config volumes are mounted to the Backstage container")
 			g.Expect("/my/mount/path/key11").To(BeMountedToContainer(c))
@@ -133,8 +133,8 @@ var _ = When("create backstage with CR configured", func() {
 			g.Expect("/my/mount/path/key22").NotTo(BeAddedAsArgToContainer(c))
 
 			By("checking if extra-cm-file volumes are added to PodSpec")
-			g.Expect(utils.GenerateVolumeNameFromCmOrSecret("cm-file1")).To(BeAddedAsVolumeToPodSpec(podSpec))
-			g.Expect(utils.GenerateVolumeNameFromCmOrSecret("cm-file2")).To(BeAddedAsVolumeToPodSpec(podSpec))
+			g.Expect(utils.GenerateVolumeNameFromCmOrSecret(cmFile1)).To(BeAddedAsVolumeToPodSpec(podSpec))
+			g.Expect(utils.GenerateVolumeNameFromCmOrSecret(cmFile2)).To(BeAddedAsVolumeToPodSpec(podSpec))
 
 			By("checking if extra-cm-file volumes are mounted to the Backstage container")
 			g.Expect("/my/file/path/cm11").To(BeMountedToContainer(c))

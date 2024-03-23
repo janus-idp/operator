@@ -116,13 +116,13 @@ var _ = When("create default backstage", func() {
 		bsConf := map[string]string{"deployment.yaml": readTestYamlFile("raw-deployment.yaml")}
 		dbConf := map[string]string{"db-statefulset.yaml": readTestYamlFile("raw-statefulset.yaml")}
 
-		generateConfigMap(ctx, k8sClient, "bsraw", ns, bsConf)
-		generateConfigMap(ctx, k8sClient, "dbraw", ns, dbConf)
+		bsRaw := generateConfigMap(ctx, k8sClient, "bsraw", ns, bsConf)
+		dbRaw := generateConfigMap(ctx, k8sClient, "dbraw", ns, dbConf)
 
 		backstageName := createAndReconcileBackstage(ctx, ns, bsv1alpha1.BackstageSpec{
 			RawRuntimeConfig: &bsv1alpha1.RuntimeConfig{
-				BackstageConfigName: "bsraw",
-				LocalDbConfigName:   "dbraw",
+				BackstageConfigName: bsRaw,
+				LocalDbConfigName:   dbRaw,
 			},
 		})
 

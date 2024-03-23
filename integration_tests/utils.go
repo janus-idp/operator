@@ -28,7 +28,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func generateConfigMap(ctx context.Context, k8sClient client.Client, name, namespace string, data map[string]string) {
+func generateConfigMap(ctx context.Context, k8sClient client.Client, name, namespace string, data map[string]string) string {
 	Expect(k8sClient.Create(ctx, &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -36,9 +36,11 @@ func generateConfigMap(ctx context.Context, k8sClient client.Client, name, names
 		},
 		Data: data,
 	})).To(Not(HaveOccurred()))
+
+	return name
 }
 
-func generateSecret(ctx context.Context, k8sClient client.Client, name, namespace string, keys []string) {
+func generateSecret(ctx context.Context, k8sClient client.Client, name, namespace string, keys []string) string {
 	data := map[string]string{}
 	for _, v := range keys {
 		data[v] = fmt.Sprintf("value-%s", v)
@@ -50,6 +52,8 @@ func generateSecret(ctx context.Context, k8sClient client.Client, name, namespac
 		},
 		StringData: data,
 	})).To(Not(HaveOccurred()))
+
+	return name
 }
 
 func readTestYamlFile(name string) string {
