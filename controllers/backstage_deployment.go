@@ -195,10 +195,7 @@ func (r *BackstageReconciler) validateAndUpdatePsqlSecretRef(backstage bs.Backst
 
 func (r *BackstageReconciler) setDefaultDeploymentImage(deployment *appsv1.Deployment) {
 	if envBackstageImage != "" {
-		visitContainers(&deployment.Spec.Template, func(container *v1.Container) {
-			container.Image = envBackstageImage
-
-		})
+		setBackstageImage(deployment, envBackstageImage)
 	}
 }
 
@@ -212,9 +209,7 @@ func (r *BackstageReconciler) applyApplicationParamsFromCR(backstage bs.Backstag
 	if backstage.Spec.Application != nil {
 		deployment.Spec.Replicas = backstage.Spec.Application.Replicas
 		if backstage.Spec.Application.Image != nil {
-			visitContainers(&deployment.Spec.Template, func(container *v1.Container) {
-				container.Image = *backstage.Spec.Application.Image
-			})
+			setBackstageImage(deployment, *backstage.Spec.Application.Image)
 		}
 		if backstage.Spec.Application.ImagePullSecrets != nil { // use image pull secrets from the CR spec
 			deployment.Spec.Template.Spec.ImagePullSecrets = nil
@@ -235,4 +230,12 @@ func getDefaultObjName(backstage bs.Backstage) string {
 
 func getDefaultDbObjName(backstage bs.Backstage) string {
 	return fmt.Sprintf("backstage-psql-%s", backstage.Name)
+}
+
+func setBackstageImage(deployment *appsv1.Deployment, imageName string) {
+	visitContainers(&deployment.Spec.Template, func(container *v1.Container) {
+		if container.Image == _defaultBackstageMainContainerName || container.Image == _defaultBackstageInitContainerName {
+			container.Image = imageName
+		}
+	})
 }
