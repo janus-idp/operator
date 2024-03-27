@@ -234,7 +234,7 @@ func getDefaultDbObjName(backstage bs.Backstage) string {
 
 func setBackstageImage(deployment *appsv1.Deployment, imageName string) {
 	visitContainers(&deployment.Spec.Template, func(container *v1.Container) {
-		if container.Image == _defaultBackstageMainContainerName || container.Image == _defaultBackstageInitContainerName {
+		if container.Name == _defaultBackstageMainContainerName || container.Name == _defaultBackstageInitContainerName {
 			container.Image = imageName
 		}
 	})

@@ -1315,7 +1315,7 @@ plugins: []
 			By("Checking that the image was set on all containers in the Pod Spec")
 			visitContainers(&found.Spec.Template, func(container *corev1.Container) {
 				By(fmt.Sprintf("Checking Image in the Backstage Deployment - container: %q", container.Name), func() {
-					if container.Image == _defaultBackstageMainContainerName || container.Image == _defaultBackstageInitContainerName {
+					if container.Name == _defaultBackstageMainContainerName || container.Name == _defaultBackstageInitContainerName {
 						Expect(container.Image).Should(Equal(imageName))
 					}
 				})
