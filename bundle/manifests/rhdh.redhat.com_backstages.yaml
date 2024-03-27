@@ -284,7 +284,6 @@ spec:
                     type: boolean
                 type: object
               rawRuntimeConfig:
-                description: Raw Runtime Objects configuration. For Advanced scenarios.
                 properties:
                   backstageConfig:
                     description: Name of ConfigMap containing Backstage runtime objects
