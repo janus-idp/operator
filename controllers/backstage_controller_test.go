@@ -490,14 +490,23 @@ spec:
         app: bs1
     spec:
       containers:
-        - name: bs1
+        - name: backstage-backend
+          image: busybox
+        - name: sidecar
+          image: busybox
+      initContainers:
+        - name: install-dynamic-plugins
           image: busybox
 `,
 					})
 				err := k8sClient.Create(ctx, backstageConfigMap)
 				Expect(err).To(Not(HaveOccurred()))
 
+				img := "backstage"
 				backstage = buildBackstageCR(bsv1alpha1.BackstageSpec{
+					Application: &bsv1alpha1.Application{
+						Image: &img,
+					},
 					RawRuntimeConfig: bsv1alpha1.RuntimeConfig{
 						BackstageConfigName: backstageConfigMap.Name,
 					},
@@ -523,7 +532,21 @@ spec:
 				By("Checking if Deployment was successfully created in the reconciliation")
 				Eventually(func() error {
 					found := &appsv1.Deployment{}
-					return k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: getDefaultObjName(*backstage)}, found)
+					if err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: getDefaultObjName(*backstage)}, found); err != nil {
+						return err
+					}
+					Expect(len(found.Spec.Template.Spec.Containers)).To(Equal(2))
+					for i, c := range found.Spec.Template.Spec.Containers {
+						if c.Name == _defaultBackstageMainContainerName {
+							Expect(found.Spec.Template.Spec.Containers[i].Image).To(Equal("backstage"))
+						} else {
+							Expect(found.Spec.Template.Spec.Containers[i].Image).To(Equal("busybox"))
+						}
+					}
+					Expect(len(found.Spec.Template.Spec.InitContainers)).To(Equal(1))
+					Expect(found.Spec.Template.Spec.InitContainers[0].Image).To(Equal("backstage"))
+
+					return nil
 				}, time.Minute, time.Second).Should(Succeed())
 
 				By("Checking the latest Status added to the Backstage instance")
@@ -1315,7 +1338,9 @@ plugins: []
 			By("Checking that the image was set on all containers in the Pod Spec")
 			visitContainers(&found.Spec.Template, func(container *corev1.Container) {
 				By(fmt.Sprintf("Checking Image in the Backstage Deployment - container: %q", container.Name), func() {
-					Expect(container.Image).Should(Equal(imageName))
+					if container.Name == _defaultBackstageMainContainerName || container.Name == _defaultBackstageInitContainerName {
+						Expect(container.Image).Should(Equal(imageName))
+					}
 				})
 			})
 
