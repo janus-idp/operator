@@ -70,6 +70,7 @@ func (r *BackstageReconciler) localDBStatefulSetMutFun(ctx context.Context, targ
 		}
 
 		r.setDefaultStatefulSetImage(statefulSet)
+		setDbImagePullSecret(statefulSet, backstage.Spec)
 
 		_, err = r.handlePsqlSecret(ctx, statefulSet, &backstage)
 		if err != nil {
@@ -161,4 +162,21 @@ func (r *BackstageReconciler) cleanupLocalDbResources(ctx context.Context, backs
 		return fmt.Errorf("failed to delete generated database secret, reason: %s", err)
 	}
 	return nil
+}
+
+// sets ImagePullSecrets as configured in backstage.spec.application
+// it is a fix to make work with private repo when Database image is stored at the same repo as Backstage image
+func setDbImagePullSecret(statefulSet *appsv1.StatefulSet, backstageSpec bs.BackstageSpec) {
+	if backstageSpec.Application == nil || backstageSpec.Application.ImagePullSecrets == nil {
+		return
+	}
+	if statefulSet.Spec.Template.Spec.ImagePullSecrets == nil {
+		statefulSet.Spec.Template.Spec.ImagePullSecrets = []v1.LocalObjectReference{}
+	}
+	// it is not enough if we keep Db image in other repository than Backstage image
+	for _, secretName := range *backstageSpec.Application.ImagePullSecrets {
+		statefulSet.Spec.Template.Spec.ImagePullSecrets =
+			append(statefulSet.Spec.Template.Spec.ImagePullSecrets, v1.LocalObjectReference{Name: secretName})
+	}
+
 }
