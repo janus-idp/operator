@@ -142,6 +142,7 @@ func VerifyBackstageRoute(g Gomega, ns string, crName string, tests []ApiEndpoin
 
 	performTest := func(tt ApiEndpointTest) {
 		url := fmt.Sprintf("https://%s/%s", host, strings.TrimPrefix(tt.Endpoint, "/"))
+		fmt.Fprintf(GinkgoWriter, "--> GET %q\n", url)
 		resp, rErr := httpClient.Get(url)
 		g.Expect(rErr).ShouldNot(HaveOccurred(), fmt.Sprintf("error while trying to GET %q", url))
 		defer resp.Body.Close()
