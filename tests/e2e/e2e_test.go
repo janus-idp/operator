@@ -88,6 +88,11 @@ var _ = Describe("Backstage Operator E2E", func() {
 					},
 				},
 			},
+			{
+				name:       "with custom DB auth secret",
+				crFilePath: filepath.Join("examples", "bs-existing-secret.yaml"),
+				crName:     "bs-existing-secret",
+			},
 		} {
 			tt := tt
 			When(fmt.Sprintf("applying %s (%s)", tt.name, tt.crFilePath), func() {
