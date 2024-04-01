@@ -37,8 +37,6 @@ type BackstageSpec struct {
 	Application *Application `json:"application,omitempty"`
 
 	// Raw Runtime RuntimeObjects configuration. For Advanced scenarios.
-	//RawConfig string `json:"rawConfig,omitempty"`
-
 	RawRuntimeConfig *RuntimeConfig `json:"rawRuntimeConfig,omitempty"`
 
 	// Configuration for database access. Optional.
