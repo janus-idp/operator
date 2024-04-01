@@ -281,23 +281,14 @@ func (s *BackstageSpec) IsLocalDbEnabled() bool {
 		return true
 	}
 	return ptr.Deref(s.Database.EnableLocalDb, true)
-	//return ptr.Deref(s.Database.EnableLocalDb, true)
 }
 
+// IsRouteEnabled returns value of Application.Route.Enabled if defined or true by default
 func (s *BackstageSpec) IsRouteEnabled() bool {
-	if s.Application == nil || s.Application.Route == nil {
-		return false
+	if s.Application != nil && s.Application.Route != nil {
+		return ptr.Deref(s.Application.Route.Enabled, true)
 	}
-	return ptr.Deref(s.Application.Route.Enabled, true)
-	//return ptr.Deref(s.Application.Route.Enabled, true)
-}
-
-func (s *BackstageSpec) IsRouteEmpty() bool {
-	route := s.Application.Route
-	if route.Host != "" && route.Subdomain != "" && route.TLS != nil && *route.TLS != (TLS{}) {
-		return true
-	}
-	return false
+	return true
 }
 
 func (s *BackstageSpec) IsAuthSecretSpecified() bool {

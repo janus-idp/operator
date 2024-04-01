@@ -36,9 +36,7 @@ func RouteName(backstageName string) string {
 	return utils.GenerateRuntimeObjectName(backstageName, "backstage")
 }
 
-func (b *BackstageRoute) setRoute(specified bsv1alpha1.Route) {
-
-	b.route = &openshift.Route{}
+func (b *BackstageRoute) setRoute(specified *bsv1alpha1.Route) {
 
 	if len(specified.Host) > 0 {
 		b.route.Spec.Host = specified.Host
@@ -104,14 +102,32 @@ func (b *BackstageRoute) EmptyObject() client.Object {
 
 // implementation of RuntimeObject interface
 func (b *BackstageRoute) addToModel(model *BackstageModel, backstage bsv1alpha1.Backstage) (bool, error) {
-	if (b.route == nil && !backstage.Spec.IsRouteEnabled()) || !model.isOpenshift {
-		// no route
+
+	// not Openshift
+	if !model.isOpenshift {
 		return false, nil
 	}
 
-	// load from spec
-	if backstage.Spec.IsRouteEnabled() && !backstage.Spec.IsRouteEmpty() {
-		b.setRoute(*backstage.Spec.Application.Route)
+	// route explicitly disabled
+	if !backstage.Spec.IsRouteEnabled() {
+		return false, nil
+	}
+
+	specDefined := backstage.Spec.Application != nil && backstage.Spec.Application.Route != nil
+
+	// no default route and not defined
+	if b.route == nil && !specDefined {
+		return false, nil
+	}
+
+	// no default route but defined in the spec -> create default
+	if b.route == nil {
+		b.route = &openshift.Route{}
+	}
+
+	// merge with specified (pieces) if any
+	if specDefined {
+		b.setRoute(backstage.Spec.Application.Route)
 	}
 
 	model.route = b

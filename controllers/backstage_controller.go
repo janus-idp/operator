@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	"k8s.io/apimachinery/pkg/types"
 
 	openshift "github.com/openshift/api/route/v1"
@@ -197,8 +199,7 @@ func objDispName(obj model.RuntimeObject) string {
 
 func (r *BackstageReconciler) patchObject(ctx context.Context, baseObject client.Object, obj model.RuntimeObject) error {
 
-	//baseObject.SetName(obj.Object().GetName())
-	//baseObject.SetNamespace(obj.Object().GetNamespace())
+	//lg := log.FromContext(ctx)
 
 	// restore labels and annotations
 	if baseObject.GetLabels() != nil {
@@ -224,6 +225,9 @@ func (r *BackstageReconciler) patchObject(ctx context.Context, baseObject client
 
 	// needed for openshift.Route only, Openshift yells otherwise
 	obj.Object().SetResourceVersion(baseObject.GetResourceVersion())
+	if objectKind, ok := obj.Object().(schema.ObjectKind); ok {
+		objectKind.SetGroupVersionKind(baseObject.GetObjectKind().GroupVersionKind())
+	}
 
 	if err := r.Patch(ctx, obj.Object(), client.MergeFrom(baseObject)); err != nil {
 		return fmt.Errorf("failed to patch object %s: %w", objDispName(obj), err)

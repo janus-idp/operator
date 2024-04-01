@@ -6,7 +6,7 @@ spec:
   database:
     enableLocalDb: true
   application:
-    replicas: 2
+    replicas: 1
     appConfig:
       #mountPath:  /opt/app-root/src
       configMaps:
@@ -124,15 +124,16 @@ data:
                     # supports ISO duration, "human duration (used below)
                     timeout: { minutes: 3}
                     initialDelay: { seconds: 15}
-      - package: '@dfatwork-pkgs/scaffolder-backend-module-http-request-wrapped-dynamic@4.0.9-0'
-        integrity: 'sha512-+YYESzHdg1hsk2XN+zrtXPnsQnfbzmWIvcOM0oQLS4hf8F4iGTtOXKjWnZsR/14/khGsPrzy0oq1ytJ1/4ORkQ=='
-      - package: '@dfatwork-pkgs/explore-backend-wrapped-dynamic@0.0.9-next.11'
-        integrity: 'sha512-/qUxjSedxQ0dmYqMWsZ2+OLGeovaaigRRrX1aTOz0GJMwSjOAauUUD1bMs56VPX74qWL1rf3Xr4nViiKo8rlIA=='
-        pluginConfig:
-          proxy:
-            endpoints:
-              /explore-backend-completed:
-                target: 'http://localhost:7017'
+# [GA] it crashes container
+#      - package: '@dfatwork-pkgs/scaffolder-backend-module-http-request-wrapped-dynamic@4.0.9-0'
+#        integrity: 'sha512-+YYESzHdg1hsk2XN+zrtXPnsQnfbzmWIvcOM0oQLS4hf8F4iGTtOXKjWnZsR/14/khGsPrzy0oq1ytJ1/4ORkQ=='
+#      - package: '@dfatwork-pkgs/explore-backend-wrapped-dynamic@0.0.9-next.11'
+#        integrity: 'sha512-/qUxjSedxQ0dmYqMWsZ2+OLGeovaaigRRrX1aTOz0GJMwSjOAauUUD1bMs56VPX74qWL1rf3Xr4nViiKo8rlIA=='
+#        pluginConfig:
+#          proxy:
+#            endpoints:
+#              /explore-backend-completed:
+#                target: 'http://localhost:7017'
                 
 ---
 apiVersion: v1

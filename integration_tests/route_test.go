@@ -19,8 +19,6 @@ import (
 	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
 	"time"
 
-	"k8s.io/utils/ptr"
-
 	openshift "github.com/openshift/api/route/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -52,14 +50,14 @@ var _ = When("create default backstage", func() {
 	It("creates Backstage object (on Openshift)", func() {
 
 		if !isOpenshiftCluster() {
-			Skip("Skip non-Openshift test")
+			Skip("Skipped for non-Openshift cluster")
 		}
 
 		backstageName := createAndReconcileBackstage(ctx, ns, bsv1alpha1.BackstageSpec{
 			Application: &bsv1alpha1.Application{
 				Route: &bsv1alpha1.Route{
-					Host:      "localhost",
-					Enabled:   ptr.To(true),
+					//Host:      "localhost",
+					//Enabled:   ptr.To(true),
 					Subdomain: "test",
 				},
 			},
@@ -83,6 +81,7 @@ var _ = When("create default backstage", func() {
 
 			g.Expect(route.Status.Ingress).To(HaveLen(1))
 			g.Expect(route.Status.Ingress[0].Host).To(Not(BeEmpty()))
+
 		}, 5*time.Minute, time.Second).Should(Succeed())
 
 	})

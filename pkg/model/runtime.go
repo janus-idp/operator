@@ -34,7 +34,7 @@ import (
 	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 )
 
-const backstageAppLabel = "backstage.io/app"
+const BackstageAppLabel = "rhdh.redhat.com/app"
 
 // Backstage configuration scaffolding with empty BackstageObjects.
 // There are all possible objects for configuration, can be:

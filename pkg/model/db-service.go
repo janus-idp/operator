@@ -85,5 +85,5 @@ func (b *DbService) validate(_ *BackstageModel, _ bsv1alpha1.Backstage) error {
 
 func (b *DbService) setMetaInfo(backstageName string) {
 	b.service.SetName(DbServiceName(backstageName))
-	utils.GenerateLabel(&b.service.Spec.Selector, backstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageName))
+	utils.GenerateLabel(&b.service.Spec.Selector, BackstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageName))
 }

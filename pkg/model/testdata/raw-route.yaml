@@ -4,8 +4,8 @@ metadata:
   name: <to_be_replaced> # placeholder for 'backstage-<cr-name>'
 spec:
   port:
-    targetPort: http-backend
-  path: /
+    targetPort: default
+  path: /default
   tls:
     insecureEdgeTerminationPolicy: Redirect
     termination: edge
