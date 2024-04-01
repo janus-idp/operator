@@ -122,9 +122,10 @@ func (b *BackstageDeployment) validate(model *BackstageModel, backstage bsv1alph
 	}
 
 	//DbSecret
-	if model.LocalDbSecret != nil {
-		utils.AddEnvVarsFrom(&b.deployment.Spec.Template.Spec.Containers[0], utils.SecretObjectKind,
-			model.LocalDbSecret.secret.Name, "")
+	if backstage.Spec.IsAuthSecretSpecified() {
+		utils.SetDbSecretEnvVar(b.container(), backstage.Spec.Database.AuthSecretName)
+	} else if model.LocalDbSecret != nil {
+		utils.SetDbSecretEnvVar(b.container(), model.LocalDbSecret.secret.Name)
 	}
 
 	return nil

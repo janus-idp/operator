@@ -56,13 +56,19 @@ func (b *DbSecret) setObject(obj client.Object) {
 }
 
 // implementation of RuntimeObject interface
-func (b *DbSecret) addToModel(model *BackstageModel, _ bsv1alpha1.Backstage) (bool, error) {
+func (b *DbSecret) addToModel(model *BackstageModel, backstage bsv1alpha1.Backstage) (bool, error) {
+
+	// do not add if specified
+	if backstage.Spec.IsAuthSecretSpecified() {
+		return false, nil
+	}
 
 	if b.secret != nil && model.localDbEnabled {
 		model.setRuntimeObject(b)
 		model.LocalDbSecret = b
 		return true, nil
 	}
+
 	return false, nil
 }
 
@@ -74,11 +80,8 @@ func (b *DbSecret) EmptyObject() client.Object {
 // implementation of RuntimeObject interface
 func (b *DbSecret) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
 
-	if backstage.Spec.IsAuthSecretSpecified() || !backstage.Spec.IsLocalDbEnabled() {
-		return nil
-	}
-
 	pswd, _ := utils.GeneratePassword(24)
+
 	service := model.LocalDbService
 
 	b.secret.StringData = map[string]string{

@@ -90,9 +90,12 @@ func (b *DbStatefulSet) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (b *DbStatefulSet) validate(model *BackstageModel, _ bsv1alpha1.Backstage) error {
-	if model.LocalDbSecret != nil {
-		b.setDbEnvsFromSecret(model.LocalDbSecret.secret.Name)
+func (b *DbStatefulSet) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
+
+	if backstage.Spec.IsAuthSecretSpecified() {
+		utils.SetDbSecretEnvVar(b.container(), backstage.Spec.Database.AuthSecretName)
+	} else if model.LocalDbSecret != nil {
+		utils.SetDbSecretEnvVar(b.container(), model.LocalDbSecret.secret.Name)
 	}
 	return nil
 }
@@ -111,10 +114,4 @@ func (b *DbStatefulSet) container() *corev1.Container {
 // returns DB pod
 func (b *DbStatefulSet) podSpec() corev1.PodSpec {
 	return b.statefulSet.Spec.Template.Spec
-}
-
-func (b *DbStatefulSet) setDbEnvsFromSecret(name string) {
-	b.container().EnvFrom = append(b.container().EnvFrom, corev1.EnvFromSource{
-		SecretRef: &corev1.SecretEnvSource{
-			LocalObjectReference: corev1.LocalObjectReference{Name: name}}})
 }

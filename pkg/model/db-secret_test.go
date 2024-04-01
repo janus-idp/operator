@@ -79,22 +79,18 @@ func TestDefaultWithGeneratedSecrets(t *testing.T) {
 	assert.Equal(t, model.LocalDbSecret.secret.Name, dbss.container().EnvFrom[0].SecretRef.Name)
 }
 
-//func TestSpecifiedSecret(t *testing.T) {
-//	bs := *dbSecretBackstage.DeepCopy()
-//	bs.Spec.Database.AuthSecretName = "custom-db-secret"
-//
-//	// expected generatePassword = false (db-secret defined in the spec) will come from preprocess
-//	testObj := createBackstageTest(bs).withDefaultConfig(true).withLocalDb().addToDefaultConfig("db-secret.yaml", "db-generated-secret.yaml")
-//
-//	model, err := InitObjects(context.TODO(), bs, testObj.detailedSpec, true, false, testObj.scheme)
-//
-//	assert.NoError(t, err)
-//	assert.Equal(t, "custom-db-secret", model.LocalDbSecret.secret.Name)
-//
-//	assert.Equal(t, "postgres", model.LocalDbSecret.secret.StringData["POSTGRES_USER"])
-//	assert.NotEmpty(t, model.LocalDbSecret.secret.StringData["POSTGRES_USER"])
-//	assert.Equal(t, "postgres", model.LocalDbSecret.secret.StringData["POSTGRES_PASSWORD"])
-//	assert.NotEmpty(t, model.LocalDbSecret.secret.StringData["POSTGRES_PASSWORD"])
-//	assert.Equal(t, model.LocalDbSecret.secret.Name, model.localDbStatefulSet.container().EnvFrom[0].SecretRef.Name)
-//
-//}
+func TestSpecifiedSecret(t *testing.T) {
+	bs := *dbSecretBackstage.DeepCopy()
+	bs.Spec.Database.AuthSecretName = "custom-db-secret"
+
+	// expected generatePassword = false (db-secret defined in the spec) will come from preprocess
+	testObj := createBackstageTest(bs).withDefaultConfig(true).withLocalDb().addToDefaultConfig("db-secret.yaml", "db-generated-secret.yaml")
+
+	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, false, testObj.scheme)
+
+	assert.NoError(t, err)
+	assert.Nil(t, model.LocalDbSecret)
+
+	assert.Equal(t, bs.Spec.Database.AuthSecretName, model.localDbStatefulSet.container().EnvFrom[0].SecretRef.Name)
+	assert.Equal(t, bs.Spec.Database.AuthSecretName, model.backstageDeployment.container().EnvFrom[0].SecretRef.Name)
+}

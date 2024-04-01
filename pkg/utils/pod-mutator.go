@@ -41,7 +41,6 @@ type PodMutator struct {
 // kind - kind of source, can be ConfigMap or Secret
 // object name - name of source object
 // mountPath - mount path, default one or  as it specified in BackstageCR.spec.Application.AppConfig|ExtraFiles
-// fileDir - either absolute or related to mountPath path to the files' directory.
 // fileName - file name which fits one of the object's key, otherwise error will be returned.
 // data - key:value pairs from the object. should be specified if fileName specified
 func MountFilesFrom(podSpec *corev1.PodSpec, container *corev1.Container, kind ObjectKind, objectName, mountPath, fileName string, data map[string]string) {
@@ -78,7 +77,7 @@ func MountFilesFrom(podSpec *corev1.PodSpec, container *corev1.Container, kind O
 
 }
 
-func AddEnvVarsFrom(container *corev1.Container, kind ObjectKind, objectName string, varName string) {
+func AddEnvVarsFrom(container *corev1.Container, kind ObjectKind, objectName, varName string) {
 
 	if varName == "" {
 		envFromSrc := corev1.EnvFromSource{}
@@ -112,4 +111,8 @@ func AddEnvVarsFrom(container *corev1.Container, kind ObjectKind, objectName str
 			ValueFrom: envVarSrc,
 		})
 	}
+}
+
+func SetDbSecretEnvVar(container *corev1.Container, secretName string) {
+	AddEnvVarsFrom(container, SecretObjectKind, secretName, "")
 }
