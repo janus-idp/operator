@@ -173,7 +173,7 @@ func setDbImagePullSecret(statefulSet *appsv1.StatefulSet, backstageSpec bs.Back
 	if statefulSet.Spec.Template.Spec.ImagePullSecrets == nil {
 		statefulSet.Spec.Template.Spec.ImagePullSecrets = []v1.LocalObjectReference{}
 	}
-	// it is not enough if we keep Db image in other repository than Backstage image
+
 	for _, secretName := range *backstageSpec.Application.ImagePullSecrets {
 		statefulSet.Spec.Template.Spec.ImagePullSecrets =
 			append(statefulSet.Spec.Template.Spec.ImagePullSecrets, v1.LocalObjectReference{Name: secretName})
