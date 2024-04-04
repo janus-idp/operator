@@ -75,7 +75,7 @@ func (b *BackstageDeployment) addToModel(model *BackstageModel, _ bsv1alpha1.Bac
 	model.setRuntimeObject(b)
 
 	// override image with env var
-	// [GA] TODO Do we need this feature?
+	// [GA] Do we need this feature?
 	if os.Getenv(BackstageImageEnvVar) != "" {
 		b.deployment.Spec.Template.Spec.Containers[0].Image = os.Getenv(BackstageImageEnvVar)
 		// exactly the same image for initContainer and want it to be overriden
@@ -93,7 +93,7 @@ func (b *BackstageDeployment) validate(model *BackstageModel, backstage bsv1alph
 
 	if backstage.Spec.Application != nil {
 		b.setReplicas(backstage.Spec.Application.Replicas)
-		b.setImagePullSecrets(backstage.Spec.Application.ImagePullSecrets)
+		utils.SetImagePullSecrets(b.podSpec(), backstage.Spec.Application.ImagePullSecrets)
 		b.setImage(backstage.Spec.Application.Image)
 		b.addExtraEnvs(backstage.Spec.Application.ExtraEnvs)
 	}
@@ -155,7 +155,7 @@ func (b *BackstageDeployment) setReplicas(replicas *int32) {
 // sets container image name of Backstage Container
 func (b *BackstageDeployment) setImage(image *string) {
 	if image != nil {
-		// TODO this is a workaround for RHDH/Janus configuration
+		// this is a workaround for RHDH/Janus configuration
 		// it is not a fact that all the containers should be updated
 		// in general case need something smarter (probably annotation based)
 		// to mark/recognize containers for update
@@ -180,14 +180,6 @@ func (b *BackstageDeployment) addExtraEnvs(extraEnvs *bsv1alpha1.ExtraEnvs) {
 		for _, e := range extraEnvs.Envs {
 			b.addContainerEnvVar(e)
 		}
-	}
-}
-
-// sets pullSecret for Backstage Pod
-func (b *BackstageDeployment) setImagePullSecrets(pullSecrets []string) {
-	for _, ps := range pullSecrets {
-		b.deployment.Spec.Template.Spec.ImagePullSecrets = append(b.deployment.Spec.Template.Spec.ImagePullSecrets,
-			corev1.LocalObjectReference{Name: ps})
 	}
 }
 

@@ -80,3 +80,29 @@ func TestOverrideBackstageImage(t *testing.T) {
 	assert.Equal(t, "dummy", model.backstageDeployment.container().Image)
 
 }
+
+func TestSpecImagePullSecrets(t *testing.T) {
+	bs := *deploymentTestBackstage.DeepCopy()
+
+	testObj := createBackstageTest(bs).withDefaultConfig(true).
+		addToDefaultConfig("deployment.yaml", "ips-deployment.yaml")
+
+	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, true, testObj.scheme)
+	assert.NoError(t, err)
+
+	// if imagepullsecrets not defined - default used
+	assert.Equal(t, 2, len(model.backstageDeployment.deployment.Spec.Template.Spec.ImagePullSecrets))
+	assert.Equal(t, "ips1", model.backstageDeployment.deployment.Spec.Template.Spec.ImagePullSecrets[0].Name)
+
+	bs.Spec.Application.ImagePullSecrets = []string{}
+
+	testObj = createBackstageTest(bs).withDefaultConfig(true).
+		addToDefaultConfig("deployment.yaml", "ips-deployment.yaml")
+
+	model, err = InitObjects(context.TODO(), bs, testObj.externalConfig, true, true, testObj.scheme)
+	assert.NoError(t, err)
+
+	// if explicitly set empty slice - they are empty
+	assert.Equal(t, 0, len(model.backstageDeployment.deployment.Spec.Template.Spec.ImagePullSecrets))
+
+}
