@@ -16,7 +16,6 @@ package model
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"k8s.io/utils/ptr"
@@ -82,14 +81,16 @@ func TestOverrideBackstageImage(t *testing.T) {
 	bs := *deploymentTestBackstage.DeepCopy()
 
 	testObj := createBackstageTest(bs).withDefaultConfig(true).
-		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")
+		addToDefaultConfig("deployment.yaml", "sidecar-deployment.yaml")
 
-	_ = os.Setenv(BackstageImageEnvVar, "dummy")
+	t.Setenv(BackstageImageEnvVar, "dummy")
 
 	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, false, testObj.scheme)
 	assert.NoError(t, err)
 
+	assert.Equal(t, 2, len(model.backstageDeployment.podSpec().Containers))
 	assert.Equal(t, "dummy", model.backstageDeployment.container().Image)
 	assert.Equal(t, "dummy", model.backstageDeployment.podSpec().InitContainers[0].Image)
+	assert.Equal(t, "busybox", model.backstageDeployment.podSpec().Containers[1].Image)
 
 }

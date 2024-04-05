@@ -158,7 +158,10 @@ func (b *BackstageDeployment) setImage(image *string) {
 		// in general case need something smarter
 		// to mark/recognize containers for update
 		if len(b.podSpec().InitContainers) > 0 {
-			b.podSpec().InitContainers[0].Image = *image
+			i, ic := dynamicPluginsInitContainer(b.podSpec().InitContainers)
+			if ic != nil {
+				b.podSpec().InitContainers[i].Image = *image
+			}
 		}
 	}
 }
