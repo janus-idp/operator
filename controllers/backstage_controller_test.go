@@ -1403,7 +1403,7 @@ plugins: []
 				g.Expect(err).To(Not(HaveOccurred()))
 			}, time.Minute, time.Second).Should(Succeed())
 
-			By("Checking the image pull secrets are included in the pod spec of Backstage", func() {
+			By("Checking the image pull secrets are included in the pod spec of the DB StatefulSet", func() {
 				var list []string
 				for _, v := range statefulSet.Spec.Template.Spec.ImagePullSecrets {
 					list = append(list, v.Name)
