@@ -166,8 +166,21 @@ spec:
     source: registry-proxy.engineering.redhat.com
 " > "$TMPDIR/ImageContentSourcePolicy_${ICSP_URL_PRE}.yml" && oc apply -f "$TMPDIR/ImageContentSourcePolicy_${ICSP_URL_PRE}.yml"
 
-echo "[INFO] Using iib from image $UPSTREAM_IIB"
-IIB_IMAGE="${UPSTREAM_IIB}"
+# check if the IIB we're going to install as a catalog source exists before trying to install it
+if [[ ! $(command -v skopeo) ]]; then
+  errorf "Please install skopeo 1.11+"
+  exit 1
+fi
+
+UPSTREAM_IIB_MANIFEST="$(skopeo inspect docker://${UPSTREAM_IIB} --raw || exit 2)"
+# echo "Got: $UPSTREAM_IIB_MANIFEST"
+if [[ $UPSTREAM_IIB_MANIFEST == *"Error parsing image name "* ]] || [[ $UPSTREAM_IIB_MANIFEST == *"manifest unknown"* ]]; then
+  echo "$UPSTREAM_IIB_MANIFEST"; exit 3
+else
+  echo "[INFO] Using iib from image $UPSTREAM_IIB"
+  IIB_IMAGE="${UPSTREAM_IIB}"
+fi
+
 CATALOGSOURCE_NAME="${TO_INSTALL}-${OLM_CHANNEL}"
 DISPLAY_NAME_SUFFIX="${TO_INSTALL}"
 
