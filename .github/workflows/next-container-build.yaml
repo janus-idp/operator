@@ -42,7 +42,27 @@ jobs:
         with:
           fetch-depth: 0
 
+      # check changes in this commit for regex include and exclude matches; pipe to an env var
+      - name: Check for changes to build
+        run: |
+          # don't fail if nothing returned by grep
+          set +e 
+          CHANGES="$(git diff --name-only HEAD~1 | \
+            grep -E "workflows/.+-container-build.yaml|Makefile|bundle/|config/|go.mod|go.sum|.+\.go|docker/|\.dockerignore" | \
+            grep -v -E ".+_test.go|/.rhdh/")";
+          echo "Changed files for this commit:"
+          echo "=============================="
+          echo "$CHANGES"
+          echo "=============================="
+          {
+            echo 'CHANGES<<EOF'
+            echo $CHANGES
+            echo EOF
+          } >> "$GITHUB_ENV"
+
       - name: Get the last commit short SHA
+        # run this stage only if there are changes that match the includes and not the excludes
+        if: ${{ env.CHANGES != '' }}
         run: |
           SHORT_SHA=$(git rev-parse --short HEAD)
           echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
@@ -50,11 +70,15 @@ jobs:
           echo "BASE_VERSION=$BASE_VERSION" >> $GITHUB_ENV
 
       - name: Setup Go
+        # run this stage only if there are changes that match the includes and not the excludes
+        if: ${{ env.CHANGES != '' }}
         uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5
         with:
           go-version-file: 'go.mod'
 
       - name: Login to quay.io
+        # run this stage only if there are changes that match the includes and not the excludes
+        if: ${{ env.CHANGES != '' }}
         uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -62,6 +86,8 @@ jobs:
           password: ${{ secrets.QUAY_TOKEN }}
 
       - name: Build and push operator, bundle, and catalog images
+        # run this stage only if there are changes that match the includes and not the excludes
+        if: ${{ env.CHANGES != '' }}
         run: |
           # install skopeo, podman
           sudo apt-get -y update; sudo apt-get -y install skopeo podman
