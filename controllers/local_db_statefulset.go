@@ -170,13 +170,11 @@ func setDbImagePullSecret(statefulSet *appsv1.StatefulSet, backstageSpec bs.Back
 	if backstageSpec.Application == nil || backstageSpec.Application.ImagePullSecrets == nil {
 		return
 	}
-	if statefulSet.Spec.Template.Spec.ImagePullSecrets == nil {
-		statefulSet.Spec.Template.Spec.ImagePullSecrets = []v1.LocalObjectReference{}
+	if backstageSpec.Application.ImagePullSecrets != nil { // use image pull secrets from the CR spec
+		statefulSet.Spec.Template.Spec.ImagePullSecrets = nil
+		for _, secretName := range *backstageSpec.Application.ImagePullSecrets {
+			statefulSet.Spec.Template.Spec.ImagePullSecrets =
+				append(statefulSet.Spec.Template.Spec.ImagePullSecrets, v1.LocalObjectReference{Name: secretName})
+		}
 	}
-
-	for _, secretName := range *backstageSpec.Application.ImagePullSecrets {
-		statefulSet.Spec.Template.Spec.ImagePullSecrets =
-			append(statefulSet.Spec.Template.Spec.ImagePullSecrets, v1.LocalObjectReference{Name: secretName})
-	}
-
 }
