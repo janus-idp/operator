@@ -1396,6 +1396,21 @@ plugins: []
 				Expect(list).Should(HaveExactElements(ips1, ips2))
 			})
 
+			statefulSet := &appsv1.StatefulSet{}
+			Eventually(func(g Gomega) {
+				// TODO to get name from default
+				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: getDefaultDbObjName(*backstage)}, statefulSet)
+				g.Expect(err).To(Not(HaveOccurred()))
+			}, time.Minute, time.Second).Should(Succeed())
+
+			By("Checking the image pull secrets are included in the pod spec of the DB StatefulSet", func() {
+				var list []string
+				for _, v := range statefulSet.Spec.Template.Spec.ImagePullSecrets {
+					list = append(list, v.Name)
+				}
+				Expect(list).Should(HaveExactElements(ips1, ips2))
+			})
+
 			By("Checking the latest Status added to the Backstage instance")
 			verifyBackstageInstance(ctx)
 		})

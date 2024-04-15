@@ -213,12 +213,10 @@ func (r *BackstageReconciler) applyApplicationParamsFromCR(backstage bs.Backstag
 		}
 		if backstage.Spec.Application.ImagePullSecrets != nil { // use image pull secrets from the CR spec
 			deployment.Spec.Template.Spec.ImagePullSecrets = nil
-			if len(*backstage.Spec.Application.ImagePullSecrets) > 0 {
-				for _, imagePullSecret := range *backstage.Spec.Application.ImagePullSecrets {
-					deployment.Spec.Template.Spec.ImagePullSecrets = append(deployment.Spec.Template.Spec.ImagePullSecrets, v1.LocalObjectReference{
-						Name: imagePullSecret,
-					})
-				}
+			for _, imagePullSecret := range *backstage.Spec.Application.ImagePullSecrets {
+				deployment.Spec.Template.Spec.ImagePullSecrets = append(deployment.Spec.Template.Spec.ImagePullSecrets, v1.LocalObjectReference{
+					Name: imagePullSecret,
+				})
 			}
 		}
 	}
