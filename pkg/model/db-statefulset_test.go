@@ -67,6 +67,7 @@ func TestImagePullSecretSpec(t *testing.T) {
 
 	assert.Equal(t, 2, len(model.localDbStatefulSet.statefulSet.Spec.Template.Spec.ImagePullSecrets))
 	assert.Equal(t, "my-secret1", model.localDbStatefulSet.statefulSet.Spec.Template.Spec.ImagePullSecrets[0].Name)
+	assert.Equal(t, "my-secret2", model.localDbStatefulSet.statefulSet.Spec.Template.Spec.ImagePullSecrets[1].Name)
 
 	// no image pull secrets specified
 	bs = *dbStatefulSetBackstage.DeepCopy()
@@ -79,6 +80,7 @@ func TestImagePullSecretSpec(t *testing.T) {
 	// if imagepullsecrets not defined - default used
 	assert.Equal(t, 2, len(model.localDbStatefulSet.statefulSet.Spec.Template.Spec.ImagePullSecrets))
 	assert.Equal(t, "ips1", model.localDbStatefulSet.statefulSet.Spec.Template.Spec.ImagePullSecrets[0].Name)
+	assert.Equal(t, "ips2", model.localDbStatefulSet.statefulSet.Spec.Template.Spec.ImagePullSecrets[1].Name)
 
 	// empty list of image pull secrets
 	bs = *dbStatefulSetBackstage.DeepCopy()

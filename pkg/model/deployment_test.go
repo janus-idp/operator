@@ -59,22 +59,6 @@ func TestSpecs(t *testing.T) {
 
 }
 
-func TestSpecImagePullSecrets(t *testing.T) {
-	bs := *deploymentTestBackstage.DeepCopy()
-
-	bs.Spec.Application.ImagePullSecrets = nil //[]string{}
-
-	testObj := createBackstageTest(bs).withDefaultConfig(true).
-		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")
-
-	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, true, testObj.scheme)
-	assert.NoError(t, err)
-
-	assert.Equal(t, 0, len(model.backstageDeployment.deployment.Spec.Template.Spec.ImagePullSecrets))
-	//assert.Equal(t, "my-secret", model.backstageDeployment.deployment.Spec.Template.Spec.ImagePullSecrets[0].Name)
-
-}
-
 // It tests the overriding image feature
 func TestOverrideBackstageImage(t *testing.T) {
 

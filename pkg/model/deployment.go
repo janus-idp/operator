@@ -90,7 +90,7 @@ func (b *BackstageDeployment) validate(model *BackstageModel, backstage bsv1alph
 
 	if backstage.Spec.Application != nil {
 		b.setReplicas(backstage.Spec.Application.Replicas)
-		b.setImagePullSecrets(backstage.Spec.Application.ImagePullSecrets)
+		utils.SetImagePullSecrets(b.podSpec(), backstage.Spec.Application.ImagePullSecrets)
 		b.setImage(backstage.Spec.Application.Image)
 		b.addExtraEnvs(backstage.Spec.Application.ExtraEnvs)
 	}
@@ -181,13 +181,5 @@ func (b *BackstageDeployment) addExtraEnvs(extraEnvs *bsv1alpha1.ExtraEnvs) {
 		for _, e := range extraEnvs.Envs {
 			b.addContainerEnvVar(e)
 		}
-	}
-}
-
-// sets pullSecret for Backstage Pod
-func (b *BackstageDeployment) setImagePullSecrets(pullSecrets []string) {
-	for _, ps := range pullSecrets {
-		b.deployment.Spec.Template.Spec.ImagePullSecrets = append(b.deployment.Spec.Template.Spec.ImagePullSecrets,
-			corev1.LocalObjectReference{Name: ps})
 	}
 }
