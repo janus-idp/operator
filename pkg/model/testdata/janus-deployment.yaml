@@ -45,9 +45,6 @@ spec:
               name: dynamic-plugins-npmrc
               readOnly: true
               subPath: .npmrc
-#            - mountPath: /opt/app-root/src/dynamic-plugins.yaml
-#              subPath: dynamic-plugins.yaml
-#              name: dynamic-plugins-conf
           workingDir: /opt/app-root/src
 
       containers:
