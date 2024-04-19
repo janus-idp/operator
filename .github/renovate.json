@@ -17,6 +17,19 @@
       "matchCurrentVersion": "!/^0/",
       "automerge": true,
       "pinDigests": false
+    },
+    {
+      "matchDatasources": ["go"],
+      "matchUpdateTypes": ["minor,","patch"],
+      "matchCurrentVersion": "!/^0/",
+      "automerge": true,
+      "pinDigests": true
+    },
+    {
+      "matchDatasources": ["golang-version"],
+      "rangeStrategy": "bump",
+      "enabled": false,
+      "automerge": false
     }
   ],
   "vulnerabilityAlerts": {
