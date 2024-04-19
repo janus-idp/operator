@@ -3,7 +3,6 @@
     "config:best-practices",
     ":gitSignOff",
     ":rebaseStalePrs",
-    "docker:enableMajor",
     "group:allNonMajor"
   ],
   "labels": ["kind/dependency upgrade"],
@@ -14,7 +13,7 @@
   "packageRules": [
     {
       "matchDatasources": ["docker"],
-      "matchUpdateTypes": ["minor","patch"],
+      "matchUpdateTypes": ["patch"],
       "matchCurrentVersion": "!/^0/",
       "automerge": true,
       "pinDigests": false
