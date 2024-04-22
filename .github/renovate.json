@@ -132,7 +132,8 @@
         "/^1\\..*\\.x/"
       ],
       "automerge": false
-    },    {
+    },
+    {
       "description": "Do NOT generate PRs for major go dependency updates ",
       "enabled": false,
       "matchDatasources": [
