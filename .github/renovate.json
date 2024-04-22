@@ -42,13 +42,13 @@
       "pinDigests": false
     },
     {
-      "description": "Do NOT generate PRs for minor or major go dependency updates ",
+      "description": "Do NOT generate PRs for major or minor go dependency updates ",
       "enabled": false,
       "matchDatasources": [
         "go"
       ],
       "matchUpdateTypes": [
-        "minor", "major"
+        "major", "minor"
       ],
       "automerge": false
     },
