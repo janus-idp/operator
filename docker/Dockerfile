@@ -13,7 +13,7 @@
 # limitations under the License.
 
 #@follow_tag(registry.redhat.io/rhel9/go-toolset:latest)
-FROM registry.access.redhat.com/ubi9/go-toolset:1.20.10-11@sha256:c7c3cf77133ff99b32e04ba1b6f238d15ed97403dae1a24e5b3f6ad82087f07e AS builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.20.10-11 AS builder
 # hadolint ignore=DL3002
 USER 0
 ENV GOPATH=/go/
