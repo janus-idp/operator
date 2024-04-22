@@ -42,10 +42,9 @@
       "pinDigests": false
     },
     {
-      "description": "k8s, ginkgo, gomega: minor and patch updates in main",
+      "description": "k8s go: minor and patch updates in main",
       "enabled": true,
-      "groupName": "kubernetes packages main",
-      "groupSlug": "kubernetes-go",
+      "groupName": "k8s-go main",
       "matchDatasources": [
         "go"
       ],
@@ -75,8 +74,103 @@
         "k8s.io/pod-security-admission",
         "k8s.io/sample-apiserver",
         "k8s.io/sample-cli-plugin",
-        "k8s.io/sample-controller",
-        "github.com/onsi/ginkgo/v2",
+        "k8s.io/sample-controller"
+      ],
+      "matchUpdateTypes": [
+        "minor", "patch"
+      ],
+      "baseBranches": [
+        "main"
+      ],
+      "automerge": false
+    },
+    {
+      "description": "k8s go: patch updates only in 1.y.x",
+      "enabled": true,
+      "groupName": "k8s-go 1.y.x",
+      "matchDatasources": [
+        "go"
+      ],
+      "matchPackagePrefixes": [
+        "k8s.io/api",
+        "k8s.io/apiextensions-apiserver",
+        "k8s.io/apimachinery",
+        "k8s.io/apiserver",
+        "k8s.io/cli-runtime",
+        "k8s.io/client-go",
+        "k8s.io/cloud-provider",
+        "k8s.io/cluster-bootstrap",
+        "k8s.io/code-generator",
+        "k8s.io/component-base",
+        "k8s.io/controller-manager",
+        "k8s.io/cri-api",
+        "k8s.io/csi-translation-lib",
+        "k8s.io/kube-aggregator",
+        "k8s.io/kube-controller-manager",
+        "k8s.io/kube-proxy",
+        "k8s.io/kube-scheduler",
+        "k8s.io/kubectl",
+        "k8s.io/kubelet",
+        "k8s.io/legacy-cloud-providers",
+        "k8s.io/metrics",
+        "k8s.io/mount-utils",
+        "k8s.io/pod-security-admission",
+        "k8s.io/sample-apiserver",
+        "k8s.io/sample-cli-plugin",
+        "k8s.io/sample-controller"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "baseBranches": [
+        "/^1\\..*\\.x/"
+      ],
+      "automerge": false
+    },
+    {
+      "description": "ginkgo: minor and patch updates in main",
+      "enabled": true,
+      "groupName": "ginkgo main",
+      "matchDatasources": [
+        "go"
+      ],
+      "matchPackagePrefixes": [
+        "github.com/onsi/ginkgo/v2"
+      ],
+      "matchUpdateTypes": [
+        "minor", "patch"
+      ],
+      "baseBranches": [
+        "main"
+      ],
+      "automerge": false
+    },
+    {
+      "description": "ginkgo: patch updates only in 1.y.x",
+      "enabled": true,
+      "groupName": "ginkgo 1.y.x",
+      "matchDatasources": [
+        "go"
+      ],
+      "matchPackagePrefixes": [
+        "github.com/onsi/ginkgo/v2"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "baseBranches": [
+        "/^1\\..*\\.x/"
+      ],
+      "automerge": false
+    },
+    {
+      "description": "gomega: minor and patch updates in main",
+      "enabled": true,
+      "groupName": "gomega main",
+      "matchDatasources": [
+        "go"
+      ],
+      "matchPackagePrefixes": [
 	      "github.com/onsi/gomega"
       ],
       "matchUpdateTypes": [
@@ -88,41 +182,13 @@
       "automerge": false
     },
     {
-      "description": "k8s, ginkgo, gomega: patch updates only in 1.*.x",
+      "description": "gomega: patch updates only in 1.y.x",
       "enabled": true,
-      "groupName": "kubernetes packages 1.*.x",
-      "groupSlug": "kubernetes-go",
+      "groupName": "gomega 1.y.x",
       "matchDatasources": [
         "go"
       ],
       "matchPackagePrefixes": [
-        "k8s.io/api",
-        "k8s.io/apiextensions-apiserver",
-        "k8s.io/apimachinery",
-        "k8s.io/apiserver",
-        "k8s.io/cli-runtime",
-        "k8s.io/client-go",
-        "k8s.io/cloud-provider",
-        "k8s.io/cluster-bootstrap",
-        "k8s.io/code-generator",
-        "k8s.io/component-base",
-        "k8s.io/controller-manager",
-        "k8s.io/cri-api",
-        "k8s.io/csi-translation-lib",
-        "k8s.io/kube-aggregator",
-        "k8s.io/kube-controller-manager",
-        "k8s.io/kube-proxy",
-        "k8s.io/kube-scheduler",
-        "k8s.io/kubectl",
-        "k8s.io/kubelet",
-        "k8s.io/legacy-cloud-providers",
-        "k8s.io/metrics",
-        "k8s.io/mount-utils",
-        "k8s.io/pod-security-admission",
-        "k8s.io/sample-apiserver",
-        "k8s.io/sample-cli-plugin",
-        "k8s.io/sample-controller",
-        "github.com/onsi/ginkgo/v2",
 	      "github.com/onsi/gomega"
       ],
       "matchUpdateTypes": [
