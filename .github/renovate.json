@@ -157,10 +157,13 @@
       "automerge": true
     },
     {
-      "description": "Do generate PRs for golang version bumps, keeping x.yy version the same",
+      "description": "Do generate PRs for golang version patch bumps, keeping x.yy version the same",
       "enabled": true,
       "matchDatasources": [
         "golang-version"
+      ],
+      "matchUpdateTypes": [
+        "patch"
       ],
       "rangeStrategy": "bump",
       "automerge": false
