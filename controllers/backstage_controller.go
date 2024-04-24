@@ -19,6 +19,12 @@ import (
 	"fmt"
 	"reflect"
 
+	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -44,7 +50,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var recNumber = 0
+const (
+	BackstageWatchedByLabel = "rhdh.redhat.com/watchedBy"
+	BackstageNameAnnotation = "rhdh.redhat.com/backstageName"
+)
+
+var watchedConfigSelector = metav1.LabelSelector{
+	MatchExpressions: []metav1.LabelSelectorRequirement{
+		{
+			Key:      BackstageWatchedByLabel,
+			Values:   []string{"backstage"},
+			Operator: metav1.LabelSelectorOpIn,
+		},
+	},
+}
 
 // BackstageReconciler reconciles a Backstage object
 type BackstageReconciler struct {
@@ -57,7 +76,7 @@ type BackstageReconciler struct {
 	// Namespace allows to restrict the reconciliation to this particular namespace,
 	// and ignore requests from other namespaces.
 	// This is mostly useful for our tests, to overcome a limitation of EnvTest about namespace deletion.
-	Namespace string
+	//Namespace string
 
 	IsOpenShift bool
 }
@@ -79,15 +98,12 @@ type BackstageReconciler struct {
 func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	lg := log.FromContext(ctx)
 
-	recNumber = recNumber + 1
-	lg.V(1).Info(fmt.Sprintf("starting reconciliation (namespace: %q), number %d", req.NamespacedName, recNumber))
-
 	// Ignore requests for other namespaces, if specified.
 	// This is mostly useful for our tests, to overcome a limitation of EnvTest about namespace deletion.
 	// More details on https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
-	if r.Namespace != "" && req.Namespace != r.Namespace {
-		return ctrl.Result{}, nil
-	}
+	//if r.Namespace != "" && req.Namespace != r.Namespace {
+	//	return ctrl.Result{}, nil
+	//}
 
 	backstage := bs.Backstage{}
 	if err := r.Get(ctx, req.NamespacedName, &backstage); err != nil {
@@ -282,18 +298,57 @@ func setStatusCondition(backstage *bs.Backstage, condType bs.BackstageConditionT
 	})
 }
 
+// requestByLabel returns a request with current Namespace and Backstage Object name taken from label
+// or empty request object if label not found
+func (r *BackstageReconciler) requestByLabel(ctx context.Context, object client.Object) []reconcile.Request {
+
+	backstageName := object.GetAnnotations()[BackstageNameAnnotation]
+	if backstageName == "" {
+		return []reconcile.Request{}
+	}
+
+	log.FromContext(ctx).V(1).Info("enqueuing reconcile for", "secret", object.GetName())
+	return []reconcile.Request{
+		{
+			NamespacedName: types.NamespacedName{
+				Namespace: object.GetNamespace(),
+				Name:      backstageName,
+			},
+		},
+	}
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *BackstageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
-	builder := ctrl.NewControllerManagedBy(mgr).
-		For(&bs.Backstage{})
+	pred, err := predicate.LabelSelectorPredicate(watchedConfigSelector)
+	if err != nil {
+		return fmt.Errorf("failed to construct the predicate for matching secrets. This should not happen: %w", err)
+	}
 
-	// [GA] do not remove it
-	//if r.OwnsRuntime {
-	//	builder.Owns(&appsv1.Deployment{}).
-	//		Owns(&corev1.Service{}).
-	//		Owns(&appsv1.StatefulSet{})
-	//}
+	b := ctrl.NewControllerManagedBy(mgr).
+		For(&bs.Backstage{}).
+		Watches(
+			&corev1.Secret{},
+			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, o client.Object) []reconcile.Request {
+				return r.requestByLabel(ctx, o)
+			}),
+			builder.WithPredicates(pred, predicate.Funcs{
+				DeleteFunc: func(e event.DeleteEvent) bool { return true },
+				UpdateFunc: func(e event.UpdateEvent) bool { return true },
+				//CreateFunc: func(e event.CreateEvent) bool { return true },
+			}),
+		).
+		Watches(
+			&corev1.ConfigMap{},
+			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, o client.Object) []reconcile.Request {
+				return r.requestByLabel(ctx, o)
+			}),
+			builder.WithPredicates(pred, predicate.Funcs{
+				DeleteFunc: func(e event.DeleteEvent) bool { return true },
+				UpdateFunc: func(e event.UpdateEvent) bool { return true },
+				//CreateFunc: func(e event.CreateEvent) bool { return true },
+			}))
 
-	return builder.Complete(r)
+	return b.Complete(r)
 }

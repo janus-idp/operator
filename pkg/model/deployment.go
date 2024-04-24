@@ -130,8 +130,8 @@ func (b *BackstageDeployment) validate(model *BackstageModel, backstage bsv1alph
 
 func (b *BackstageDeployment) setMetaInfo(backstageName string) {
 	b.deployment.SetName(DeploymentName(backstageName))
-	utils.GenerateLabel(&b.deployment.Spec.Template.ObjectMeta.Labels, BackstageAppLabel, fmt.Sprintf("backstage-%s", backstageName))
-	utils.GenerateLabel(&b.deployment.Spec.Selector.MatchLabels, BackstageAppLabel, fmt.Sprintf("backstage-%s", backstageName))
+	utils.GenerateLabel(&b.deployment.Spec.Template.ObjectMeta.Labels, BackstageAppLabel, utils.BackstageAppLabelValue(backstageName))
+	utils.GenerateLabel(&b.deployment.Spec.Selector.MatchLabels, BackstageAppLabel, utils.BackstageAppLabelValue(backstageName))
 }
 
 func (b *BackstageDeployment) container() *corev1.Container {
