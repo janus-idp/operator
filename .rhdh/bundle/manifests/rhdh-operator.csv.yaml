@@ -258,7 +258,7 @@ spec:
                   limits:
                     cpu: 500m
                     ephemeral-storage: 20Mi
-                    memory: 128Mi
+                    memory: 1Gi
                   requests:
                     cpu: 10m
                     memory: 64Mi
@@ -349,4 +349,4 @@ spec:
     name: Red Hat Inc.
     url: https://www.redhat.com/
   version: 1.2.0
-  replaces: rhdh-operator.v1.1.0
+  replaces: rhdh-operator.v1.1.1
