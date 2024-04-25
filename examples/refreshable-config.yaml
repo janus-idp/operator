@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-secret
+  labels:
+    rhdh.redhat.com/watchedBy: backstage
+  annotations:
+    rhdh.redhat.com/backstageName: bs-rc-config
+    test: test
+stringData:
+  GH_CLIENT_ID: "mmm54123321"
+  GH_CLIENT_SECRET: "nnn54123321"
+  TEST: "tttttt"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rc-app-config
+  labels:
+    rhdh.redhat.com/watchedBy: backstage
+  annotations:
+    rhdh.redhat.com/backstageName: bs-rc-config
+    test: test
+data:
+  rc-app-config.yaml: |
+    auth:
+      # see https://backstage.io/docs/auth/ to learn about auth providers
+      environment: development
+      providers:
+        github:
+          development:
+            clientId: '${GH_CLIENT_ID}'
+            clientSecret: '${GH_CLIENT_SECRET}'
+  rc-app-test.yaml: |
+
+---
+apiVersion: rhdh.redhat.com/v1alpha1
+kind: Backstage
+metadata:
+  name: bs-rc-config
+spec:
+  application:
+    replicas: 2
+    appConfig:
+      configMaps:
+        - name: "rc-app-config"
+    extraEnvs:
+      secrets:
+        - name: "my-secret"

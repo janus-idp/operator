@@ -307,7 +307,7 @@ func (r *BackstageReconciler) requestByLabel(ctx context.Context, object client.
 		return []reconcile.Request{}
 	}
 
-	log.FromContext(ctx).V(1).Info("enqueuing reconcile for", "secret", object.GetName())
+	log.FromContext(ctx).V(1).Info("enqueuing reconcile for", object.GetObjectKind().GroupVersionKind().Kind, object.GetName())
 	return []reconcile.Request{
 		{
 			NamespacedName: types.NamespacedName{
