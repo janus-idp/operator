@@ -212,6 +212,9 @@ data:
                   cpu: 1000m
                   memory: 2.5Gi
                   ephemeral-storage: 5Gi
+                requests:
+                  cpu: 125m
+                  memory: 128Mi
           containers:
             - name: backstage-backend
               # image will be replaced by the value of the `RELATED_IMAGE_backstage` env var, if set
@@ -259,6 +262,9 @@ data:
                   cpu: 1000m
                   memory: 2.5Gi
                   ephemeral-storage: 5Gi
+                requests:
+                  cpu: 125m
+                  memory: 128Mi
   dynamic-plugins-configmap.yaml: |-
     apiVersion: v1
     kind: ConfigMap
