@@ -29,10 +29,10 @@ cd /tmp
 curl -sSLO https://raw.githubusercontent.com/janus-idp/operator/main/.rhdh/scripts/install-rhdh-catalog-source.sh
 chmod +x install-rhdh-catalog-source.sh
 
-# install catalog source and operator subscription, for the latest stable RC or GA
+# install catalog source and operator subscription, for the latest stable RC or GA from 1.yy.x branch
 ./install-rhdh-catalog-source.sh --latest --install-operator rhdh  
 
-# or, catalog source and operator subscription, for the next CI build based on upstream main branch
+# OR, install catalog source and operator subscription, for the next CI build from main branch
 ./install-rhdh-catalog-source.sh --next --install-operator rhdh  
 ----
 
