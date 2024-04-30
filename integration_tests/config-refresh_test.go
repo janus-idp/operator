@@ -17,7 +17,6 @@ package integration_tests
 import (
 	"context"
 	"fmt"
-	controller "redhat-developer/red-hat-developer-hub-operator/controllers"
 	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 	"strings"
 	"time"
@@ -66,9 +65,9 @@ var _ = When("create backstage with external configuration", func() {
 		backstageName := generateRandName()
 
 		generateConfigMap(ctx, k8sClient, appConfig1, ns, map[string]string{"key11": "app:", "key12": "app:"},
-			map[string]string{controller.BackstageWatchedByLabel: "backstage"}, map[string]string{controller.BackstageNameAnnotation: backstageName})
+			map[string]string{model.ExtConfigSyncLabel: "true"}, map[string]string{model.BackstageNameAnnotation: backstageName})
 		generateSecret(ctx, k8sClient, secretEnv1, ns, map[string]string{"sec11": "val11"},
-			map[string]string{controller.BackstageWatchedByLabel: "backstage"}, map[string]string{controller.BackstageNameAnnotation: backstageName})
+			map[string]string{model.ExtConfigSyncLabel: "true"}, map[string]string{model.BackstageNameAnnotation: backstageName})
 
 		bs := bsv1alpha1.BackstageSpec{
 			Application: &bsv1alpha1.Application{

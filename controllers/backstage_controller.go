@@ -50,16 +50,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const (
-	BackstageWatchedByLabel = "rhdh.redhat.com/watchedBy"
-	BackstageNameAnnotation = "rhdh.redhat.com/backstageName"
-)
-
 var watchedConfigSelector = metav1.LabelSelector{
 	MatchExpressions: []metav1.LabelSelectorRequirement{
 		{
-			Key:      BackstageWatchedByLabel,
-			Values:   []string{"backstage"},
+			Key:      model.ExtConfigSyncLabel,
+			Values:   []string{"true"},
 			Operator: metav1.LabelSelectorOpIn,
 		},
 	},
@@ -72,12 +67,7 @@ type BackstageReconciler struct {
 	// If true, Backstage Controller always sync the state of runtime objects created
 	// otherwise, runtime objects can be re-configured independently
 	OwnsRuntime bool
-
-	// Namespace allows to restrict the reconciliation to this particular namespace,
-	// and ignore requests from other namespaces.
-	// This is mostly useful for our tests, to overcome a limitation of EnvTest about namespace deletion.
-	//Namespace string
-
+	// indicates if current cluster is Openshift
 	IsOpenShift bool
 }
 
@@ -302,20 +292,54 @@ func setStatusCondition(backstage *bs.Backstage, condType bs.BackstageConditionT
 // or empty request object if label not found
 func (r *BackstageReconciler) requestByLabel(ctx context.Context, object client.Object) []reconcile.Request {
 
-	backstageName := object.GetAnnotations()[BackstageNameAnnotation]
+	lg := log.FromContext(ctx)
+
+	backstageName := object.GetAnnotations()[model.BackstageNameAnnotation]
 	if backstageName == "" {
+		lg.Info(fmt.Sprintf("WARNING: %s annotation is not defined, Backstage instances will not be reconciled.", model.BackstageNameAnnotation))
 		return []reconcile.Request{}
 	}
 
-	log.FromContext(ctx).V(1).Info("enqueuing reconcile for", object.GetObjectKind().GroupVersionKind().Kind, object.GetName())
-	return []reconcile.Request{
-		{
-			NamespacedName: types.NamespacedName{
-				Namespace: object.GetNamespace(),
-				Name:      backstageName,
-			},
-		},
+	nn := types.NamespacedName{
+		Namespace: object.GetNamespace(),
+		Name:      backstageName,
 	}
+
+	//
+	backstage := bs.Backstage{}
+	if err := r.Get(ctx, nn, &backstage); err != nil {
+		if !errors.IsNotFound(err) {
+			lg.Error(err, "request by label failed, get Backstage ")
+		}
+		return []reconcile.Request{}
+	}
+
+	ec, err := r.preprocessSpec(ctx, backstage)
+	if err != nil {
+		lg.Error(err, "request by label failed, preprocess Backstage ")
+		return []reconcile.Request{}
+	}
+
+	deploy := &appsv1.Deployment{}
+	if err := r.Get(ctx, types.NamespacedName{Name: model.DeploymentName(backstage.Name), Namespace: object.GetNamespace()}, deploy); err != nil {
+		if errors.IsNotFound(err) {
+			lg.V(1).Info("request by label, deployment not found", "name", model.DeploymentName(backstage.Name))
+		} else {
+			lg.Error(err, "request by label failed, get Deployment ", "error ", err)
+		}
+		return []reconcile.Request{}
+	}
+
+	newHash := ec.GetHash()
+	oldHash := deploy.Spec.Template.ObjectMeta.GetAnnotations()[model.ExtConfigHashAnnotation]
+	if newHash == oldHash {
+		lg.V(1).Info("request by label, hash are equal", "hash", newHash)
+		return []reconcile.Request{}
+	}
+
+	lg.V(1).Info("enqueuing reconcile for", object.GetObjectKind().GroupVersionKind().Kind, object.GetName(), "new hash: ", newHash, "old hash: ", oldHash)
+	return []reconcile.Request{{NamespacedName: types.NamespacedName{Name: backstage.Name, Namespace: object.GetNamespace()}}}
+
 }
 
 // SetupWithManager sets up the controller with the Manager.

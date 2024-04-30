@@ -35,6 +35,8 @@ import (
 )
 
 const BackstageAppLabel = "rhdh.redhat.com/app"
+const ExtConfigSyncLabel = "rhdh.redhat.com/ext-config-sync"
+const BackstageNameAnnotation = "rhdh.redhat.com/backstage-name"
 
 // Backstage configuration scaffolding with empty BackstageObjects.
 // There are all possible objects for configuration
@@ -62,14 +64,6 @@ type BackstageModel struct {
 type SpecifiedConfigMap struct {
 	ConfigMap corev1.ConfigMap
 	Key       string
-}
-
-type ExternalConfig struct {
-	RawConfig           map[string]string
-	AppConfigs          map[string]corev1.ConfigMap
-	ExtraFileConfigMaps map[string]corev1.ConfigMap
-	ExtraEnvConfigMaps  map[string]corev1.ConfigMap
-	DynamicPlugins      corev1.ConfigMap
 }
 
 func (m *BackstageModel) setRuntimeObject(object RuntimeObject) {

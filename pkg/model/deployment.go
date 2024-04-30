@@ -32,6 +32,7 @@ import (
 
 const BackstageImageEnvVar = "RELATED_IMAGE_backstage"
 const defaultMountDir = "/opt/app-root/src"
+const ExtConfigHashAnnotation = "rhdh.redhat.com/ext-config-hash"
 
 type BackstageDeploymentFactory struct{}
 
@@ -73,6 +74,12 @@ func (b *BackstageDeployment) addToModel(model *BackstageModel, _ bsv1alpha1.Bac
 	if b.deployment == nil {
 		return false, fmt.Errorf("Backstage Deployment is not initialized, make sure there is deployment.yaml in default or raw configuration")
 	}
+
+	if b.deployment.Spec.Template.ObjectMeta.Annotations == nil {
+		b.deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{}
+	}
+	b.deployment.Spec.Template.ObjectMeta.Annotations[ExtConfigHashAnnotation] = model.ExternalConfig.GetHash()
+
 	model.backstageDeployment = b
 	model.setRuntimeObject(b)
 
