@@ -35,8 +35,6 @@ import (
 )
 
 const BackstageAppLabel = "rhdh.redhat.com/app"
-const ExtConfigSyncLabel = "rhdh.redhat.com/ext-config-sync"
-const BackstageNameAnnotation = "rhdh.redhat.com/backstage-name"
 
 // Backstage configuration scaffolding with empty BackstageObjects.
 // There are all possible objects for configuration

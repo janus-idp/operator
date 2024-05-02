@@ -17,6 +17,12 @@ package controller
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
+
+	"k8s.io/apimachinery/pkg/api/errors"
+
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -27,6 +33,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
+
+const AutoSyncEnvVar = "EXT_CONF_SYNC_backstage"
 
 // Add additional details to the Backstage Spec helping in making Backstage RuntimeObjects Model
 // Validates Backstage Spec and fails fast if something not correct
@@ -42,7 +50,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.B
 	if bsSpec.RawRuntimeConfig != nil {
 		if bsSpec.RawRuntimeConfig.BackstageConfigName != "" {
 			cm := &corev1.ConfigMap{}
-			if err := r.addExtConfig(&result, ctx, cm, bsSpec.RawRuntimeConfig.BackstageConfigName, ns); err != nil {
+			if err := r.addExtConfig(&result, ctx, cm, backstage.Name, bsSpec.RawRuntimeConfig.BackstageConfigName, ns); err != nil {
 				return result, err
 			}
 			for key, value := range cm.Data {
@@ -51,7 +59,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.B
 		}
 		if bsSpec.RawRuntimeConfig.LocalDbConfigName != "" {
 			cm := &corev1.ConfigMap{}
-			if err := r.addExtConfig(&result, ctx, cm, bsSpec.RawRuntimeConfig.LocalDbConfigName, ns); err != nil {
+			if err := r.addExtConfig(&result, ctx, cm, backstage.Name, bsSpec.RawRuntimeConfig.LocalDbConfigName, ns); err != nil {
 				return result, err
 			}
 			for key, value := range cm.Data {
@@ -68,7 +76,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.B
 	if bsSpec.Application.AppConfig != nil {
 		for _, ac := range bsSpec.Application.AppConfig.ConfigMaps {
 			cm := &corev1.ConfigMap{}
-			if err := r.addExtConfig(&result, ctx, cm, ac.Name, ns); err != nil {
+			if err := r.addExtConfig(&result, ctx, cm, backstage.Name, ac.Name, ns); err != nil {
 				return result, err
 			}
 			result.AppConfigs[ac.Name] = *cm
@@ -79,7 +87,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.B
 	if bsSpec.Application.ExtraFiles != nil && bsSpec.Application.ExtraFiles.ConfigMaps != nil {
 		for _, ef := range bsSpec.Application.ExtraFiles.ConfigMaps {
 			cm := &corev1.ConfigMap{}
-			if err := r.addExtConfig(&result, ctx, cm, ef.Name, ns); err != nil {
+			if err := r.addExtConfig(&result, ctx, cm, backstage.Name, ef.Name, ns); err != nil {
 				return result, err
 			}
 			result.ExtraFileConfigMaps[cm.Name] = *cm
@@ -90,7 +98,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.B
 	if bsSpec.Application.ExtraFiles != nil && bsSpec.Application.ExtraFiles.Secrets != nil {
 		for _, ef := range bsSpec.Application.ExtraFiles.Secrets {
 			secret := &corev1.Secret{}
-			if err := r.addExtConfig(&result, ctx, secret, ef.Name, ns); err != nil {
+			if err := r.addExtConfig(&result, ctx, secret, backstage.Name, ef.Name, ns); err != nil {
 				return result, err
 			}
 			result.ExtraFileSecrets[secret.Name] = *secret
@@ -101,7 +109,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.B
 	if bsSpec.Application.ExtraEnvs != nil && bsSpec.Application.ExtraEnvs.ConfigMaps != nil {
 		for _, ee := range bsSpec.Application.ExtraEnvs.ConfigMaps {
 			cm := &corev1.ConfigMap{}
-			if err := r.addExtConfig(&result, ctx, cm, ee.Name, ns); err != nil {
+			if err := r.addExtConfig(&result, ctx, cm, backstage.Name, ee.Name, ns); err != nil {
 				return result, err
 			}
 			result.ExtraEnvConfigMaps[cm.Name] = *cm
@@ -112,7 +120,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.B
 	if bsSpec.Application.ExtraEnvs != nil && bsSpec.Application.ExtraEnvs.Secrets != nil {
 		for _, ee := range bsSpec.Application.ExtraEnvs.Secrets {
 			secret := &corev1.Secret{}
-			if err := r.addExtConfig(&result, ctx, secret, ee.Name, ns); err != nil {
+			if err := r.addExtConfig(&result, ctx, secret, backstage.Name, ee.Name, ns); err != nil {
 				return result, err
 			}
 			result.ExtraEnvSecrets[secret.Name] = *secret
@@ -122,7 +130,7 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.B
 	// Process DynamicPlugins
 	if bsSpec.Application.DynamicPluginsConfigMapName != "" {
 		cm := &corev1.ConfigMap{}
-		if err := r.addExtConfig(&result, ctx, cm, bsSpec.Application.DynamicPluginsConfigMapName, ns); err != nil {
+		if err := r.addExtConfig(&result, ctx, cm, backstage.Name, bsSpec.Application.DynamicPluginsConfigMapName, ns); err != nil {
 			return result, err
 		}
 		result.DynamicPlugins = *cm
@@ -131,14 +139,43 @@ func (r *BackstageReconciler) preprocessSpec(ctx context.Context, backstage bs.B
 	return result, nil
 }
 
-func (r *BackstageReconciler) addExtConfig(config *model.ExternalConfig, ctx context.Context, obj client.Object, name, ns string) error {
+func (r *BackstageReconciler) addExtConfig(config *model.ExternalConfig, ctx context.Context, obj client.Object, backstageName, objectName, ns string) error {
 
-	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, obj); err != nil {
-		return fmt.Errorf("failed to get external config from %s: %s", name, err)
+	lg := log.FromContext(ctx)
+
+	if err := r.Get(ctx, types.NamespacedName{Name: objectName, Namespace: ns}, obj); err != nil {
+		if _, ok := obj.(*corev1.Secret); ok && errors.IsForbidden(err) {
+			return fmt.Errorf("warning: Secrets GET is forbidden, updating Secrets may not cause Pod recreating")
+		}
+		return fmt.Errorf("failed to get external config from %s: %s", objectName, err)
 	}
 
 	if err := config.AddToSyncedConfig(obj); err != nil {
 		return fmt.Errorf("failed to add to synced %s: %s", obj.GetName(), err)
+	}
+
+	if obj.GetLabels() == nil {
+		obj.SetLabels(map[string]string{})
+	}
+	if obj.GetAnnotations() == nil {
+		obj.SetAnnotations(map[string]string{})
+	}
+
+	autoSync := true
+	autoSyncStr, ok := os.LookupEnv(AutoSyncEnvVar)
+	if ok {
+		autoSync, _ = strconv.ParseBool(autoSyncStr)
+	}
+
+	if obj.GetLabels()[model.ExtConfigSyncLabel] == "" || obj.GetAnnotations()[model.BackstageNameAnnotation] == "" ||
+		obj.GetLabels()[model.ExtConfigSyncLabel] != strconv.FormatBool(autoSync) {
+
+		obj.GetLabels()[model.ExtConfigSyncLabel] = strconv.FormatBool(autoSync)
+		obj.GetAnnotations()[model.BackstageNameAnnotation] = backstageName
+		if err := r.Update(ctx, obj); err != nil {
+			return fmt.Errorf("failed to update external config %s: %s", objectName, err)
+		}
+		lg.V(1).Info(fmt.Sprintf("update external config %s with label %s=%s and annotation %s=%s", obj.GetName(), model.ExtConfigSyncLabel, strconv.FormatBool(autoSync), model.BackstageNameAnnotation, backstageName))
 	}
 
 	return nil

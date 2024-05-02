@@ -23,6 +23,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const ExtConfigSyncLabel = "rhdh.redhat.com/ext-config-sync"
+const BackstageNameAnnotation = "rhdh.redhat.com/backstage-name"
+
 type ExternalConfig struct {
 	RawConfig           map[string]string
 	AppConfigs          map[string]corev1.ConfigMap

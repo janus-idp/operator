@@ -18,6 +18,8 @@ import (
 	"context"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"k8s.io/utils/ptr"
 
 	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
@@ -158,6 +160,37 @@ var _ = When("create backstage with CR configured", func() {
 			g.Expect("sec11").To(BeEnvVarForContainer(c))
 
 		}, time.Minute, time.Second).Should(Succeed(), controllerMessage())
+	})
+
+	It("generates label and annotation", func() {
+
+		appConfig := generateConfigMap(ctx, k8sClient, "app-config1", ns, map[string]string{"key11": "app:", "key12": "app:"}, nil, nil)
+
+		bs := bsv1alpha1.BackstageSpec{
+			Application: &bsv1alpha1.Application{
+				AppConfig: &bsv1alpha1.AppConfig{
+					ConfigMaps: []bsv1alpha1.ObjectKeyRef{
+						{Name: appConfig},
+					},
+				},
+			},
+		}
+
+		backstageName := createAndReconcileBackstage(ctx, ns, bs, "")
+		Eventually(func(g Gomega) {
+
+			cm := &corev1.ConfigMap{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: appConfig}, cm)
+			g.Expect(err).ShouldNot(HaveOccurred())
+
+			g.Expect(cm.Labels).To(HaveLen(1))
+			g.Expect(cm.Labels[model.ExtConfigSyncLabel]).To(Equal("true"))
+
+			g.Expect(cm.Annotations).To(HaveLen(1))
+			g.Expect(cm.Annotations[model.BackstageNameAnnotation]).To(Equal(backstageName))
+
+		}, 10*time.Second, time.Second).Should(Succeed())
+
 	})
 
 	It("creates default Backstage and then update CR ", func() {

@@ -76,7 +76,7 @@ type BackstageReconciler struct {
 //+kubebuilder:rbac:groups=rhdh.redhat.com,resources=backstages/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=configmaps;services,verbs=get;watch;create;update;list;delete;patch
 //+kubebuilder:rbac:groups="",resources=persistentvolumes;persistentvolumeclaims,verbs=get;list;watch
-//+kubebuilder:rbac:groups="",resources=secrets,verbs=create;delete;patch;update
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;watch;list;create;delete;patch;update
 //+kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;watch;create;update;list;delete;patch
 //+kubebuilder:rbac:groups="apps",resources=statefulsets,verbs=get;watch;create;update;list;delete;patch
 //+kubebuilder:rbac:groups="route.openshift.io",resources=routes;routes/custom-host,verbs=get;watch;create;update;list;delete;patch
@@ -296,7 +296,7 @@ func (r *BackstageReconciler) requestByLabel(ctx context.Context, object client.
 
 	backstageName := object.GetAnnotations()[model.BackstageNameAnnotation]
 	if backstageName == "" {
-		lg.Info(fmt.Sprintf("WARNING: %s annotation is not defined, Backstage instances will not be reconciled.", model.BackstageNameAnnotation))
+		lg.V(1).Info(fmt.Sprintf("warning: %s annotation is not defined for %s, Backstage instances will not be reconciled in this loop", model.BackstageNameAnnotation, object.GetName()))
 		return []reconcile.Request{}
 	}
 
