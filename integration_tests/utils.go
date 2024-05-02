@@ -107,6 +107,9 @@ func executeRemoteCommand(ctx context.Context, podNamespace, podName, container,
 			TTY:       true,
 		}, scheme.ParameterCodec)
 	exec, err := remotecommand.NewSPDYExecutor(restCfg, "POST", request.URL())
+	if err != nil {
+		return "", "", fmt.Errorf("%w failed creating executor  %s on %v/%v", err, command, podNamespace, podName)
+	}
 	err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
 		Stdout: buf,
 		Stderr: errBuf,

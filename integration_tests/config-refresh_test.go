@@ -133,7 +133,7 @@ var _ = When("create backstage with external configuration", func() {
 			// TODO nicer method to compare file content with added '\r'
 			g.Expect(strings.ReplaceAll(out, "\r", "")).To(Equal(newData))
 
-			out, _, err = executeRemoteCommand(ctx, ns, podName, "backstage-backend", "cat /my/mount/path/key12")
+			_, _, err = executeRemoteCommand(ctx, ns, podName, "backstage-backend", "cat /my/mount/path/key12")
 			g.Expect(err).Should(HaveOccurred())
 
 		}, 10*time.Minute, 10*time.Second).Should(Succeed(), controllerMessage())
