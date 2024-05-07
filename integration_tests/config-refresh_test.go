@@ -62,7 +62,7 @@ var _ = When("create backstage with external configuration", func() {
 		appConfig1 := "app-config1"
 		secretEnv1 := "secret-env1"
 
-		backstageName := generateRandName()
+		backstageName := generateRandName("")
 
 		generateConfigMap(ctx, k8sClient, appConfig1, ns, map[string]string{"key11": "app:", "key12": "app:"}, nil, nil)
 		//map[string]string{model.ExtConfigSyncLabel: "true"}, map[string]string{model.BackstageNameAnnotation: backstageName})

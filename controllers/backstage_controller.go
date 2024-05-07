@@ -88,13 +88,6 @@ type BackstageReconciler struct {
 func (r *BackstageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	lg := log.FromContext(ctx)
 
-	// Ignore requests for other namespaces, if specified.
-	// This is mostly useful for our tests, to overcome a limitation of EnvTest about namespace deletion.
-	// More details on https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
-	//if r.Namespace != "" && req.Namespace != r.Namespace {
-	//	return ctrl.Result{}, nil
-	//}
-
 	backstage := bs.Backstage{}
 	if err := r.Get(ctx, req.NamespacedName, &backstage); err != nil {
 		if errors.IsNotFound(err) {
@@ -305,7 +298,6 @@ func (r *BackstageReconciler) requestByLabel(ctx context.Context, object client.
 		Name:      backstageName,
 	}
 
-	//
 	backstage := bs.Backstage{}
 	if err := r.Get(ctx, nn, &backstage); err != nil {
 		if !errors.IsNotFound(err) {

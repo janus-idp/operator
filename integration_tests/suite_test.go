@@ -141,14 +141,17 @@ func randString(n int) string {
 	return string(b)
 }
 
-func generateRandName() string {
+// generateRandName return random name if name is empty or name itself otherwise
+func generateRandName(name string) string {
+	if name != "" {
+		return name
+	}
 	return "test-backstage-" + randString(5)
 }
+
 func createBackstage(ctx context.Context, spec bsv1alpha1.BackstageSpec, ns string, name string) string {
-	backstageName := generateRandName()
-	if name != "" {
-		backstageName = name
-	}
+
+	backstageName := generateRandName(name)
 
 	err := k8sClient.Create(ctx, &bsv1alpha1.Backstage{
 		ObjectMeta: metav1.ObjectMeta{
