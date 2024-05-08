@@ -34,7 +34,7 @@ func TestIfEmptyObjectsContainTypeinfo(t *testing.T) {
 	for _, cfg := range runtimeConfig {
 		obj := cfg.ObjectFactory.newBackstageObject()
 		assert.NotNil(t, obj.EmptyObject())
-		// TODO
+		// TODO uncomment when Kind is available
 		//assert.NotEmpty(t, obj.EmptyObject().GetObjectKind().GroupVersionKind().Kind)
 	}
 }
