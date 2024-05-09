@@ -74,11 +74,9 @@ type BackstageReconciler struct {
 //+kubebuilder:rbac:groups=rhdh.redhat.com,resources=backstages,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=rhdh.redhat.com,resources=backstages/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=rhdh.redhat.com,resources=backstages/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",resources=configmaps;services,verbs=get;watch;create;update;list;delete;patch
+//+kubebuilder:rbac:groups="",resources=configmaps;secrets;services,verbs=get;watch;create;update;list;delete;patch
 //+kubebuilder:rbac:groups="",resources=persistentvolumes;persistentvolumeclaims,verbs=get;list;watch
-//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;watch;list;create;delete;patch;update
-//+kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;watch;create;update;list;delete;patch
-//+kubebuilder:rbac:groups="apps",resources=statefulsets,verbs=get;watch;create;update;list;delete;patch
+//+kubebuilder:rbac:groups="apps",resources=deployments;statefulsets,verbs=get;watch;create;update;list;delete;patch
 //+kubebuilder:rbac:groups="route.openshift.io",resources=routes;routes/custom-host,verbs=get;watch;create;update;list;delete;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to

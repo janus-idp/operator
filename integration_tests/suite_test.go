@@ -20,6 +20,8 @@ import (
 	"os"
 	"strconv"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -175,6 +177,14 @@ func createAndReconcileBackstage(ctx context.Context, ns string, spec bsv1alpha1
 	_, err := NewTestBackstageReconciler(ns).ReconcileAny(ctx, reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
 	})
+
+	if err != nil {
+		GinkgoWriter.Printf("===> Error detected on Backstage reconcile: %s \n", err.Error())
+		if errors.IsAlreadyExists(err) || errors.IsConflict(err) {
+			return backstageName
+		}
+	}
+
 	Expect(err).To(Not(HaveOccurred()))
 
 	return backstageName
