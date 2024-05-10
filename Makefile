@@ -105,13 +105,17 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
-.PHONY: fmt
-fmt: goimports ## Format the code using goimports
-	find . -not -path '*/\.*' -name '*.go' -exec $(GOIMPORTS) -w {} \;
-
 fmt_license: addlicense ## Ensure the license header is set on all files
 	$(ADDLICENSE) -v -f license_header.txt $$(find . -not -path '*/\.*' -name '*.go')
 	$(ADDLICENSE) -v -f license_header.txt $$(find . -name '*ockerfile')
+
+.PHONY: imports
+imports: addgoio ## Organize imports in go files using goio.
+	$(GOIO)
+
+.PHONY: verify-imports
+verify-imports: addgoio ## Run import verifications.
+	$(GOIO) -l
 
 .PHONY: gosec
 gosec: addgosec ## run the gosec scanner for non-test files in this repo
@@ -223,20 +227,20 @@ KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
-GOIMPORTS ?= $(LOCALBIN)/goimports
 ADDLICENSE ?= $(LOCALBIN)/addlicense
 GOSEC ?= $(LOCALBIN)/gosec
+GOIO ?= $(LOCALBIN)/goio
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v3.8.7
 CONTROLLER_TOOLS_VERSION ?= v0.11.3
 GOLANGCI_LINT_VERSION ?= v1.55.2
-GOIMPORTS_VERSION ?= v0.15.0
 ADDLICENSE_VERSION ?= v1.1.1
 # opm and operator-sdk version
 OPM_VERSION ?= v1.36.0
 OPERATOR_SDK_VERSION ?= v1.33.0
 GOSEC_VERSION ?= v2.18.2
+GOIO_VERSION ?= v1.4.0
 
 ## Gosec options - default format is sarif so we can integrate with Github code scanning
 GOSEC_FMT ?= sarif  # for other options, see https://github.com/securego/gosec#output-formats
@@ -266,10 +270,10 @@ golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	test -s $(LOCALBIN)/golangci-lint || GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
-.PHONY: goimports
-goimports: $(GOIMPORTS) ## Download goimports locally if necessary.
-$(GOIMPORTS): $(LOCALBIN)
-	test -s $(LOCALBIN)/goimports || GOBIN=$(LOCALBIN) go install golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION)
+.PHONY: addgoio
+addgoio: $(GOIO) ## Download goio locally if necessary.
+$(GOIO): $(LOCALBIN)
+	test -s $(LOCALBIN)/goio || GOBIN=$(LOCALBIN) go install github.com/go-imports-organizer/goio@$(GOIO_VERSION)
 
 .PHONY: addlicense
 addlicense: $(ADDLICENSE) ## Download addlicense locally if necessary.
@@ -322,7 +326,7 @@ bundle: operator-sdk manifests kustomize ## Generate bundle manifests and metada
 
 ## to update the CSV with a new tagged version of the operator:
 ## yq '.spec.install.spec.deployments[0].spec.template.spec.containers[1].image|="quay.io/rhdh/operator:some-other-tag"' bundle/manifests/backstage-operator.clusterserviceversion.yaml
-## or 
+## or
 ## sed -r -e "s#(image: +)quay.io/.+operator.+#\1quay.io/rhdh/operator:some-other-tag#g" -i bundle/manifests/backstage-operator.clusterserviceversion.yaml
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
@@ -413,5 +417,3 @@ show-img:
 
 show-container-engine:
 	@echo -n $(CONTAINER_ENGINE)
-
-
