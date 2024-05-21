@@ -21,12 +21,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"k8s.io/client-go/discovery"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
+
+const maxK8sResourceNameLength = 63
 
 func SetKubeLabels(labels map[string]string, backstageName string) map[string]string {
 	if labels == nil {
@@ -53,7 +57,7 @@ func GenerateRuntimeObjectName(backstageCRName string, objectType string) string
 
 // GenerateVolumeNameFromCmOrSecret generates volume name for mounting ConfigMap or Secret
 func GenerateVolumeNameFromCmOrSecret(cmOrSecretName string) string {
-	return cmOrSecretName
+	return ToKubernetesResourceName(cmOrSecretName)
 }
 
 func BackstageAppLabelValue(backstageName string) string {
@@ -118,4 +122,34 @@ func IsOpenshift() (bool, error) {
 	}
 
 	return false, nil
+}
+
+// ToKubernetesResourceName converts a string into a valid Kubernetes resource name.
+// See https://kubernetes.io/docs/concepts/overview/working-with-objects/names/ for more details about the requirements.
+// It will replace any invalid characters with a dash and drop any leading or trailing dashes.
+// It might return an empty string, as a result of those operations.
+func ToKubernetesResourceName(str string) string {
+	const dash = "-"
+
+	name := strings.ToLower(str)
+
+	// Replace all invalid characters with a dash
+	re := regexp.MustCompile(`[^a-z0-9-]`)
+	name = re.ReplaceAllString(name, dash)
+
+	// Replace consecutive dashes with a single dash
+	reConsecutiveDashes := regexp.MustCompile(`-+`)
+	name = reConsecutiveDashes.ReplaceAllString(name, dash)
+
+	// Truncate to maxK8sResourceNameLength characters if necessary
+	if len(name) > maxK8sResourceNameLength {
+		name = name[:maxK8sResourceNameLength]
+	}
+
+	// Continue trimming leading and trailing dashes if necessary
+	for strings.HasPrefix(name, dash) || strings.HasSuffix(name, dash) {
+		name = strings.Trim(name, dash)
+	}
+
+	return name
 }
