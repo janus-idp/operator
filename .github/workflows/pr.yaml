@@ -63,6 +63,9 @@ jobs:
         if: ${{ env.CHANGES != '' }}
         run: make test
 
+      - name: Run integration tests
+        run: make integration-test
+
       - name: Run Gosec Security Scanner
         run: make gosec
 
