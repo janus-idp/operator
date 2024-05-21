@@ -81,6 +81,7 @@ spec:
           - ""
           resources:
           - configmaps
+          - secrets
           - services
           verbs:
           - create
@@ -90,7 +91,6 @@ spec:
           - patch
           - update
           - watch
-          - patch
         - apiGroups:
           - ""
           resources:
@@ -101,30 +101,9 @@ spec:
           - list
           - watch
         - apiGroups:
-          - ""
-          resources:
-          - secrets
-          verbs:
-          - create
-          - delete
-          - patch
-          - update
-        - apiGroups:
           - apps
           resources:
           - deployments
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-          - patch
-        - apiGroups:
-          - apps
-          resources:
           - statefulsets
           verbs:
           - create
