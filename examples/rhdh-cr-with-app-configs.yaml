@@ -19,14 +19,9 @@ spec:
       mountPath: /tmp/my-extra-files
       configMaps:
         - name: "my-backstage-extra-files-cm1"
-        # RHIDP-2246: mounting secret or configmap with a '.' in the name
-        - name: "my-extra-file-cm.txt"
       secrets:
         - name: "my-backstage-extra-files-secret1"
           key: secret_file1.txt
-        # RHIDP-2246: mounting secret or configmap with a '.' in the name
-        - name: "my-extra-file-secret.txt"
-          key: extra-file-secret.1
     extraEnvs:
       envs:
         - name: GITHUB_ORG
@@ -191,20 +186,6 @@ data:
 
 ---
 apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: my-extra-file-cm.txt
-data:
-  my-extra-file-cm-1.txt: |
-    # From ConfigMap with . in its name
-    Hello World
-  my-extra-file-cm-2.txt: |
-    # From ConfigMap with . in its name
-    some:
-      yaml: definition
-
----
-apiVersion: v1
 kind: Secret
 metadata:
   name: my-backstage-extra-files-secret1
@@ -224,15 +205,3 @@ stringData:
     webhookSecret: someWebhookSecret
     privateKey: |
       SomeRsaPrivateKey
-
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: my-extra-file-secret.txt
-stringData:
-  extra-file-secret.1: |
-    # From Secret with . in its name
-    <settings>
-      <somefield>some value</somefield>
-    </setting>
