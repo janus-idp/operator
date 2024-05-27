@@ -342,8 +342,6 @@ spec:
     name: Corey Daley
   - email: gazarenk@redhat.com
     name: Gennady Azarenkov
-  - email: jianrzha@redhat.com
-    name: Jianrong Zhang
   - email: nboldt@redhat.com
     name: Nick Boldt
   maturity: alpha
