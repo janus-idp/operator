@@ -260,6 +260,8 @@ data:
               env:
                 - name: APP_CONFIG_backend_listen_port
                   value: "7007"
+                - name: NODE_OPTIONS
+                  value: '--no-node-snapshot'
               volumeMounts:
                 - mountPath: /opt/app-root/src/dynamic-plugins-root
                   name: dynamic-plugins-root
