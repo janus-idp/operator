@@ -58,7 +58,7 @@ stringData:
 - add **<crt-secret>** to **spec.application.extraFiles.secrets**, so, as for example below **postgres-crt.pem** file will be mounted to Backstage container at **spec.application.extraFiles.mountPath** directory:   
 - add **<cred-secret>** to **spec.application.extraEnvs.secrets**, so all the data's entries will be injected to Backstage container as environment variables.
 
-**NOTE:** environment variables listed in **<cred-secret>** file work with default Operator configuration. If it is changed on or Raw configuration, you have to re-configure it accordingly.
+**NOTE:** environment variables listed in **<cred-secret>** file work with default Operator configuration. If it is changed on default or raw configuration, you have to re-configure it accordingly.
 
 ````
 cat <<EOF | kubectl -n <your-namespace> create -f -
