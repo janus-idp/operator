@@ -39,6 +39,17 @@ var dbStatefulSetBackstage = &bsv1alpha1.Backstage{
 	},
 }
 
+// test default StatefulSet
+func TestDefault(t *testing.T) {
+	bs := *dbStatefulSetBackstage.DeepCopy()
+	testObj := createBackstageTest(bs).withDefaultConfig(true)
+
+	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, false, testObj.scheme)
+	assert.NoError(t, err)
+
+	assert.Equal(t, model.LocalDbService.service.Name, model.localDbStatefulSet.statefulSet.Spec.ServiceName)
+}
+
 // It tests the overriding image feature
 func TestOverrideDbImage(t *testing.T) {
 	bs := *dbStatefulSetBackstage.DeepCopy()
