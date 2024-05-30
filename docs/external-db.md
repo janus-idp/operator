@@ -1,17 +1,19 @@
 # External DB integration
 
-Backstage hosts the data in the [PostgreSQL database](https://backstage.io/docs/getting-started/config/database/).
-By default, Operator creates and manages local instance of PostgreSQL in the same as Backstage deployment namespace but it also allows to switch this off and configure external instance instead.
+Backstage hosts the data in a [PostgreSQL database](https://backstage.io/docs/getting-started/config/database/).
+By default, the Operator creates and manages a local instance of PostgreSQL in the same namespace as the Backstage deployment but it also allows to switch this off and configure an external database server instead.
 Usually, external connection requires more security, so, this instruction includes steps to configure SSL/TLS.
 
 ### Configure your external PostgreSQL instance
-As a prerequisite you have to know:
+As a prerequisite, you have to know:
 - **db-host** - your PostgreSQL instance DNS or IP address 
 - **db-port** - your PostgreSQL instance port number (usually 5432)
 - **username** - to connect to your PostgreSQL instance
 - **password** - to connect to your PostgreSQL instance
 
-In addition, to get your database connection secured with SSL/TLS you also need certificates in a form of PEM file. 
+**NOTE:** By default, Backstage uses databases for each plugin and automatically creates them if none are found, so in addition to PSQL Database level privileges, the user may need Create Database privilege.  
+
+In addition, to get your database connection secured with SSL/TLS, you also need certificates in the form of PEM file. 
 
 You can find configuration guidelines for:
 - [AWS RDS PostgreSQL](#aws-rds-postgresql)
@@ -86,7 +88,7 @@ spec:
 (Tested on PGSQL 15)
 
 #### Prerequisites
-- An AWS account with active subscription and PostgreSQL instance on [Amazon RDS for PostgreSQL](https://aws.amazon.com/rds/postgresql/) 
+- An AWS account with an active subscription and a PostgreSQL instance on [Amazon RDS for PostgreSQL](https://aws.amazon.com/rds/postgresql/) 
 - (Optionally) Pgsql client installed to check your database connections 
 
 #### Preparation
@@ -118,7 +120,7 @@ postgres=>
 (Tested on PGSQL 15)
 
 #### Prerequisites
-- An [Azure](https://azure.microsoft.com/) account with active subscription and [Azure Database for PostgreSQL - Flexible Server instance](https://learn.microsoft.com/en-gb/azure/postgresql/flexible-server/overview).
+- An [Azure](https://azure.microsoft.com/) account with an active subscription and [Azure Database for PostgreSQL - Flexible Server instance](https://learn.microsoft.com/en-gb/azure/postgresql/flexible-server/overview).
 - (Optionally) Pgsql client installed to check your database connections 
 
 #### Preparation
@@ -149,11 +151,11 @@ postgres=>
 ````
 openssl x509 -in DigiCertGlobalRootCA.crt -out DigiCertGlobalRootCA.crt.pem -outform PEM
 
-openssl x509 -in Microsoft ECC Root Certificate Authority 2017.crt -out Microsoft ECC Root Certificate Authority 2017.crt.pem -outform PEM
+openssl x509 -in "Microsoft ECC Root Certificate Authority 2017.crt" -out "Microsoft ECC Root Certificate Authority 2017.crt.pem" -outform PEM
 ````
 
 - Combine them according to this [suggestion](https://learn.microsoft.com/en-gb/azure/postgresql/flexible-server/how-to-update-client-certificates-java#updating-root-ca-certificates-for-other-clients-for-certificate-pinning-scenarios), like:
 
 ````
-cat DigiCertGlobalRootCA.crt.pem Microsoft ECC Root Certificate Authority 2017.crt.pem > postgres-crt.pem
+cat DigiCertGlobalRootCA.crt.pem "Microsoft ECC Root Certificate Authority 2017.crt.pem" > postgres-crt.pem
 ````
