@@ -65,7 +65,7 @@ stringData:
 ````yaml
 cat <<EOF | kubectl -n <your-namespace> create -f -
 apiVersion: v1
-kind: Secret
+kind: Backstage
 metadata:
  name: <backstage-instance-name>
 spec:
