@@ -104,7 +104,7 @@ func (p *SecretFiles) validate(_ *BackstageModel, _ v1alpha1.Backstage) error {
 }
 
 func (p *SecretFiles) setMetaInfo(backstageName string) {
-	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageName, "backstage-files", true))
+	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageName, "backstage-files"))
 }
 
 // implementation of BackstagePodContributor interface

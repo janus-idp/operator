@@ -87,7 +87,7 @@ func (p *SecretEnvs) validate(_ *BackstageModel, _ v1alpha1.Backstage) error {
 }
 
 func (p *SecretEnvs) setMetaInfo(backstageName string) {
-	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageName, "backstage-envs", true))
+	p.Secret.SetName(utils.GenerateRuntimeObjectName(backstageName, "backstage-envs"))
 }
 
 // implementation of BackstagePodContributor interface
