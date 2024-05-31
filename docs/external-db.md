@@ -62,7 +62,7 @@ stringData:
 
 **NOTE:** environment variables listed in **<cred-secret>** file work with default Operator configuration. If it is changed on default or raw configuration, you have to re-configure it accordingly.
 
-````
+````yaml
 cat <<EOF | kubectl -n <your-namespace> create -f -
 apiVersion: v1
 kind: Secret
