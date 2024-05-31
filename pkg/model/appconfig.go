@@ -46,7 +46,8 @@ func init() {
 }
 
 func AppConfigDefaultName(backstageName string) string {
-	return utils.GenerateRuntimeObjectName(backstageName, "backstage-appconfig")
+	// TODO(rm3l): auth-app-config as suffix for backward compatibility with 1.1
+	return utils.GenerateRuntimeObjectName(backstageName, "auth-app-config", true)
 }
 
 func addAppConfigs(spec bsv1alpha1.BackstageSpec, deployment *appsv1.Deployment, model *BackstageModel) {

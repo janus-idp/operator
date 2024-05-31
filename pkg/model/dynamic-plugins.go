@@ -45,7 +45,7 @@ func init() {
 }
 
 func DynamicPluginsDefaultName(backstageName string) string {
-	return utils.GenerateRuntimeObjectName(backstageName, "backstage-dynamic-plugins")
+	return utils.GenerateRuntimeObjectName(backstageName, "dynamic-plugins", true)
 }
 
 func addDynamicPlugins(spec v1alpha1.BackstageSpec, deployment *appsv1.Deployment, model *BackstageModel) error {

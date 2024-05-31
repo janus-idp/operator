@@ -94,7 +94,7 @@ func (p *ConfigMapFiles) validate(_ *BackstageModel, _ v1alpha1.Backstage) error
 }
 
 func (p *ConfigMapFiles) setMetaInfo(backstageName string) {
-	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageName, "backstage-files"))
+	p.ConfigMap.SetName(utils.GenerateRuntimeObjectName(backstageName, "backstage-files", false))
 }
 
 // implementation of BackstagePodContributor interface
