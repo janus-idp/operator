@@ -49,7 +49,7 @@ func init() {
 }
 
 func DeploymentName(backstageName string) string {
-	return utils.GenerateRuntimeObjectName(backstageName, "backstage")
+	return utils.GenerateRuntimeObjectName(backstageName, "backstage", false)
 }
 
 // implementation of RuntimeObject interface

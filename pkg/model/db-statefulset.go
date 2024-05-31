@@ -44,7 +44,7 @@ func init() {
 }
 
 func DbStatefulSetName(backstageName string) string {
-	return utils.GenerateRuntimeObjectName(backstageName, "backstage-psql")
+	return utils.GenerateRuntimeObjectName(backstageName, "backstage-psql", false)
 }
 
 // implementation of RuntimeObject interface

@@ -33,7 +33,7 @@ type BackstageRoute struct {
 }
 
 func RouteName(backstageName string) string {
-	return utils.GenerateRuntimeObjectName(backstageName, "backstage")
+	return utils.GenerateRuntimeObjectName(backstageName, "backstage", false)
 }
 
 func (b *BackstageRoute) setRoute(specified *bsv1alpha1.Route) {
