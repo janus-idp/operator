@@ -51,12 +51,7 @@ func GenerateLabel(labels *map[string]string, name string, value string) {
 }
 
 // GenerateRuntimeObjectName generates name using BackstageCR name and objectType which is ConfigObject Key without '.yaml' (like 'deployment')
-func GenerateRuntimeObjectName(backstageCRName string, objectType string, crNameAsPrefix bool) string {
-	if crNameAsPrefix {
-		// For backwards compatibility with 1.1 (even if not consistent).
-		// Some resources were named with the CR name as prefix, while some others had the CR name as suffix.
-		return fmt.Sprintf("%s-%s", backstageCRName, objectType)
-	}
+func GenerateRuntimeObjectName(backstageCRName string, objectType string) string {
 	return fmt.Sprintf("%s-%s", objectType, backstageCRName)
 }
 
