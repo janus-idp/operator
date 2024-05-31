@@ -20,7 +20,7 @@ You can find configuration guidelines for:
 - [Azure Database PostgreSQL](#azure-db-postgresql)
 
 ### Create secret with PostgreSQL connection properties:
-````
+````yaml
 cat <<EOF | kubectl -n <your-namespace> create -f -
 apiVersion: v1
 kind: Secret
