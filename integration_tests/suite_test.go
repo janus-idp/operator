@@ -18,7 +18,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
+	"testing"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 
@@ -33,10 +36,6 @@ import (
 	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 
 	corev1 "k8s.io/api/core/v1"
-
-	"path/filepath"
-	"testing"
-	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -174,6 +173,12 @@ func createAndReconcileBackstage(ctx context.Context, ns string, spec bsv1alpha1
 		return k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, found)
 	}, time.Minute, time.Second).Should(Succeed())
 
+	reconcileBackstage(ctx, ns, backstageName)
+
+	return backstageName
+}
+
+func reconcileBackstage(ctx context.Context, ns string, backstageName string) {
 	_, err := NewTestBackstageReconciler(ns).ReconcileAny(ctx, reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
 	})
@@ -181,13 +186,11 @@ func createAndReconcileBackstage(ctx context.Context, ns string, spec bsv1alpha1
 	if err != nil {
 		GinkgoWriter.Printf("===> Error detected on Backstage reconcile: %s \n", err.Error())
 		if errors.IsAlreadyExists(err) || errors.IsConflict(err) {
-			return backstageName
+			return
 		}
 	}
 
 	Expect(err).To(Not(HaveOccurred()))
-
-	return backstageName
 }
 
 func createNamespace(ctx context.Context) string {
