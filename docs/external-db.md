@@ -40,7 +40,7 @@ EOF
 ### Create secret with certificate(s):
 (omit this step if you do not need TLS connection, maybe for testing purpose)
 
-````
+````yaml
 cat <<EOF | kubectl -n <your-namespace> create -f -
 apiVersion: v1
 kind: Secret
