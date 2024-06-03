@@ -36,7 +36,7 @@ Where:
 
 - **pgsql-pod-name**  a name of PostgreSQL pod with format like backstage-psql-<backstage-cr-name>-<_index>
 - **forward-to-port** port of your choice to forward PGSQL to
-- **forward-to-port** PGSQL port, usually 5432
+- **forward-from-port** PGSQL port, usually 5432
 
 For example:
 
