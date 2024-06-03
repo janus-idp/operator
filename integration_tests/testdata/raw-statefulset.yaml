@@ -3,7 +3,7 @@ kind: StatefulSet
 metadata:
   name: db-statefulset
 spec:
-  serviceName: ""
+  serviceName: "backstage-psql-db-statefulset-hl"
   replicas: 1
   selector:
     matchLabels:
