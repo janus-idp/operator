@@ -51,11 +51,11 @@ Forwarding from [::1]:15432 -> 5432
 
 Modify **db_copy.sh** script:
 
-* **to_host**=destination host name (e g ***.***.***.rds.amazonaws.com)
+* **to_host**=destination host name (e g #.#.#.rds.amazonaws.com)
 * **to_port**=destination port (usually 5432) 
 * **to_user**=destination server username (e g postgres)
 * **from_host**=usually 127.0.0.1
-* **from_port**=<forward-to-port>
+* **from_port**=< forward-to-port >
 * **from_user**=source server username (e g postgres)
 * **allDB**=name of databases for import in double quotes separated by spaces, e g  ("backstage_plugin_app" "backstage_plugin_auth" "backstage_plugin_catalog" "backstage_plugin_permission" "backstage_plugin_scaffolder" "backstage_plugin_search")
 
