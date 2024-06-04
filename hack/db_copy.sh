@@ -1,5 +1,5 @@
 #!/bin/bash
-#TO_PSW=postgres
+
 to_host=<db-service-host>
 to_port=5432
 to_user=postgres
