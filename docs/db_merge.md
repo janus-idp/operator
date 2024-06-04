@@ -45,7 +45,7 @@ kubectl port-forward -n backstage backstage-psql-backstage1-0 15432:5432
 Forwarding from 127.0.0.1:15432 -> 5432
 Forwarding from [::1]:15432 -> 5432
 ````
-**NOTE:** it has to be run on dedicated terminal and interrupted as soon as data copy completed.
+**NOTE:** it has to be run on a dedicated terminal and interrupted as soon as data copy is completed.
 
 ### Configure PGSQL connection
 
@@ -66,7 +66,7 @@ Modify **db_copy.sh** script:
 ````
 
 It will produce some output about **pg_dump** and **psql** progressing.
-When succesfully finished you can stop port forwarding.
+When successfully finished you can stop port forwarding.
 
 **NOTE:** In case if your databases are quite big already, you may consider using compression tools as [documented](https://www.postgresql.org/docs/current/backup-dump.html#BACKUP-DUMP-LARGE)
 
