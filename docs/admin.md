@@ -29,7 +29,6 @@ Mapping of configMap keys (yaml files) to runtime objects (NOTE: for the time (D
 | service.yaml                   | corev1.Service     | Yes            | all     | Backstage Service                               |
 | db-statefulset.yaml            | appsv1.Statefulset | For DB enabled | all     | PostgreSQL StatefulSet                          |    
 | db-service.yaml                | corev1.Service     | For DB enabled | all     | PostgreSQL Service                              |
-| db-service-hl.yaml             | corev1.Service     | For DB enabled | all     | PostgreSQL Service                              |
 | db-secret.yaml                 | corev1.Secret      | For DB enabled | all     | Secret to connect Backstage to PSQL             |
 | route.yaml                     | openshift.Route    | No (for OCP)   | all     | Route exposing Backstage service                |
 | app-config.yaml                | corev1.ConfigMap   | No             | 0.0.2   | Backstage app-config.yaml                       |
