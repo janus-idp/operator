@@ -21,7 +21,7 @@ To simplify this process, we have a [**db_copy.sh**](../hack/db_copy.sh) script.
 
 ### Prerequisites
 
-- [**pg_dump**](https://www.postgresql.org/docs/current/backup-dump.html) and [**pgsql**](https://www.postgresql.org/docs/current/app-psql.html) client utilities installed on your local machine.
+- [**pg_dump**](https://www.postgresql.org/docs/current/backup-dump.html) and [**psql**](https://www.postgresql.org/docs/current/app-psql.html) client utilities installed on your local machine.
 - For data export the **PGSQL user** sufficient privileges to make a full dump of source (local) databases 
 - For data import the **PGSQL user** sufficient admin privileges to create (external) databases and populate it with database dumps
  
