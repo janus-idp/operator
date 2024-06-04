@@ -16,7 +16,7 @@ backstage_plugin_search     | postgres | UTF8     | libc            | en_US.UTF-
 postgres                    | postgres | UTF8     | libc            | en_US.UTF-8 | en_US.UTF-8 |
 ````
 
-To move the data from working Backstage instance hosted on a local PostgreSQL server to a production-ready PostgreSQL service (such as AWS RDB or Azure Database), you can use directly PostgreSQL utilities such as pg-dump with pgsql or pgAdmin and move the data from each database one-by-one.
+To move the data from working Backstage instance hosted on a local PostgreSQL server to a production-ready PostgreSQL service (such as AWS RDB or Azure Database), you can use directly PostgreSQL utilities such as [pg_dump](https://www.postgresql.org/docs/current/app-pgdump.html) with [psql](https://www.postgresql.org/docs/current/app-psql.html) or [pgAdmin](https://www.pgadmin.org/) and move the data from each database one-by-one.
 To simplify this process, we have a [**db_copy.sh**](../hack/db_copy.sh) script.
 
 ### Prerequisites
