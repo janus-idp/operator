@@ -49,7 +49,7 @@ Forwarding from [::1]:15432 -> 5432
 
 ### Configure PGSQL connection
 
-Modify **db_copy.sh** script:
+Make a copy of **db_copy.sh** script and modify it according to your configuration:
 
 * **to_host**=destination host name (e g #.#.#.rds.amazonaws.com)
 * **to_port**=destination port (usually 5432) 
