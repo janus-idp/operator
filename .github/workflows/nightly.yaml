@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        branch: [ main, 1.1.x ]
+        branch: [ main, 1.2.x, 1.1.x ]
     name: E2E Tests - ${{ matrix.branch }}
     concurrency:
       group: ${{ github.workflow }}-${{ matrix.branch }}
