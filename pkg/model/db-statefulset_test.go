@@ -19,6 +19,8 @@ import (
 	"os"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"k8s.io/utils/ptr"
 
 	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
@@ -48,6 +50,7 @@ func TestDefault(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, model.LocalDbService.service.Name, model.localDbStatefulSet.statefulSet.Spec.ServiceName)
+	assert.Equal(t, corev1.ClusterIPNone, model.LocalDbService.service.Spec.ClusterIP)
 }
 
 // It tests the overriding image feature
