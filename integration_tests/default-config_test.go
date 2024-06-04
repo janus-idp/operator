@@ -17,7 +17,6 @@ package integration_tests
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
@@ -183,23 +182,20 @@ var _ = When("create default backstage", func() {
 			g.Expect(err).ShouldNot(HaveOccurred())
 
 			By("creating StatefulSet")
-			ss := &appsv1.StatefulSet{}
+			dbStatefulSet := &appsv1.StatefulSet{}
 			name := fmt.Sprintf("backstage-psql-%s", backstageName)
-			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, ss)
+			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, dbStatefulSet)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(ss.Spec.Template.Spec.Containers).To(HaveLen(1))
-			g.Expect(ss.Spec.Template.Spec.Containers[0].Image).To(Equal("busybox"))
-			g.Expect(ss.Spec.ServiceName).To(Equal("backstage-psql-db-statefulset-hl"))
+			g.Expect(dbStatefulSet.Spec.Template.Spec.Containers).To(HaveLen(1))
+			g.Expect(dbStatefulSet.Spec.Template.Spec.Containers[0].Image).To(Equal("busybox"))
+			g.Expect(dbStatefulSet.Spec.PodManagementPolicy).To(Equal(appsv1.ParallelPodManagement))
 		}, time.Minute, time.Second).Should(Succeed())
 
-		By("updating CR with new DB raw config")
-		dbConf = map[string]string{
-			"db-statefulset.yaml": strings.ReplaceAll(rawStatefulSetYamlContent, "backstage-psql-db-statefulset-hl", fmt.Sprintf("backstage-psql-%s-hl", backstageName)),
-		}
+		By("updating CR to default config")
 		update := &bsv1alpha1.Backstage{}
 		err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, update)
 		Expect(err).To(Not(HaveOccurred()))
-		update.Spec.RawRuntimeConfig.LocalDbConfigName = generateConfigMap(ctx, k8sClient, "dbraw-new", ns, dbConf, nil, nil)
+		update.Spec.RawRuntimeConfig = nil
 		err = k8sClient.Update(ctx, update)
 		Expect(err).To(Not(HaveOccurred()))
 
@@ -216,7 +212,7 @@ var _ = When("create default backstage", func() {
 			dbStatefulSet := &appsv1.StatefulSet{}
 			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: fmt.Sprintf("backstage-psql-%s", backstageName)}, dbStatefulSet)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(dbStatefulSet.Spec.ServiceName).To(Equal(fmt.Sprintf("backstage-psql-%s-hl", backstageName)))
+			g.Expect(dbStatefulSet.Spec.PodManagementPolicy).To(Equal(appsv1.OrderedReadyPodManagement))
 		}, time.Minute, time.Second).Should(Succeed())
 	})
 

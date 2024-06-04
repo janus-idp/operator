@@ -3,7 +3,8 @@ kind: StatefulSet
 metadata:
   name: db-statefulset
 spec:
-  serviceName: "backstage-psql-db-statefulset-hl"
+  serviceName: ""
+  podManagementPolicy: Parallel
   replicas: 1
   selector:
     matchLabels:
