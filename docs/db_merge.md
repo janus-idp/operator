@@ -127,7 +127,7 @@ A way to make it work without knex utility is to delete the data from the **knex
 psql -h <to_host> -U <to_user> -d <database> -c "delete from knex_migrations_lock;"
 ````
 
-**NOTE:** in some DB the table called differently like: **backstage_backend_tasks__knex_migrations_lock** in the **backstage_plugin_search** database
+**NOTE:** in some DB the table is called differently like: **backstage_backend_tasks__knex_migrations_lock** in the **backstage_plugin_search** database
 
 
 
