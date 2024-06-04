@@ -121,7 +121,7 @@ If you are sure migrations are not running you can release the lock manually by 
  MigrationLocked: Plugin 'auth' startup failed; caused by MigrationLocked: Migration table is already locked                                                                                                       │
 ````                       
 
-A way to make it work w/o knex utility is to delete the data from the **knex_migrations_lock** table for each problematic Backstage plugin's database (in the example above it is **'auth'** plugin, so corresponding database is **backstage_plugin_auth**):
+A way to make it work without knex utility is to delete the data from the **knex_migrations_lock** table for each problematic Backstage plugin's database (in the example above it is **'auth'** plugin, so corresponding database is **backstage_plugin_auth**):
 
 ````
 psql -h <to_host> -U <to_user> -d <database> -c "delete from knex_migrations_lock;"
