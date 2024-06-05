@@ -3,7 +3,7 @@
 # To re-generate a bundle for another specific version without changing the standard setup, you can:
 # - use the VERSION as arg of the bundle target (e.g make bundle VERSION=0.0.2)
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
-VERSION ?= 0.2.0
+VERSION ?= 0.3.0
 
 # Using docker or podman to build and push images
 CONTAINER_ENGINE ?= docker
@@ -134,7 +134,7 @@ test: manifests generate fmt vet envtest ## Run tests. We need LOCALBIN=$(LOCALB
 .PHONY: integration-test
 integration-test: ginkgo manifests generate fmt vet envtest ## Run integration_tests. We need LOCALBIN=$(LOCALBIN) to get correct default-config path
 	mkdir -p $(LOCALBIN)/default-config && cp config/manager/$(CONF_DIR)/* $(LOCALBIN)/default-config
-	LOCALBIN=$(LOCALBIN) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(GINKGO) -v -r integration_tests
+	LOCALBIN=$(LOCALBIN) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(GINKGO) -v -r $(ARGS) integration_tests
 
 
 ##@ Build

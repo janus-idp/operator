@@ -27,7 +27,7 @@ import (
 type DbServiceFactory struct{}
 
 func (f DbServiceFactory) newBackstageObject() RuntimeObject {
-	return &DbService{ /*service: &corev1.Service{}*/ }
+	return &DbService{}
 }
 
 type DbService struct {
@@ -39,7 +39,7 @@ func init() {
 }
 
 func DbServiceName(backstageName string) string {
-	return utils.GenerateRuntimeObjectName(backstageName, "backstage-db")
+	return utils.GenerateRuntimeObjectName(backstageName, "backstage-psql")
 }
 
 // implementation of RuntimeObject interface
@@ -67,6 +67,9 @@ func (b *DbService) addToModel(model *BackstageModel, _ bsv1alpha1.Backstage) (b
 		}
 	}
 
+	// force this service to be headless even if it is not set in the original config
+	b.service.Spec.ClusterIP = corev1.ClusterIPNone
+
 	model.LocalDbService = b
 	model.setRuntimeObject(b)
 
@@ -85,5 +88,5 @@ func (b *DbService) validate(_ *BackstageModel, _ bsv1alpha1.Backstage) error {
 
 func (b *DbService) setMetaInfo(backstageName string) {
 	b.service.SetName(DbServiceName(backstageName))
-	utils.GenerateLabel(&b.service.Spec.Selector, BackstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageName))
+	utils.GenerateLabel(&b.service.Spec.Selector, BackstageAppLabel, utils.BackstageDbAppLabelValue(backstageName))
 }
