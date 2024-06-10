@@ -184,6 +184,72 @@ var _ = Describe("Backstage Operator E2E", func() {
 			})
 		}
 	})
+
+	Context("Operator upgrade with existing instances", func() {
+		const managerPodLabel = "control-plane=controller-manager"
+
+		// 0.1.3 is the version of the operator in the 1.1.x branch
+		var fromDeploymentManifest = filepath.Join(projectDir, "tests", "e2e", "testdata", "backstage-operator-0.1.3.yaml")
+		var (
+			crName = "bs1"
+			crPath = filepath.Join(projectDir, "examples", "bs1.yaml")
+		)
+
+		When("Previous version of operator is installed and CR is created", func() {
+			BeforeEach(func() {
+				if testMode != defaultDeployTestMode {
+					Skip("testing upgrades currently supported only with the default deployment mode")
+				}
+
+				// Uninstall
+				uninstallOperator()
+
+				cmd := exec.Command(helper.GetPlatformTool(), "apply", "-f", fromDeploymentManifest)
+				_, err := helper.Run(cmd)
+				Expect(err).ShouldNot(HaveOccurred())
+				EventuallyWithOffset(1, verifyControllerUp, 5*time.Minute, time.Second).WithArguments(managerPodLabel).Should(Succeed())
+
+				cmd = exec.Command(helper.GetPlatformTool(), "apply", "-f", crPath, "-n", ns)
+				_, err = helper.Run(cmd)
+				Expect(err).ShouldNot(HaveOccurred())
+				// Reason is DeployOK in 1.1.x, but was renamed to Deployed in 1.2
+				Eventually(helper.VerifyBackstageCRStatus, time.Minute, time.Second).WithArguments(ns, crName, `"reason":"DeployOK"`).Should(Succeed())
+			})
+
+			AfterEach(func() {
+				uninstallOperator()
+
+				cmd := exec.Command(helper.GetPlatformTool(), "delete", "-f", fromDeploymentManifest, "--ignore-not-found=true")
+				_, err := helper.Run(cmd)
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+
+			It("should successfully reconcile existing CR when upgrading the operator", func() {
+				By("Upgrading the operator", func() {
+					installOperatorWithMakeDeploy(false)
+					EventuallyWithOffset(1, verifyControllerUp, 5*time.Minute, time.Second).WithArguments(managerPodLabel).Should(Succeed())
+				})
+
+				By("checking the status of the existing CR")
+				Eventually(helper.VerifyBackstageCRStatus, time.Minute, time.Second).WithArguments(ns, crName, `"reason":"Deployed"`).Should(Succeed())
+
+				By("checking the Backstage operand pod")
+				Eventually(func(g Gomega) {
+					// Get pod name
+					cmd := exec.Command(helper.GetPlatformTool(), "get",
+						"pods", "-l", fmt.Sprintf("rhdh.redhat.com/app=backstage-%s", crName),
+						"-o", "go-template={{ range .items }}{{ if not .metadata.deletionTimestamp }}{{ .metadata.name }}"+
+							"{{ \"\\n\" }}{{ end }}{{ end }}",
+						"-n", ns,
+					)
+					podOutput, err := helper.Run(cmd)
+					g.Expect(err).ShouldNot(HaveOccurred())
+					podNames := helper.GetNonEmptyLines(string(podOutput))
+					g.Expect(podNames).Should(HaveLen(1), fmt.Sprintf("expected 1 Backstage operand pod(s) running, but got %d", len(podNames)))
+				}, 5*time.Minute, time.Second).Should(Succeed())
+			})
+		})
+	})
 })
 
 func ensureRouteIsReachable(ns string, crName string, additionalApiEndpointTests []helper.ApiEndpointTest) {
