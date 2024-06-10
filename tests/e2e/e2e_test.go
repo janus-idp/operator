@@ -185,7 +185,7 @@ var _ = Describe("Backstage Operator E2E", func() {
 		}
 	})
 
-	Context("Operator upgrade with existing instances", func() {
+	Context("Operator upgrade with existing instances", Label("upgrade"), func() {
 		const managerPodLabel = "control-plane=controller-manager"
 
 		// 0.1.3 is the version of the operator in the 1.1.x branch
