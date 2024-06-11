@@ -35,7 +35,7 @@ It only takes a few seconds to run, but covers quite a lot of functionality. For
 
 ### Test on the cluster
 
-For testing, you will need a Kubernetes cluster, either remote (with sufficient admin rights) or local, such as [minikube](https://kubernetes.io/docs/tasks/tools/#minikube) or [kind](https:// kubernetes.io/docs/tasks/tools/#kind)
+For testing, you will need a Kubernetes cluster, either remote (with sufficient admin rights) or local, such as [minikube](https://kubernetes.io/docs/tasks/tools/#minikube) or [kind](https://kubernetes.io/docs/tasks/tools/#kind)
 
 - Build and push your image to the location specified by `IMG`:
 ```sh
