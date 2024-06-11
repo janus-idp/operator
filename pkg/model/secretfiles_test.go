@@ -18,13 +18,12 @@ import (
 	"context"
 	"testing"
 
-	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
-
-	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stretchr/testify/assert"
+
+	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 )
 
 var (

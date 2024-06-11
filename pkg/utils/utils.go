@@ -24,10 +24,9 @@ import (
 	"regexp"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/discovery"
 	ctrl "sigs.k8s.io/controller-runtime"
-
-	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 const maxK8sResourceNameLength = 63

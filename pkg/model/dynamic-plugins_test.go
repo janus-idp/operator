@@ -16,17 +16,16 @@ package model
 
 import (
 	"context"
-	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 	"testing"
-
-	"k8s.io/utils/ptr"
-
-	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	"github.com/stretchr/testify/assert"
+
+	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 )
 
 var testDynamicPluginsBackstage = bsv1alpha1.Backstage{

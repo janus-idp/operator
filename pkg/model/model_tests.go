@@ -19,13 +19,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"k8s.io/utils/ptr"
-
 	corev1 "k8s.io/api/core/v1"
-
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/utils/ptr"
 
 	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
 )

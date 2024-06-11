@@ -20,12 +20,13 @@ import (
 	"io"
 	"net/http"
 	"os/exec"
-	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
+
+	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
 )
 
 type ApiEndpointTest struct {

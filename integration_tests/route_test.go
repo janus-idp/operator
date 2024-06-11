@@ -16,19 +16,18 @@ package integration_tests
 
 import (
 	"context"
-	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
 	"time"
+
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	openshift "github.com/openshift/api/route/v1"
 
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
-
-	"k8s.io/apimachinery/pkg/types"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
 )
 
 var _ = When("create default backstage", func() {

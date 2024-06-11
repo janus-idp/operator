@@ -16,17 +16,15 @@ package model
 
 import (
 	"context"
-
-	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
-
-	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
-
-	corev1 "k8s.io/api/core/v1"
-
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/stretchr/testify/assert"
+
+	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 )
 
 var (
