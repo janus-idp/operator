@@ -122,7 +122,7 @@ You can point the namespace where OLM installed. By default, in a vanilla Kubern
 
 #### Deploy the Operator with OLM 
 Default namespace to deploy the Operator is called **backstage-system** , this name fits one defined in [kustomization.yaml](../config/default/kustomization.yaml). So, if you consider changing it you have to change it in this file and define **OPERATOR_NAMESPACE** environment variable.
-Following command creates OperatorGroup and Subscrtiption on Operator namespace
+Following command creates OperatorGroup and Subscription on Operator namespace
 ```sh
 [OPERATOR_NAMESPACE=<operator-namespace>] make deploy-olm
 ```
