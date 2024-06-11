@@ -181,7 +181,7 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 		}
 
 		if err := r.patchObject(ctx, baseObject, obj); err != nil {
-			lg.V(2).Info("failed to patch object. => trying to delete it so it can be recreated upon next reconciliation...",
+			lg.V(1).Info("failed to patch object => trying to delete it so it can be recreated upon next reconciliation...",
 				objDispName(obj), obj.Object().GetName(),
 				"cause", err,
 			)
