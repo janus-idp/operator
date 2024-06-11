@@ -49,7 +49,6 @@ make install
 **IMPORTANT:** If you are editing the CRDs, make sure you reinstall it before deploying.
 
 - To delete the CRDs from the cluster:
-- 
 ```sh
 make uninstall
 ```
