@@ -201,7 +201,8 @@ var _ = Describe("Backstage Operator E2E", func() {
 					Skip("testing upgrades currently supported only with the default deployment mode")
 				}
 
-				// Uninstall
+				// Uninstall the current version of the operator (which was installed in the SynchronizedBeforeSuite),
+				// because this test needs to start from a previous version, then perform the upgrade.
 				uninstallOperator()
 
 				cmd := exec.Command(helper.GetPlatformTool(), "apply", "-f", fromDeploymentManifest)
