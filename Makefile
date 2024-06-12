@@ -366,11 +366,18 @@ release-push: image-push bundle-push catalog-push ## Push operator, bundle + cat
 # It has to be the same namespace as ./config/default/kustomization.yaml -> namespace
 OPERATOR_NAMESPACE ?= backstage-system
 OLM_NAMESPACE ?= olm
+OPENSHIFT_OLM_NAMESPACE = openshift-marketplace
 
 .PHONY: deploy-olm
 deploy-olm: ## Deploy the operator with OLM
 	kubectl -n ${OPERATOR_NAMESPACE} apply -f config/samples/catalog-operator-group.yaml
 	sed "s/{{VERSION}}/$(subst /,\/,$(VERSION))/g" config/samples/catalog-subscription-template.yaml | sed "s/{{OLM_NAMESPACE}}/$(subst /,\/,$(OLM_NAMESPACE))/g" | kubectl -n ${OPERATOR_NAMESPACE} apply -f -
+
+.PHONY: deploy-olm-openshift
+deploy-olm-openshift: ## Deploy the operator with OLM
+	kubectl -n ${OPERATOR_NAMESPACE} apply -f config/samples/catalog-operator-group.yaml
+	sed "s/{{VERSION}}/$(subst /,\/,$(VERSION))/g" config/samples/catalog-subscription-template.yaml | sed "s/{{OLM_NAMESPACE}}/$(subst /,\/,$(OPENSHIFT_OLM_NAMESPACE))/g" | kubectl -n ${OPERATOR_NAMESPACE} apply -f -
+
 
 .PHONY: undeploy-olm
 undeploy-olm: ## Un-deploy the operator with OLM
@@ -383,9 +390,15 @@ catalog-update: ## Update catalog source in the default namespace for catalogsou
 	-kubectl delete catalogsource backstage-operator -n $(OLM_NAMESPACE)
 	sed "s/{{CATALOG_IMG}}/$(subst /,\/,$(CATALOG_IMG))/g" config/samples/catalog-source-template.yaml | kubectl apply -n $(OLM_NAMESPACE) -f -
 
+.PHONY: catalog-update
+catalog-update-openshift: ## Update catalog source in the default namespace for catalogsource
+	-kubectl delete catalogsource backstage-operator -n $(OLM_NAMESPACE)
+	sed "s/{{CATALOG_IMG}}/$(subst /,\/,$(CATALOG_IMG))/g" config/samples/catalog-source-template.yaml | kubectl apply -n $(OPENSHIFT_OLM_NAMESPACE) -f -
+
+
 # Deploy on Openshift cluster using OLM (by default installed on Openshift)
 .PHONY: deploy-openshift
-deploy-openshift: OLM_NAMESPACE=openshift-marketplace release-build release-push catalog-update deploy-olm ## Deploy the operator on openshift cluster
+deploy-openshift: release-build release-push catalog-update-openshift create-operator-namespace deploy-olm-openshift ## Deploy the operator on openshift cluster
 
 .PHONY: install-olm
 install-olm: operator-sdk
