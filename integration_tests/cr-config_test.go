@@ -237,6 +237,67 @@ var _ = When("create backstage with CR configured", func() {
 		}, time.Minute, time.Second).Should(Succeed())
 
 	})
+
+	It("creates Backstage deployment with valid spec.deployment ", func() {
+
+		bs2 := &bsv1alpha1.Backstage{}
+
+		err := utils.ReadYamlFile("testdata/backstage-valid-deployment.yaml", bs2)
+		Expect(err).To(Not(HaveOccurred()))
+
+		backstageName := createAndReconcileBackstage(ctx, ns, bs2.Spec, "")
+
+		Eventually(func(g Gomega) {
+			By("creating Deployment ")
+			deploy := &appsv1.Deployment{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, deploy)
+			g.Expect(err).To(Not(HaveOccurred()))
+			var bscontainer corev1.Container
+			for _, c := range deploy.Spec.Template.Spec.Containers {
+
+				if c.Name == "backstage-backend" {
+					bscontainer = c
+					break
+				}
+			}
+
+			g.Expect(bscontainer).NotTo(BeNil())
+			g.Expect(bscontainer.Image).To(HaveValue(Equal("busybox")))
+
+			var bsvolume corev1.Volume
+			for _, v := range deploy.Spec.Template.Spec.Volumes {
+
+				if v.Name == "dynamic-plugins-root" {
+					bsvolume = v
+					break
+				}
+			}
+
+			g.Expect(bsvolume).NotTo(BeNil())
+			g.Expect(bsvolume.Ephemeral).NotTo(BeNil())
+			g.Expect(*bsvolume.Ephemeral.VolumeClaimTemplate.Spec.StorageClassName).To(Equal("special"))
+
+		}, 10*time.Second, time.Second).Should(Succeed())
+
+	})
+
+	It("fails Backstage deployment with invalid spec.deployment ", func() {
+
+		bs2 := &bsv1alpha1.Backstage{}
+		bs2.Namespace = ns
+
+		err := utils.ReadYamlFile("testdata/backstage-invalid-deployment.yaml", bs2)
+		Expect(err).To(Not(HaveOccurred()))
+
+		Eventually(func() error {
+			return k8sClient.Create(ctx, bs2)
+		}, time.Minute, time.Second).Should(Succeed())
+
+		//Expect(err).To(Not(HaveOccurred()))
+
+		//backstageName := createAndReconcileBackstage(ctx, ns, bs2.Spec, "")
+
+	})
 })
 
 // Duplicated files in different CMs

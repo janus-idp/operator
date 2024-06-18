@@ -18,6 +18,8 @@ import (
 	"context"
 	"testing"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	"k8s.io/utils/ptr"
 
 	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
@@ -103,4 +105,65 @@ func TestSpecImagePullSecrets(t *testing.T) {
 	// if explicitly set empty slice - they are empty
 	assert.Equal(t, 0, len(model.backstageDeployment.deployment.Spec.Template.Spec.ImagePullSecrets))
 
+}
+
+func TestMergeFromSpecDeployment(t *testing.T) {
+	bs := *deploymentTestBackstage.DeepCopy()
+	bs.Spec.Deployment = &apiextensionsv1.JSON{
+		Raw: []byte(`
+metadata:
+  labels:
+    mylabel: java
+spec:
+ template:
+   metadata:
+     labels:
+       pod: backstage
+   spec:
+     containers:
+       - name: sidecar 
+         image: my-image:1.0.0
+       - name: backstage-backend
+         resources:
+           requests:
+             cpu: 251m
+             memory: 257Mi
+     volumes:
+       - ephemeral:
+           volumeClaimTemplate:
+             spec:
+               storageClassName: "special"
+         name: dynamic-plugins-root
+       - emptyDir:
+         name: my-vol
+`),
+	}
+
+	testObj := createBackstageTest(bs).withDefaultConfig(true).
+		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")
+
+	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, true, testObj.scheme)
+	assert.NoError(t, err)
+
+	// label added
+	assert.Equal(t, "java", model.backstageDeployment.deployment.Labels["mylabel"])
+	assert.Equal(t, "backstage", model.backstageDeployment.deployment.Spec.Template.Labels["pod"])
+
+	// sidecar added
+	assert.Equal(t, 2, len(model.backstageDeployment.deployment.Spec.Template.Spec.Containers))
+	assert.Equal(t, "sidecar", model.backstageDeployment.deployment.Spec.Template.Spec.Containers[1].Name)
+	assert.Equal(t, "my-image:1.0.0", model.backstageDeployment.deployment.Spec.Template.Spec.Containers[1].Image)
+
+	// backstage container resources updated
+	assert.Equal(t, "backstage-backend", model.backstageDeployment.container().Name)
+	assert.Equal(t, "257Mi", model.backstageDeployment.container().Resources.Requests.Memory().String())
+
+	// volumes
+	// dynamic-plugins-root, dynamic-plugins-npmrc, my-vol
+	assert.Equal(t, 3, len(model.backstageDeployment.deployment.Spec.Template.Spec.Volumes))
+	assert.Equal(t, "dynamic-plugins-root", model.backstageDeployment.deployment.Spec.Template.Spec.Volumes[0].Name)
+	// overrides StorageClassName
+	assert.Equal(t, "special", *model.backstageDeployment.deployment.Spec.Template.Spec.Volumes[0].Ephemeral.VolumeClaimTemplate.Spec.StorageClassName)
+	// adds new volume
+	assert.Equal(t, "my-vol", model.backstageDeployment.deployment.Spec.Template.Spec.Volumes[2].Name)
 }

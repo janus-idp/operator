@@ -146,7 +146,7 @@ func InitObjects(ctx context.Context, backstage bsv1alpha1.Backstage, externalCo
 
 		// apply spec and add the object to the model and list
 		if added, err := backstageObject.addToModel(model, backstage); err != nil {
-			return nil, fmt.Errorf("failed to initialize %s reason: %s", backstageObject, err)
+			return nil, fmt.Errorf("failed to initialize backstage, reason: %s", err)
 		} else if added {
 			setMetaInfo(backstageObject, backstage, ownsRuntime, scheme)
 		}
