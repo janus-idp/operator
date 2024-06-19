@@ -169,8 +169,8 @@ var _ = When("create default backstage", func() {
 
 		dbRaw := generateConfigMap(ctx, k8sClient, "dbraw", ns, dbConf, nil, nil)
 
-		backstageName := createAndReconcileBackstage(ctx, ns, bsv1alpha1.BackstageSpec{
-			RawRuntimeConfig: &bsv1alpha1.RuntimeConfig{
+		backstageName := createAndReconcileBackstage(ctx, ns, bsv1.BackstageSpec{
+			RawRuntimeConfig: &bsv1.RuntimeConfig{
 				LocalDbConfigName: dbRaw,
 			},
 		}, "")
@@ -192,7 +192,7 @@ var _ = When("create default backstage", func() {
 		}, time.Minute, time.Second).Should(Succeed())
 
 		By("updating CR to default config")
-		update := &bsv1alpha1.Backstage{}
+		update := &bsv1.Backstage{}
 		err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, update)
 		Expect(err).To(Not(HaveOccurred()))
 		update.Spec.RawRuntimeConfig = nil

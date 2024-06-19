@@ -204,7 +204,7 @@ type BackstageStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-// +kubebuilder:storageversion
+//+kubebuilder:storageversion
 
 // Backstage is the Schema for the backstages API
 type Backstage struct {

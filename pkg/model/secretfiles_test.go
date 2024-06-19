@@ -84,8 +84,6 @@ func TestSpecifiedSecretFiles(t *testing.T) {
 	sf := &bs.Spec.Application.ExtraFiles.Secrets
 	*sf = append(*sf, bsv1.ObjectKeyRef{Name: "secret1", Key: "conf.yaml"})
 	*sf = append(*sf, bsv1.ObjectKeyRef{Name: "secret2", Key: "conf.yaml"})
-	*sf = append(*sf, bsv1alpha1.ObjectKeyRef{Name: "secret1", Key: "conf.yaml"})
-	*sf = append(*sf, bsv1alpha1.ObjectKeyRef{Name: "secret2", Key: "conf.yaml"})
 	// https://issues.redhat.com/browse/RHIDP-2246 - mounting secret/CM with dot in the name
 	*sf = append(*sf, bsv1.ObjectKeyRef{Name: "secret.dot", Key: "conf3.yaml"})
 
