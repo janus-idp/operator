@@ -44,7 +44,7 @@ func init() {
 }
 
 func DbStatefulSetName(backstageName string) string {
-	return utils.GenerateRuntimeObjectName(backstageName, "backstage-db")
+	return utils.GenerateRuntimeObjectName(backstageName, "backstage-psql")
 }
 
 // implementation of RuntimeObject interface
@@ -91,6 +91,9 @@ func (b *DbStatefulSet) EmptyObject() client.Object {
 
 // implementation of RuntimeObject interface
 func (b *DbStatefulSet) validate(model *BackstageModel, backstage bsv1.Backstage) error {
+
+	// point ServiceName to localDb
+	b.statefulSet.Spec.ServiceName = model.LocalDbService.service.Name
 
 	if backstage.Spec.Application != nil {
 		utils.SetImagePullSecrets(b.podSpec(), backstage.Spec.Application.ImagePullSecrets)

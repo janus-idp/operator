@@ -19,6 +19,8 @@ import (
 	"os"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"k8s.io/utils/ptr"
 
 	bsv1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha2"
@@ -37,6 +39,18 @@ var dbStatefulSetBackstage = &bsv1.Backstage{
 		Database:    &bsv1.Database{},
 		Application: &bsv1.Application{},
 	},
+}
+
+// test default StatefulSet
+func TestDefault(t *testing.T) {
+	bs := *dbStatefulSetBackstage.DeepCopy()
+	testObj := createBackstageTest(bs).withDefaultConfig(true)
+
+	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, false, testObj.scheme)
+	assert.NoError(t, err)
+
+	assert.Equal(t, model.LocalDbService.service.Name, model.localDbStatefulSet.statefulSet.Spec.ServiceName)
+	assert.Equal(t, corev1.ClusterIPNone, model.LocalDbService.service.Spec.ClusterIP)
 }
 
 // It tests the overriding image feature

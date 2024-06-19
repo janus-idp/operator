@@ -39,7 +39,7 @@ func init() {
 }
 
 func DbServiceName(backstageName string) string {
-	return utils.GenerateRuntimeObjectName(backstageName, "backstage-db")
+	return utils.GenerateRuntimeObjectName(backstageName, "backstage-psql")
 }
 
 // implementation of RuntimeObject interface
@@ -66,6 +66,9 @@ func (b *DbService) addToModel(model *BackstageModel, _ bsv1.Backstage) (bool, e
 			return false, nil
 		}
 	}
+
+	// force this service to be headless even if it is not set in the original config
+	b.service.Spec.ClusterIP = corev1.ClusterIPNone
 
 	model.LocalDbService = b
 	model.setRuntimeObject(b)
