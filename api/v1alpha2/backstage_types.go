@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package v1alpha1
+package v1alpha2
 
 import (
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
@@ -41,6 +42,12 @@ type BackstageSpec struct {
 
 	// Configuration for database access. Optional.
 	Database *Database `json:"database,omitempty"`
+
+	// Valid fragment of Deployment to be merged with default/raw configuration.
+	// Set the Deployment's metadata and|or spec fields you want to override or add.
+	// Optional.
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Deployment *apiextensionsv1.JSON `json:"deployment,omitempty"`
 }
 
 type RuntimeConfig struct {
@@ -197,6 +204,7 @@ type BackstageStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+// +kubebuilder:storageversion
 
 // Backstage is the Schema for the backstages API
 type Backstage struct {

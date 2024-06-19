@@ -23,7 +23,7 @@ import (
 
 	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
 
-	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	bsv1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha2"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -51,7 +51,7 @@ var _ = When("create default backstage", func() {
 
 	It("creates runtime objects", func() {
 
-		backstageName := createAndReconcileBackstage(ctx, ns, bsv1alpha1.BackstageSpec{}, "")
+		backstageName := createAndReconcileBackstage(ctx, ns, bsv1.BackstageSpec{}, "")
 
 		Eventually(func(g Gomega) {
 			By("creating a secret for accessing the Database")
@@ -101,7 +101,7 @@ var _ = When("create default backstage", func() {
 			By("setting Backstage status (real cluster only)")
 			Eventually(func(g Gomega) {
 
-				bs := &bsv1alpha1.Backstage{}
+				bs := &bsv1.Backstage{}
 				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: backstageName}, bs)
 				g.Expect(err).ShouldNot(HaveOccurred())
 
@@ -129,8 +129,8 @@ var _ = When("create default backstage", func() {
 		bsRaw := generateConfigMap(ctx, k8sClient, "bsraw", ns, bsConf, nil, nil)
 		dbRaw := generateConfigMap(ctx, k8sClient, "dbraw", ns, dbConf, nil, nil)
 
-		backstageName := createAndReconcileBackstage(ctx, ns, bsv1alpha1.BackstageSpec{
-			RawRuntimeConfig: &bsv1alpha1.RuntimeConfig{
+		backstageName := createAndReconcileBackstage(ctx, ns, bsv1.BackstageSpec{
+			RawRuntimeConfig: &bsv1.RuntimeConfig{
 				BackstageConfigName: bsRaw,
 				LocalDbConfigName:   dbRaw,
 			},

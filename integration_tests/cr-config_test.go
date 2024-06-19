@@ -30,7 +30,7 @@ import (
 
 	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
 
-	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	bsv1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha2"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -71,35 +71,35 @@ var _ = When("create backstage with CR configured", func() {
 		secretEnv1 := generateSecret(ctx, k8sClient, "secret-env1", ns, map[string]string{"sec11": "val11", "sec12": "val12"}, nil, nil)
 		_ = generateSecret(ctx, k8sClient, "secret-env2", ns, map[string]string{"sec21": "val21", "sec22": "val22"}, nil, nil)
 
-		bs := bsv1alpha1.BackstageSpec{
-			Application: &bsv1alpha1.Application{
-				AppConfig: &bsv1alpha1.AppConfig{
+		bs := bsv1.BackstageSpec{
+			Application: &bsv1.Application{
+				AppConfig: &bsv1.AppConfig{
 					MountPath: "/my/mount/path",
-					ConfigMaps: []bsv1alpha1.ObjectKeyRef{
+					ConfigMaps: []bsv1.ObjectKeyRef{
 						{Name: appConfig1},
 						{Name: appConfig2, Key: "key21"},
 					},
 				},
-				ExtraFiles: &bsv1alpha1.ExtraFiles{
+				ExtraFiles: &bsv1.ExtraFiles{
 					MountPath: "/my/file/path",
-					ConfigMaps: []bsv1alpha1.ObjectKeyRef{
+					ConfigMaps: []bsv1.ObjectKeyRef{
 						{Name: cmFile1},
 						{Name: cmFile2, Key: "cm21"},
 					},
-					Secrets: []bsv1alpha1.ObjectKeyRef{
+					Secrets: []bsv1.ObjectKeyRef{
 						{Name: secretFile1, Key: "sec11"},
 						{Name: secretFile2, Key: "sec21"},
 					},
 				},
-				ExtraEnvs: &bsv1alpha1.ExtraEnvs{
-					ConfigMaps: []bsv1alpha1.ObjectKeyRef{
+				ExtraEnvs: &bsv1.ExtraEnvs{
+					ConfigMaps: []bsv1.ObjectKeyRef{
 						{Name: cmEnv1},
 						{Name: cmEnv2, Key: "cm21"},
 					},
-					Secrets: []bsv1alpha1.ObjectKeyRef{
+					Secrets: []bsv1.ObjectKeyRef{
 						{Name: secretEnv1, Key: "sec11"},
 					},
-					Envs: []bsv1alpha1.Env{
+					Envs: []bsv1.Env{
 						{Name: "env1", Value: "val1"},
 					},
 				},
@@ -166,10 +166,10 @@ var _ = When("create backstage with CR configured", func() {
 
 		appConfig := generateConfigMap(ctx, k8sClient, "app-config1", ns, map[string]string{"key11": "app:", "key12": "app:"}, nil, nil)
 
-		bs := bsv1alpha1.BackstageSpec{
-			Application: &bsv1alpha1.Application{
-				AppConfig: &bsv1alpha1.AppConfig{
-					ConfigMaps: []bsv1alpha1.ObjectKeyRef{
+		bs := bsv1.BackstageSpec{
+			Application: &bsv1.Application{
+				AppConfig: &bsv1.AppConfig{
+					ConfigMaps: []bsv1.ObjectKeyRef{
 						{Name: appConfig},
 					},
 				},
@@ -195,7 +195,7 @@ var _ = When("create backstage with CR configured", func() {
 
 	It("creates default Backstage and then update CR ", func() {
 
-		backstageName := createAndReconcileBackstage(ctx, ns, bsv1alpha1.BackstageSpec{}, "")
+		backstageName := createAndReconcileBackstage(ctx, ns, bsv1.BackstageSpec{}, "")
 
 		Eventually(func(g Gomega) {
 			By("creating Deployment with replicas=1 by default")
@@ -210,10 +210,10 @@ var _ = When("create backstage with CR configured", func() {
 		By("updating Backstage")
 		imageName := "quay.io/my-org/my-awesome-image:1.2.3"
 		ips := []string{"some-image-pull-secret-1", "some-image-pull-secret-2"}
-		update := &bsv1alpha1.Backstage{}
+		update := &bsv1.Backstage{}
 		err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, update)
 		Expect(err).To(Not(HaveOccurred()))
-		update.Spec.Application = &bsv1alpha1.Application{}
+		update.Spec.Application = &bsv1.Application{}
 		update.Spec.Application.Replicas = ptr.To(int32(2))
 		update.Spec.Application.Image = ptr.To(imageName)
 		update.Spec.Application.ImagePullSecrets = ips
@@ -240,7 +240,7 @@ var _ = When("create backstage with CR configured", func() {
 
 	It("creates Backstage deployment with valid spec.deployment ", func() {
 
-		bs2 := &bsv1alpha1.Backstage{}
+		bs2 := &bsv1.Backstage{}
 
 		err := utils.ReadYamlFile("testdata/backstage-valid-deployment.yaml", bs2)
 		Expect(err).To(Not(HaveOccurred()))
@@ -283,7 +283,7 @@ var _ = When("create backstage with CR configured", func() {
 
 	It("fails Backstage deployment with invalid spec.deployment ", func() {
 
-		bs2 := &bsv1alpha1.Backstage{}
+		bs2 := &bsv1.Backstage{}
 		bs2.Namespace = ns
 
 		err := utils.ReadYamlFile("testdata/backstage-invalid-deployment.yaml", bs2)

@@ -30,7 +30,7 @@ import (
 
 	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
 
-	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	bsv1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha2"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -55,7 +55,7 @@ var _ = When("create backstage with CR configured", func() {
 	})
 
 	It("creates default Backstage and then update CR to not to use local DB", func() {
-		backstageName := createAndReconcileBackstage(ctx, ns, bsv1alpha1.BackstageSpec{}, "")
+		backstageName := createAndReconcileBackstage(ctx, ns, bsv1.BackstageSpec{}, "")
 
 		Eventually(func(g Gomega) {
 			By("creating Deployment with database.enableLocalDb=true by default")
@@ -72,10 +72,10 @@ var _ = When("create backstage with CR configured", func() {
 		}, time.Minute, time.Second).Should(Succeed())
 
 		By("updating Backstage")
-		update := &bsv1alpha1.Backstage{}
+		update := &bsv1.Backstage{}
 		err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, update)
 		Expect(err).To(Not(HaveOccurred()))
-		update.Spec.Database = &bsv1alpha1.Database{}
+		update.Spec.Database = &bsv1.Database{}
 		update.Spec.Database.EnableLocalDb = ptr.To(false)
 		err = k8sClient.Update(ctx, update)
 		Expect(err).To(Not(HaveOccurred()))
@@ -102,8 +102,8 @@ var _ = When("create backstage with CR configured", func() {
 	})
 
 	It("creates Backstage with disabled local DB and secret", func() {
-		backstageName := createAndReconcileBackstage(ctx, ns, bsv1alpha1.BackstageSpec{
-			Database: &bsv1alpha1.Database{
+		backstageName := createAndReconcileBackstage(ctx, ns, bsv1.BackstageSpec{
+			Database: &bsv1.Database{
 				EnableLocalDb:  ptr.To(false),
 				AuthSecretName: "existing-secret",
 			},
@@ -124,8 +124,8 @@ var _ = When("create backstage with CR configured", func() {
 	})
 
 	It("creates Backstage with disabled local DB no secret", func() {
-		backstageName := createAndReconcileBackstage(ctx, ns, bsv1alpha1.BackstageSpec{
-			Database: &bsv1alpha1.Database{
+		backstageName := createAndReconcileBackstage(ctx, ns, bsv1.BackstageSpec{
+			Database: &bsv1.Database{
 				EnableLocalDb: ptr.To(false),
 			},
 		}, "")
