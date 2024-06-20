@@ -17,7 +17,7 @@ spec:
   versions:
   - deprecated: true
     deprecationWarning: Since 1.3.0 spec.application.image, spec.application.replicas,
-      spec.application.imagePullSecrets are deprecated in favor of related spec.deployment
+      spec.application.imagePullSecrets are deprecated in favor of corresponding spec.deployment
       fields
     name: v1alpha1
     schema:

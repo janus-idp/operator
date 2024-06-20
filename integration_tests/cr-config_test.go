@@ -251,11 +251,11 @@ var _ = When("create backstage with CR configured", func() {
 
 	})
 
-	It("creates Backstage deployment with valid spec.deployment ", func() {
+	It("creates Backstage deployment with spec.deployment ", func() {
 
 		bs2 := &bsv1.Backstage{}
 
-		err := utils.ReadYamlFile("testdata/backstage-valid-deployment.yaml", bs2)
+		err := utils.ReadYamlFile("testdata/spec-deployment.yaml", bs2)
 		Expect(err).To(Not(HaveOccurred()))
 
 		backstageName := createAndReconcileBackstage(ctx, ns, bs2.Spec, "")
@@ -294,23 +294,6 @@ var _ = When("create backstage with CR configured", func() {
 
 	})
 
-	It("fails Backstage deployment with invalid spec.deployment ", func() {
-
-		bs2 := &bsv1.Backstage{}
-		bs2.Namespace = ns
-
-		err := utils.ReadYamlFile("testdata/backstage-invalid-deployment.yaml", bs2)
-		Expect(err).To(Not(HaveOccurred()))
-
-		Eventually(func() error {
-			return k8sClient.Create(ctx, bs2)
-		}, time.Minute, time.Second).Should(Succeed())
-
-		//Expect(err).To(Not(HaveOccurred()))
-
-		//backstageName := createAndReconcileBackstage(ctx, ns, bs2.Spec, "")
-
-	})
 })
 
 // Duplicated files in different CMs
