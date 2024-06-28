@@ -46,9 +46,10 @@ data:
   "app-config.backend-auth.yaml": |
     backend:
       auth:
-        keys:
-          - secret: "${BACKEND_SECRET}"
-
+        externalAccess:
+            - type: legacy
+              options:
+                secret: "${BACKEND_SECRET}"
 ---
 apiVersion: v1
 kind: Secret

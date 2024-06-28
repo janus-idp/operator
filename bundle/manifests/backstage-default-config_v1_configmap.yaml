@@ -9,9 +9,11 @@ data:
       default.app-config.yaml: |
         backend:
           auth:
-            keys:
-              # This is a default value, which you should change by providing your own app-config
-              - secret: "pl4s3Ch4ng3M3"
+            externalAccess:
+            - type: legacy
+              options:
+                # This is a default value, which you should change by providing your own app-config
+                secret: "pl4s3Ch4ng3M3"
   db-secret.yaml: |-
     apiVersion: v1
     kind: Secret
