@@ -18,15 +18,14 @@ import (
 	"context"
 	"testing"
 
-	openshift "github.com/openshift/api/route/v1"
-
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	openshift "github.com/openshift/api/route/v1"
 
 	"github.com/stretchr/testify/assert"
+
+	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
 )
 
 func TestDefaultRoute(t *testing.T) {

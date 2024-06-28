@@ -19,23 +19,18 @@ import (
 	"fmt"
 	"time"
 
-	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
-
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/utils/ptr"
-
-	corev1 "k8s.io/api/core/v1"
-
 	appsv1 "k8s.io/api/apps/v1"
-
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
-
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
 )
 
 var _ = When("create backstage with CR configured", func() {

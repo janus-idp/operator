@@ -17,9 +17,10 @@ package integration_tests
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/types"
-	corev1 "k8s.io/api/core/v1"
 )
 
 // Matcher for Container VolumeMounts

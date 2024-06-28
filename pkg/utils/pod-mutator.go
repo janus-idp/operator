@@ -17,9 +17,8 @@ package utils
 import (
 	"path/filepath"
 
-	"k8s.io/utils/ptr"
-
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/ptr"
 )
 
 const (

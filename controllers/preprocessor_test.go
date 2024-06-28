@@ -17,14 +17,16 @@ package controller
 import (
 	"context"
 	"os"
-	"redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
-	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/stretchr/testify/assert"
+
+	"redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
 )
 
 func updateConfigMap(t *testing.T) BackstageReconciler {

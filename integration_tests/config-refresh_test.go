@@ -17,24 +17,20 @@ package integration_tests
 import (
 	"context"
 	"fmt"
-	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 	"strings"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	corev1 "k8s.io/api/core/v1"
-
 	appsv1 "k8s.io/api/apps/v1"
-
-	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
-
-	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
-
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
+	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 )
 
 var _ = When("create backstage with external configuration", func() {

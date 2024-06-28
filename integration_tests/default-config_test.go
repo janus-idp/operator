@@ -19,21 +19,17 @@ import (
 	"fmt"
 	"time"
 
-	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
-
-	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
-
 	appsv1 "k8s.io/api/apps/v1"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
-
 	corev1 "k8s.io/api/core/v1"
-
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
+	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 )
 
 var _ = When("create default backstage", func() {

@@ -20,18 +20,14 @@ import (
 	"os"
 	"strconv"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	bs "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
-
 	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
-
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 const AutoSyncEnvVar = "EXT_CONF_SYNC_backstage"

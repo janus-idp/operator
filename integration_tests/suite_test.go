@@ -18,45 +18,35 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
-
-	"k8s.io/apimachinery/pkg/api/errors"
-
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	"k8s.io/utils/ptr"
-
-	openshift "github.com/openshift/api/route/v1"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-
-	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
-
-	corev1 "k8s.io/api/core/v1"
-
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	controller "redhat-developer/red-hat-developer-hub-operator/controllers"
-
-	ctrl "sigs.k8s.io/controller-runtime"
-
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
-
-	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
-
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	openshift "github.com/openshift/api/route/v1"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	controller "redhat-developer/red-hat-developer-hub-operator/controllers"
+	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 	//+kubebuilder:scaffold:imports
 )
 

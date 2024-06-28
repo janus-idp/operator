@@ -21,10 +21,10 @@ import (
 	"strconv"
 	"time"
 
-	"redhat-developer/red-hat-developer-hub-operator/tests/helper"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"redhat-developer/red-hat-developer-hub-operator/tests/helper"
 )
 
 var _ = Describe("Backstage Operator E2E", func() {
