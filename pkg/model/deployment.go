@@ -18,11 +18,16 @@ import (
 	"fmt"
 	"os"
 
+	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
+	"sigs.k8s.io/kustomize/kyaml/yaml/merge2"
+
+	"sigs.k8s.io/yaml"
+
 	"k8s.io/utils/ptr"
 
 	corev1 "k8s.io/api/core/v1"
 
-	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	bsv1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha2"
 
 	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 
@@ -70,7 +75,7 @@ func (b *BackstageDeployment) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (b *BackstageDeployment) addToModel(model *BackstageModel, _ bsv1alpha1.Backstage) (bool, error) {
+func (b *BackstageDeployment) addToModel(model *BackstageModel, backstage bsv1.Backstage) (bool, error) {
 	if b.deployment == nil {
 		return false, fmt.Errorf("Backstage Deployment is not initialized, make sure there is deployment.yaml in default or raw configuration")
 	}
@@ -79,6 +84,24 @@ func (b *BackstageDeployment) addToModel(model *BackstageModel, _ bsv1alpha1.Bac
 		b.deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{}
 	}
 	b.deployment.Spec.Template.ObjectMeta.Annotations[ExtConfigHashAnnotation] = model.ExternalConfig.GetHash()
+
+	if conf := backstage.Spec.Deployment; conf != nil {
+
+		deplStr, err := yaml.Marshal(b.deployment)
+		if err != nil {
+			return false, fmt.Errorf("Can not marshal deployment object: %s", err)
+		}
+
+		merged, err := merge2.MergeStrings(string(conf.Raw), string(deplStr), false, kyaml.MergeOptions{})
+		if err != nil {
+			return false, fmt.Errorf("Can not merge spec.deployment: %s", err)
+		}
+
+		err = yaml.Unmarshal([]byte(merged), b.deployment)
+		if err != nil {
+			return false, fmt.Errorf("Can not unmarshal merged deployment: %s", err)
+		}
+	}
 
 	model.backstageDeployment = b
 	model.setRuntimeObject(b)
@@ -93,7 +116,7 @@ func (b *BackstageDeployment) addToModel(model *BackstageModel, _ bsv1alpha1.Bac
 }
 
 // implementation of RuntimeObject interface
-func (b *BackstageDeployment) validate(model *BackstageModel, backstage bsv1alpha1.Backstage) error {
+func (b *BackstageDeployment) validate(model *BackstageModel, backstage bsv1.Backstage) error {
 
 	if backstage.Spec.Application != nil {
 		b.setReplicas(backstage.Spec.Application.Replicas)
@@ -174,7 +197,7 @@ func (b *BackstageDeployment) setImage(image *string) {
 }
 
 // adds environment variables to the Backstage Container
-func (b *BackstageDeployment) addContainerEnvVar(env bsv1alpha1.Env) {
+func (b *BackstageDeployment) addContainerEnvVar(env bsv1.Env) {
 	b.container().Env =
 		append(b.deployment.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
 			Name:  env.Name,
@@ -183,7 +206,7 @@ func (b *BackstageDeployment) addContainerEnvVar(env bsv1alpha1.Env) {
 }
 
 // adds environment from source to the Backstage Container
-func (b *BackstageDeployment) addExtraEnvs(extraEnvs *bsv1alpha1.ExtraEnvs) {
+func (b *BackstageDeployment) addExtraEnvs(extraEnvs *bsv1.ExtraEnvs) {
 	if extraEnvs != nil {
 		for _, e := range extraEnvs.Envs {
 			b.addContainerEnvVar(e)
