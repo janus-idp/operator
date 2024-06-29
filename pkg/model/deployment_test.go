@@ -104,3 +104,44 @@ func TestSpecImagePullSecrets(t *testing.T) {
 	assert.Equal(t, 0, len(model.backstageDeployment.deployment.Spec.Template.Spec.ImagePullSecrets))
 
 }
+
+func TestSpecApplicationStorageClassName(t *testing.T) {
+	b := *deploymentTestBackstage.DeepCopy()
+	b.Spec.Application.StorageClassName = ptr.To("my-storage-class-1")
+
+	testObj := createBackstageTest(b).withDefaultConfig(true).
+		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")
+
+	model, err := InitObjects(context.TODO(), b, testObj.externalConfig, true, true, testObj.scheme)
+	assert.NoError(t, err)
+
+	assert.NotNil(t, model.backstageDeployment)
+	assert.NotNil(t, model.backstageDeployment.deployment)
+	assert.Len(t, model.backstageDeployment.deployment.Spec.Template.Spec.Volumes, 2)
+	vol := model.backstageDeployment.deployment.Spec.Template.Spec.Volumes[0]
+	assert.NotNil(t, vol.Ephemeral)
+	assert.NotNil(t, vol.Ephemeral.VolumeClaimTemplate)
+	sc := vol.Ephemeral.VolumeClaimTemplate.Spec.StorageClassName
+	assert.NotNil(t, sc)
+	assert.Equal(t, "my-storage-class-1", *sc)
+
+	// Set it to an empty string and make sure storage class is effectively empty (not the defaults)
+	b = *deploymentTestBackstage.DeepCopy()
+	b.Spec.Application.StorageClassName = ptr.To("")
+
+	testObj = createBackstageTest(b).withDefaultConfig(true).
+		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")
+
+	model, err = InitObjects(context.TODO(), b, testObj.externalConfig, true, true, testObj.scheme)
+	assert.NoError(t, err)
+
+	assert.NotNil(t, model.backstageDeployment)
+	assert.NotNil(t, model.backstageDeployment.deployment)
+	assert.Len(t, model.backstageDeployment.deployment.Spec.Template.Spec.Volumes, 2)
+	vol = model.backstageDeployment.deployment.Spec.Template.Spec.Volumes[0]
+	assert.NotNil(t, vol.Ephemeral)
+	assert.NotNil(t, vol.Ephemeral.VolumeClaimTemplate)
+	sc = vol.Ephemeral.VolumeClaimTemplate.Spec.StorageClassName
+	assert.NotNil(t, sc)
+	assert.Empty(t, *sc)
+}

@@ -132,6 +132,14 @@ func (b *BackstageDeployment) validate(model *BackstageModel, backstage bsv1alph
 		utils.SetDbSecretEnvVar(b.container(), model.LocalDbSecret.secret.Name)
 	}
 
+	if backstage.Spec.Application != nil && backstage.Spec.Application.StorageClassName != nil {
+		for i, v := range b.deployment.Spec.Template.Spec.Volumes {
+			if v.Ephemeral != nil && v.Ephemeral.VolumeClaimTemplate != nil {
+				b.deployment.Spec.Template.Spec.Volumes[i].Ephemeral.VolumeClaimTemplate.Spec.StorageClassName = backstage.Spec.Application.StorageClassName
+			}
+		}
+	}
+
 	return nil
 }
 
