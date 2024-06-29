@@ -263,6 +263,11 @@ spec:
                             type: string
                         type: object
                     type: object
+                  storageClassName:
+                    description: Name of the storage class to use for the Persistent
+                      Volumes requested by the application. The default storage class
+                      name will be used if this field is not specified.
+                    type: string
                 type: object
               database:
                 description: Configuration for database access. Optional.
@@ -282,6 +287,11 @@ spec:
                     description: Control the creation of a local PostgreSQL DB. Set
                       to false if using for example an external Database for Backstage.
                     type: boolean
+                  storageClassName:
+                    description: Name of the storage class to use for the database
+                      Persistent Volumes. The default storage class name will be used
+                      if this field is not specified.
+                    type: string
                 type: object
               rawRuntimeConfig:
                 description: Raw Runtime RuntimeObjects configuration. For Advanced

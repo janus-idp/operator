@@ -22,7 +22,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -83,6 +83,11 @@ func (in *Application) DeepCopyInto(out *Application) {
 		in, out := &in.Route, &out.Route
 		*out = new(Route)
 		(*in).DeepCopyInto(*out)
+	}
+	if in.StorageClassName != nil {
+		in, out := &in.StorageClassName, &out.StorageClassName
+		*out = new(string)
+		**out = **in
 	}
 }
 
@@ -213,6 +218,11 @@ func (in *Database) DeepCopyInto(out *Database) {
 	if in.EnableLocalDb != nil {
 		in, out := &in.EnableLocalDb, &out.EnableLocalDb
 		*out = new(bool)
+		**out = **in
+	}
+	if in.StorageClassName != nil {
+		in, out := &in.StorageClassName, &out.StorageClassName
+		*out = new(string)
 		**out = **in
 	}
 }
