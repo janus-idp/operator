@@ -103,6 +103,13 @@ func (b *DbStatefulSet) validate(model *BackstageModel, backstage bsv1alpha1.Bac
 	} else if model.LocalDbSecret != nil {
 		utils.SetDbSecretEnvVar(b.container(), model.LocalDbSecret.secret.Name)
 	}
+
+	if backstage.Spec.Database != nil && backstage.Spec.Database.StorageClassName != nil {
+		for i := range b.statefulSet.Spec.VolumeClaimTemplates {
+			b.statefulSet.Spec.VolumeClaimTemplates[i].Spec.StorageClassName = backstage.Spec.Database.StorageClassName
+		}
+	}
+
 	return nil
 }
 

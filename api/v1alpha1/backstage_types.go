@@ -66,6 +66,12 @@ type Database struct {
 	// "POSTGRESQL_ADMIN_PASSWORD": "rl4s3Fh4ng3M4"
 	// "POSTGRES_HOST": "backstage-psql-bs1"  # For local database, set to "backstage-psql-<CR name>".
 	AuthSecretName string `json:"authSecretName,omitempty"`
+
+	// Name of the storage class to use for the database Persistent Volumes.
+	// The default storage class name will be used if this field is not specified.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Storage Class for database volumes",xDescriptors={"urn:alm:descriptor:io.kubernetes:StorageClass"}
+	StorageClassName *string `json:"storageClassName,omitempty"`
 }
 
 type Application struct {
@@ -113,6 +119,12 @@ type Application struct {
 
 	// Route configuration. Used for OpenShift only.
 	Route *Route `json:"route,omitempty"`
+
+	// Name of the storage class to use for the Persistent Volumes requested by the application.
+	// The default storage class name will be used if this field is not specified.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Storage Class for Application volumes",xDescriptors={"urn:alm:descriptor:io.kubernetes:StorageClass"}
+	StorageClassName *string `json:"storageClassName,omitempty"`
 }
 
 type AppConfig struct {

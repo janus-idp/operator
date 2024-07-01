@@ -108,3 +108,38 @@ func TestImagePullSecretSpec(t *testing.T) {
 
 	assert.Equal(t, 0, len(model.localDbStatefulSet.statefulSet.Spec.Template.Spec.ImagePullSecrets))
 }
+
+func TestSpecDatabaseStorageClassName(t *testing.T) {
+	b := *dbStatefulSetBackstage.DeepCopy()
+	b.Spec.Database.StorageClassName = ptr.To("my-db-storage-class-1")
+
+	testObj := createBackstageTest(b).withDefaultConfig(true)
+
+	model, err := InitObjects(context.TODO(), b, testObj.externalConfig, true, true, testObj.scheme)
+	assert.NoError(t, err)
+
+	assert.NotNil(t, model.localDbStatefulSet)
+	assert.NotNil(t, model.localDbStatefulSet.statefulSet)
+	assert.Len(t, model.localDbStatefulSet.statefulSet.Spec.VolumeClaimTemplates, 1)
+	vol := model.localDbStatefulSet.statefulSet.Spec.VolumeClaimTemplates[0]
+	sc := vol.Spec.StorageClassName
+	assert.NotNil(t, sc)
+	assert.Equal(t, "my-db-storage-class-1", *sc)
+
+	// Set it to an empty string and make sure storage class is effectively empty (not the defaults)
+	b = *dbStatefulSetBackstage.DeepCopy()
+	b.Spec.Database.StorageClassName = ptr.To("")
+
+	testObj = createBackstageTest(b).withDefaultConfig(true)
+
+	model, err = InitObjects(context.TODO(), b, testObj.externalConfig, true, true, testObj.scheme)
+	assert.NoError(t, err)
+
+	assert.NotNil(t, model.localDbStatefulSet)
+	assert.NotNil(t, model.localDbStatefulSet.statefulSet)
+	assert.Len(t, model.localDbStatefulSet.statefulSet.Spec.VolumeClaimTemplates, 1)
+	vol = model.localDbStatefulSet.statefulSet.Spec.VolumeClaimTemplates[0]
+	sc = vol.Spec.StorageClassName
+	assert.NotNil(t, sc)
+	assert.Empty(t, *sc)
+}
