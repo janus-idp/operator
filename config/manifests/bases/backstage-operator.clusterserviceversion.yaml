@@ -16,6 +16,21 @@ spec:
       displayName: Backstage
       kind: Backstage
       name: backstages.rhdh.redhat.com
+      specDescriptors:
+      - description: Name of the storage class to use for the Persistent Volumes requested
+          by the application. The default storage class name will be used if this
+          field is not specified.
+        displayName: Storage Class for Application volumes
+        path: application.storageClassName
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:StorageClass
+      - description: Name of the storage class to use for the database Persistent
+          Volumes. The default storage class name will be used if this field is not
+          specified.
+        displayName: Storage Class for database volumes
+        path: database.storageClassName
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:StorageClass
       version: v1alpha1
   description: |
     Operator to deploy Backstage on Kubernetes
