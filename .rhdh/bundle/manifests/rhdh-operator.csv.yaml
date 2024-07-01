@@ -56,6 +56,21 @@ spec:
       displayName: Red Hat Developer Hub
       kind: Backstage
       name: backstages.rhdh.redhat.com
+      specDescriptors:
+      - description: Name of the storage class to use for the Persistent Volumes requested
+          by the application. The default storage class name will be used if this
+          field is not specified.
+        displayName: Storage Class for Application volumes
+        path: application.storageClassName
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:StorageClass
+      - description: Name of the storage class to use for the database Persistent
+          Volumes. The default storage class name will be used if this field is not
+          specified.
+        displayName: Storage Class for database volumes
+        path: database.storageClassName
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:StorageClass
       version: v1alpha1
   description: |
     Red Hat Developer Hub is an enterprise-grade platform for building developer portals, containing a supported and opinionated framework. By implementing a unified and open platform designed to maximize developer skills, ease onboarding, and increase development productivity, focus can be centered on what really matters: writing great code. Red Hat Developer Hub also offers Software Templates to simplify the development process, which can reduce friction and frustration for development teams, boosting their productivity and increasing an organization's competitive advantage.
