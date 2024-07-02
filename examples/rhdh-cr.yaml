@@ -4,7 +4,7 @@ metadata:
   name: my-rhdh
 spec:
   application:
-    image: quay.io/rhdh/rhdh-hub-rhel9:1.0-200
+    image: quay.io/rhdh/rhdh-hub-rhel9:latest
     imagePullSecrets:
       - rhdh-pull-secret
     appConfig:
