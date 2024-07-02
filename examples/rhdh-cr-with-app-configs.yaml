@@ -25,7 +25,7 @@ spec:
     extraEnvs:
       envs:
         - name: GITHUB_ORG
-          value: 'my-gh-org'
+          value: "my-gh-org"
         - name: MY_ENV_VAR_2
           value: my-value-2
       configMaps:
@@ -49,6 +49,7 @@ data:
         externalAccess:
             - type: legacy
               options:
+                subject: legacy-default-config
                 secret: "${BACKEND_SECRET}"
 ---
 apiVersion: v1
@@ -142,7 +143,7 @@ data:
         pluginConfig:
           catalog:
             providers:
-              gitlab: {} 
+              gitlab: {}
 
 ---
 apiVersion: v1

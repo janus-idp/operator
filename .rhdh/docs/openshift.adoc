@@ -52,6 +52,7 @@ data:
          externalAccess:
             - type: legacy
               options:
+                subject: legacy-default-config
                 secret: "${BACKEND_SECRET}"
        baseUrl: https://backstage-<CUSTOM_RESOURCE_NAME>-<NAMESPACE_NAME>.<OPENSHIFT_INGRESS_DOMAIN>
        cors:
@@ -77,6 +78,7 @@ data:
         externalAccess:
             - type: legacy
               options:
+                subject: legacy-default-config
                 secret: "${BACKEND_SECRET}"
       baseUrl: https://backstage-backstage-sample-my-ns.apps.ci-ln-vtkzr22-72292.origin-ci-int-gce.dev.rhcloud.com
       cors:
