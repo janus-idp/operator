@@ -5,7 +5,7 @@ metadata:
     alm-examples: '[]'
     capabilities: Seamless Upgrades
     operatorframework.io/suggested-namespace: backstage-system
-    skipRange: '>=0.0.1 <0.2.0'
+    skipRange: '>=0.0.1 <0.2.2'
   name: backstage-operator.v0.2.0
   namespace: placeholder
 spec:
@@ -19,7 +19,7 @@ spec:
       version: v1alpha1
   description: |
     Operator to deploy Backstage on Kubernetes
-    
+
     The telemetry data collection feature is enabled by default. In the default configuration of the operator, telemetry data will be sent to Red Hat by using the `backstage-plugin-analytics-provider-segment` plugin. To disable this and to learn what data is being collected, see https://github.com/janus-idp/backstage-showcase/blob/main/showcase-docs/getting-started.md#telemetry-collection
   displayName: Red Hat Developer Hub Operator
   icon:
