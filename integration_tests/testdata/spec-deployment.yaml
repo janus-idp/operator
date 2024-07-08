@@ -2,15 +2,16 @@ apiVersion: rhdh.redhat.com/v1alpha2
 kind: Backstage
 spec:
   deployment:
-    spec:
-      template:
-        spec:
-          containers:
-            - name: backstage-backend
-              image: busybox
-          volumes:
-            - ephemeral:
-                volumeClaimTemplate:
-                  spec:
-                    storageClassName: "special"
-              name: dynamic-plugins-root
+    patch:
+      spec:
+        template:
+          spec:
+            containers:
+              - name: backstage-backend
+                image: busybox
+            volumes:
+              - ephemeral:
+                  volumeClaimTemplate:
+                    spec:
+                      storageClassName: "special"
+                name: dynamic-plugins-root

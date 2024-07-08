@@ -85,22 +85,8 @@ func (b *BackstageDeployment) addToModel(model *BackstageModel, backstage bsv1.B
 	}
 	b.deployment.Spec.Template.ObjectMeta.Annotations[ExtConfigHashAnnotation] = model.ExternalConfig.GetHash()
 
-	if conf := backstage.Spec.Deployment; conf != nil {
-
-		deplStr, err := yaml.Marshal(b.deployment)
-		if err != nil {
-			return false, fmt.Errorf("Can not marshal deployment object: %s", err)
-		}
-
-		merged, err := merge2.MergeStrings(string(conf.Raw), string(deplStr), false, kyaml.MergeOptions{})
-		if err != nil {
-			return false, fmt.Errorf("Can not merge spec.deployment: %s", err)
-		}
-
-		err = yaml.Unmarshal([]byte(merged), b.deployment)
-		if err != nil {
-			return false, fmt.Errorf("Can not unmarshal merged deployment: %s", err)
-		}
+	if err := b.setDeployment(backstage); err != nil {
+		return false, err
 	}
 
 	model.backstageDeployment = b
@@ -117,13 +103,6 @@ func (b *BackstageDeployment) addToModel(model *BackstageModel, backstage bsv1.B
 
 // implementation of RuntimeObject interface
 func (b *BackstageDeployment) validate(model *BackstageModel, backstage bsv1.Backstage) error {
-
-	if backstage.Spec.Application != nil {
-		b.setReplicas(backstage.Spec.Application.Replicas)
-		utils.SetImagePullSecrets(b.podSpec(), backstage.Spec.Application.ImagePullSecrets)
-		b.setImage(backstage.Spec.Application.Image)
-		b.addExtraEnvs(backstage.Spec.Application.ExtraEnvs)
-	}
 
 	for _, bso := range model.RuntimeObjects {
 		if bs, ok := bso.(BackstagePodContributor); ok {
@@ -170,6 +149,39 @@ func (b *BackstageDeployment) container() *corev1.Container {
 
 func (b *BackstageDeployment) podSpec() *corev1.PodSpec {
 	return &b.deployment.Spec.Template.Spec
+}
+
+func (b *BackstageDeployment) setDeployment(backstage bsv1.Backstage) error {
+
+	// set from backstage.Spec.Application
+	if backstage.Spec.Application != nil {
+		b.setReplicas(backstage.Spec.Application.Replicas)
+		utils.SetImagePullSecrets(b.podSpec(), backstage.Spec.Application.ImagePullSecrets)
+		b.setImage(backstage.Spec.Application.Image)
+		b.addExtraEnvs(backstage.Spec.Application.ExtraEnvs)
+	}
+
+	// set from backstage.Spec.Deployment
+	if backstage.Spec.Deployment != nil {
+		if conf := backstage.Spec.Deployment.Patch; conf != nil {
+
+			deplStr, err := yaml.Marshal(b.deployment)
+			if err != nil {
+				return fmt.Errorf("can not marshal deployment object: %w", err)
+			}
+
+			merged, err := merge2.MergeStrings(string(conf.Raw), string(deplStr), false, kyaml.MergeOptions{})
+			if err != nil {
+				return fmt.Errorf("can not merge spec.deployment: %w", err)
+			}
+
+			err = yaml.Unmarshal([]byte(merged), b.deployment)
+			if err != nil {
+				return fmt.Errorf("can not unmarshal merged deployment: %w", err)
+			}
+		}
+	}
+	return nil
 }
 
 // sets the amount of replicas (used by CR config)

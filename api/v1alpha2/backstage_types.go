@@ -47,7 +47,15 @@ type BackstageSpec struct {
 	// Set the Deployment's metadata and|or spec fields you want to override or add.
 	// Optional.
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Deployment *apiextensionsv1.JSON `json:"deployment,omitempty"`
+	Deployment *BackstageDeployment `json:"deployment,omitempty"`
+}
+
+type BackstageDeployment struct {
+	// Valid fragment of Deployment to be merged with default/raw configuration.
+	// Set the Deployment's metadata and|or spec fields you want to override or add.
+	// Optional.
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Patch *apiextensionsv1.JSON `json:"patch,omitempty"`
 }
 
 type RuntimeConfig struct {

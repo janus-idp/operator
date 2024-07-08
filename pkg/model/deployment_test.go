@@ -109,7 +109,8 @@ func TestSpecImagePullSecrets(t *testing.T) {
 
 func TestMergeFromSpecDeployment(t *testing.T) {
 	bs := *deploymentTestBackstage.DeepCopy()
-	bs.Spec.Deployment = &apiextensionsv1.JSON{
+	bs.Spec.Deployment = &bsv1.BackstageDeployment{}
+	bs.Spec.Deployment.Patch = &apiextensionsv1.JSON{
 		Raw: []byte(`
 metadata:
   labels:
@@ -166,4 +167,33 @@ spec:
 	assert.Equal(t, "special", *model.backstageDeployment.deployment.Spec.Template.Spec.Volumes[0].Ephemeral.VolumeClaimTemplate.Spec.StorageClassName)
 	// adds new volume
 	assert.Equal(t, "my-vol", model.backstageDeployment.deployment.Spec.Template.Spec.Volumes[2].Name)
+}
+
+// to remove when stop supporting v1alpha1
+func TestDeploymentFieldPrevailsOnDeprecated(t *testing.T) {
+	bs := *deploymentTestBackstage.DeepCopy()
+	bs.Spec.Application.Image = ptr.To("app-image")
+	bs.Spec.Application.Replicas = ptr.To(int32(2))
+	bs.Spec.Deployment = &bsv1.BackstageDeployment{}
+	bs.Spec.Deployment.Patch = &apiextensionsv1.JSON{
+		Raw: []byte(`
+spec:
+ replicas: 3
+ template:
+   spec:
+     containers:
+       - name: backstage-backend
+         image: deployment-image
+`),
+	}
+
+	testObj := createBackstageTest(bs).withDefaultConfig(true).
+		addToDefaultConfig("deployment.yaml", "janus-deployment.yaml")
+
+	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, true, testObj.scheme)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "backstage-backend", model.backstageDeployment.container().Name)
+	assert.Equal(t, "deployment-image", model.backstageDeployment.container().Image)
+	assert.Equal(t, int32(3), *model.backstageDeployment.deployment.Spec.Replicas)
 }
