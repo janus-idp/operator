@@ -95,9 +95,10 @@ func (b *DbStatefulSet) validate(model *BackstageModel, backstage bsv1.Backstage
 	// point ServiceName to localDb
 	b.statefulSet.Spec.ServiceName = model.LocalDbService.service.Name
 
-	if backstage.Spec.Application != nil {
+	if backstage.Spec.Application != nil && backstage.Spec.Application.ImagePullSecrets != nil {
 		utils.SetImagePullSecrets(b.podSpec(), backstage.Spec.Application.ImagePullSecrets)
 	}
+
 	if backstage.Spec.IsAuthSecretSpecified() {
 		utils.SetDbSecretEnvVar(b.container(), backstage.Spec.Database.AuthSecretName)
 	} else if model.LocalDbSecret != nil {
