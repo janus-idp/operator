@@ -223,6 +223,16 @@ func verifyControllerUp(g Gomega, managerPodLabel string) {
 	g.Expect(string(status)).Should(Equal("Running"), fmt.Sprintf("controller pod in %s status", status))
 }
 
+func getControllerLogs(managerPodLabel string) string {
+	// Get pod name
+	cmd := exec.Command(helper.GetPlatformTool(), "logs",
+		"-l", managerPodLabel,
+		"-n", _namespace,
+	)
+	output, _ := helper.Run(cmd)
+	return string(output)
+}
+
 func uninstallOperator() {
 	switch testMode {
 	case rhdhLatestTestMode, rhdhNextTestMode, rhdhAirgapTestMode:
