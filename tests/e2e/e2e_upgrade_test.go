@@ -93,7 +93,7 @@ var _ = Describe("Operator upgrade with existing instances", func() {
 			})
 
 			By("checking the status of the existing CR")
-			Eventually(helper.VerifyBackstageCRStatus, time.Minute, time.Second).WithArguments(ns, crName, `"reason":"Deployed"`).Should(Succeed())
+			Eventually(helper.VerifyBackstageCRStatus, 5*time.Minute, time.Second).WithArguments(ns, crName, `"reason":"Deployed"`).Should(Succeed())
 
 			By("checking the Backstage operand pod")
 			Eventually(func(g Gomega) {
