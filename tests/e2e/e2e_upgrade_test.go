@@ -100,11 +100,11 @@ metadata:
 		It("should successfully reconcile existing CR when upgrading the operator", func() {
 			By("Upgrading the operator", func() {
 				installOperatorWithMakeDeploy(false)
-				EventuallyWithOffset(1, verifyControllerUp, 5*time.Minute, time.Second).WithArguments(managerPodLabel).Should(Succeed())
+				EventuallyWithOffset(1, verifyControllerUp, 5*time.Minute, 3*time.Second).WithArguments(managerPodLabel).Should(Succeed())
 			})
 
 			By("checking the status of the existing CR")
-			Eventually(helper.VerifyBackstageCRStatus, 5*time.Minute, time.Second).WithArguments(ns, crName, `"reason":"Deployed"`).
+			Eventually(helper.VerifyBackstageCRStatus, 5*time.Minute, 3*time.Second).WithArguments(ns, crName, `"reason":"Deployed"`).
 				Should(Succeed(), func() string {
 					return fmt.Sprintf("=== Operator logs ===\n%s\n", getPodLogs(_namespace, managerPodLabel))
 				})
@@ -123,7 +123,7 @@ metadata:
 				g.Expect(err).ShouldNot(HaveOccurred())
 				podNames := helper.GetNonEmptyLines(string(podOutput))
 				g.Expect(podNames).Should(HaveLen(1), fmt.Sprintf("expected 1 Backstage operand pod(s) running, but got %d", len(podNames)))
-			}, 5*time.Minute, time.Second).Should(Succeed(), func() string {
+			}, 10*time.Minute, 5*time.Second).Should(Succeed(), func() string {
 				return fmt.Sprintf("=== Operand logs ===\n%s\n", getPodLogs(ns, crLabel))
 			})
 		})
