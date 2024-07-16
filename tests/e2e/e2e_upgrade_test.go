@@ -105,13 +105,16 @@ metadata:
 
 			By("checking the status of the existing CR")
 			Eventually(helper.VerifyBackstageCRStatus, 5*time.Minute, time.Second).WithArguments(ns, crName, `"reason":"Deployed"`).
-				Should(Succeed(), fmt.Sprintf("=== Operator logs ===\n%s\n", getControllerLogs(managerPodLabel)))
+				Should(Succeed(), func() string {
+					return fmt.Sprintf("=== Operator logs ===\n%s\n", getPodLogs(_namespace, managerPodLabel))
+				})
 
 			By("checking the Backstage operand pod")
+			crLabel := fmt.Sprintf("rhdh.redhat.com/app=backstage-%s", crName)
 			Eventually(func(g Gomega) {
 				// Get pod name
 				cmd := exec.Command(helper.GetPlatformTool(), "get",
-					"pods", "-l", fmt.Sprintf("rhdh.redhat.com/app=backstage-%s", crName),
+					"pods", "-l", crLabel,
 					"-o", "go-template={{ range .items }}{{ if not .metadata.deletionTimestamp }}{{ .metadata.name }}"+
 						"{{ \"\\n\" }}{{ end }}{{ end }}",
 					"-n", ns,
@@ -120,7 +123,9 @@ metadata:
 				g.Expect(err).ShouldNot(HaveOccurred())
 				podNames := helper.GetNonEmptyLines(string(podOutput))
 				g.Expect(podNames).Should(HaveLen(1), fmt.Sprintf("expected 1 Backstage operand pod(s) running, but got %d", len(podNames)))
-			}, 5*time.Minute, time.Second).Should(Succeed())
+			}, 5*time.Minute, time.Second).Should(Succeed(), func() string {
+				return fmt.Sprintf("=== Operand logs ===\n%s\n", getPodLogs(ns, crLabel))
+			})
 		})
 	})
 
