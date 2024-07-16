@@ -16,6 +16,7 @@ package e2e
 
 import (
 	"fmt"
+	"io"
 	"os/exec"
 	"path/filepath"
 	"time"
@@ -49,13 +50,10 @@ var _ = Describe("Operator upgrade with existing instances", func() {
 	When("Previous version of operator is installed and CR is created", func() {
 
 		const managerPodLabel = "control-plane=controller-manager"
+		const crName = "my-backstage-app"
 
 		// 0.1.3 is the version of the operator in the 1.1.x branch
 		var fromDeploymentManifest = filepath.Join(projectDir, "tests", "e2e", "testdata", "backstage-operator-0.1.3.yaml")
-		var (
-			crName = "bs1"
-			crPath = filepath.Join(projectDir, "examples", "bs1.yaml")
-		)
 
 		BeforeEach(func() {
 			if testMode != defaultDeployTestMode {
@@ -71,9 +69,22 @@ var _ = Describe("Operator upgrade with existing instances", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			EventuallyWithOffset(1, verifyControllerUp, 5*time.Minute, time.Second).WithArguments(managerPodLabel).Should(Succeed())
 
-			cmd = exec.Command(helper.GetPlatformTool(), "apply", "-f", crPath, "-n", ns)
+			cmd = exec.Command(helper.GetPlatformTool(), "-n", ns, "create", "-f", "-")
+			stdin, err := cmd.StdinPipe()
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			go func() {
+				defer stdin.Close()
+				_, _ = io.WriteString(stdin, fmt.Sprintf(`
+apiVersion: rhdh.redhat.com/v1alpha1
+kind: Backstage
+metadata:
+  name: my-backstage-app
+  namespace: %s
+`, ns))
+			}()
 			_, err = helper.Run(cmd)
 			Expect(err).ShouldNot(HaveOccurred())
+
 			// Reason is DeployOK in 1.1.x, but was renamed to Deployed in 1.2
 			Eventually(helper.VerifyBackstageCRStatus, time.Minute, time.Second).WithArguments(ns, crName, `"reason":"DeployOK"`).Should(Succeed())
 		})
