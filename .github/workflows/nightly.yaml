@@ -49,9 +49,7 @@ jobs:
 
       - name: Start Minikube
         if: ${{ steps.operator-image-existence-checker.outputs.OPERATOR_IMAGE_EXISTS == 'true' }}
-        uses: medyagh/setup-minikube@317d92317e473a10540357f1f4b2878b80ee7b95 # v0.0.16
-        with:
-          addons: ingress
+        uses: medyagh/setup-minikube@d8c0eb871f6f455542491d86a574477bd3894533 # v0.0.18
 
       - name: Run E2E tests (Operator Upgrade path)
         # Testing upgrade from 1.1.x
