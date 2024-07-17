@@ -41,7 +41,7 @@ import (
 
 	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
 
-	bs "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	bs "redhat-developer/red-hat-developer-hub-operator/api/v1alpha2"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -181,22 +181,25 @@ func (r *BackstageReconciler) applyObjects(ctx context.Context, objects []model.
 		}
 
 		if err := r.patchObject(ctx, baseObject, obj); err != nil {
-			_, isStatefulSet := obj.Object().(*appsv1.StatefulSet)
-			if isStatefulSet && errors.IsInvalid(err) && errors.HasStatusCause(err, metav1.CauseTypeForbidden) {
-				// Some resources like StatefulSets allow patching a limited set of fields.
-				// That's why we are trying to delete them first, taking care of orphaning the dependents so that resources like PVCs can be retained.
-				// They will be recreated at the next reconciliation.
-				if err = r.Delete(ctx, baseObject, client.PropagationPolicy(metav1.DeletePropagationOrphan)); err != nil {
-					return fmt.Errorf("failed to delete object %s so it can be recreated: %w", obj.Object(), err)
-				}
-				lg.V(1).Info("delete object ", objDispName(obj), obj.Object().GetName())
-				continue
+			lg.V(1).Info(
+				"failed to patch object => trying to delete it (and losing any custom labels/annotations on it) so it can be recreated upon next reconciliation...",
+				objDispName(obj), obj.Object().GetName(),
+				"cause", err,
+			)
+			// Some resources like StatefulSets allow patching a limited set of fields. A FieldValueForbidden error is returned.
+			// Some other resources like Services do not support updating the primary/secondary clusterIP || ipFamily. A FieldValueInvalid error is returned.
+			// That's why we are trying to delete them first, taking care of orphaning the dependents so that they can be retained.
+			// They will be recreated at the next reconciliation.
+			// If they cannot be recreated at the next reconciliation, the expected error will be returned.
+			if err = r.Delete(ctx, baseObject, client.PropagationPolicy(metav1.DeletePropagationOrphan)); err != nil {
+				return fmt.Errorf("failed to delete object %s so it can be recreated: %w", obj.Object(), err)
 			}
-
-			return fmt.Errorf("failed to patch object %s: %w", obj.Object(), err)
+			lg.V(1).Info("deleted object. If you had set any custom labels/annotations on it manually, you will need to add them again",
+				objDispName(obj), obj.Object().GetName(),
+			)
+		} else {
+			lg.V(1).Info("patch object ", objDispName(obj), obj.Object().GetName())
 		}
-
-		lg.V(1).Info("patch object ", objDispName(obj), obj.Object().GetName())
 	}
 	return nil
 }
@@ -351,10 +354,24 @@ func (r *BackstageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return fmt.Errorf("failed to construct the predicate for matching secrets. This should not happen: %w", err)
 	}
 
+	secretMeta := &metav1.PartialObjectMetadata{}
+	secretMeta.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "",
+		Version: "v1",
+		Kind:    "Secret",
+	})
+
+	configMapMeta := &metav1.PartialObjectMetadata{}
+	configMapMeta.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "",
+		Version: "v1",
+		Kind:    "ConfigMap",
+	})
+
 	b := ctrl.NewControllerManagedBy(mgr).
 		For(&bs.Backstage{}).
-		Watches(
-			&corev1.Secret{},
+		WatchesMetadata(
+			secretMeta,
 			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, o client.Object) []reconcile.Request {
 				return r.requestByLabel(ctx, o)
 			}),
@@ -364,8 +381,8 @@ func (r *BackstageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				//CreateFunc: func(e event.CreateEvent) bool { return true },
 			}),
 		).
-		Watches(
-			&corev1.ConfigMap{},
+		WatchesMetadata(
+			configMapMeta,
 			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, o client.Object) []reconcile.Request {
 				return r.requestByLabel(ctx, o)
 			}),

@@ -1,6 +1,6 @@
 apiVersion: v1
 data:
-  app-config.yaml: |-
+  app-config.yaml: |
     apiVersion: v1
     kind: ConfigMap
     metadata:
@@ -9,9 +9,12 @@ data:
       default.app-config.yaml: |
         backend:
           auth:
-            keys:
-              # This is a default value, which you should change by providing your own app-config
-              - secret: "pl4s3Ch4ng3M3"
+            externalAccess:
+              - type: legacy
+                options:
+                  subject: legacy-default-config
+                  # This is a default value, which you should change by providing your own app-config
+                  secret: "pl4s3Ch4ng3M3"
   db-secret.yaml: |-
     apiVersion: v1
     kind: Secret
@@ -188,7 +191,8 @@ data:
               command:
                 - ./install-dynamic-plugins.sh
                 - /dynamic-plugins-root
-              image: quay.io/janus-idp/backstage-showcase:latest # will be replaced with the actual image quay.io/janus-idp/backstage-showcase:next
+              # image will be replaced by the value of the `RELATED_IMAGE_backstage` env var, if set
+              image: quay.io/janus-idp/backstage-showcase:next
               imagePullPolicy: IfNotPresent
               securityContext:
                 runAsNonRoot: true
@@ -215,7 +219,7 @@ data:
           containers:
             - name: backstage-backend
               # image will be replaced by the value of the `RELATED_IMAGE_backstage` env var, if set
-              image: quay.io/janus-idp/backstage-showcase:latest
+              image: quay.io/janus-idp/backstage-showcase:next
               imagePullPolicy: IfNotPresent
               args:
                 - "--config"
