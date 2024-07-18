@@ -7,9 +7,9 @@ namespace: backstage-system
 namePrefix: backstage-
 
 resources:
-- ../crd
-- ../rbac
-- ../manager
+- ../../crd
+- ../../rbac
+- ../../manager
 
 patches:
 - path: manager_auth_proxy_patch.yaml
