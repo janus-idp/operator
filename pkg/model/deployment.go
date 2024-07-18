@@ -159,6 +159,7 @@ func (b *BackstageDeployment) setDeployment(backstage bsv1.Backstage) error {
 		utils.SetImagePullSecrets(b.podSpec(), backstage.Spec.Application.ImagePullSecrets)
 		b.setImage(backstage.Spec.Application.Image)
 		b.addExtraEnvs(backstage.Spec.Application.ExtraEnvs)
+		b.setAuditLogClaimName(backstage)
 	}
 
 	// set from backstage.Spec.Deployment
@@ -222,6 +223,15 @@ func (b *BackstageDeployment) addExtraEnvs(extraEnvs *bsv1.ExtraEnvs) {
 	if extraEnvs != nil {
 		for _, e := range extraEnvs.Envs {
 			b.addContainerEnvVar(e)
+		}
+	}
+}
+
+func (b *BackstageDeployment) setAuditLogClaimName(backstage bsv1.Backstage) {
+	for k, v := range b.deployment.Spec.Template.Spec.Volumes {
+
+		if v.Name == "audit-log-data" {
+			b.deployment.Spec.Template.Spec.Volumes[k].PersistentVolumeClaim.ClaimName = fmt.Sprintf("%s-audit-log", backstage.Name)
 		}
 	}
 }
