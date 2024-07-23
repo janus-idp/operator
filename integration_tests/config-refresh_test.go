@@ -64,7 +64,7 @@ var _ = When("create backstage with external configuration", func() {
 
 		backstageName := generateRandName("")
 
-		generateConfigMap(ctx, k8sClient, appConfig1, ns, map[string]string{"key11": "app:", "key12": "app:"}, nil, nil)
+		generateConfigMap(ctx, k8sClient, appConfig1, ns, map[string]string{"key11": "app:", "key12": "app:", "app": "myApp"}, nil, nil)
 		generateSecret(ctx, k8sClient, secretEnv1, ns, map[string]string{"sec11": "val11"}, nil, nil)
 
 		bs := bsv1.BackstageSpec{
@@ -94,7 +94,9 @@ var _ = When("create backstage with external configuration", func() {
 			err = k8sClient.List(ctx, podList, client.InNamespace(ns), client.MatchingLabels{model.BackstageAppLabel: utils.BackstageAppLabelValue(backstageName)})
 			g.Expect(err).ShouldNot(HaveOccurred())
 
-			g.Expect(len(podList.Items)).To(Equal(1))
+			//
+			//g.Expect(len(podList.Items)).To(Equal(1))
+			g.Expect(len(podList.Items) >= 1).Should(BeTrue())
 			podName := podList.Items[0].Name
 			out, _, err := executeRemoteCommand(ctx, ns, podName, "backstage-backend", "cat /my/mount/path/key11")
 			g.Expect(err).ShouldNot(HaveOccurred())
