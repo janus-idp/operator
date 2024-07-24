@@ -15,6 +15,7 @@
 package model
 
 import (
+	"fmt"
 	"path/filepath"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -114,6 +115,8 @@ func (b *AppConfig) updatePod(deployment *appsv1.Deployment) {
 		b.ConfigMap.Name, b.MountPath, b.Key, b.ConfigMap.Data)
 
 	fileDir := b.MountPath
+
+	fmt.Printf(">>>>>> ARGS >>>> %v", deployment.Spec.Template.Spec.Containers[0].Args)
 	for file := range b.ConfigMap.Data {
 		if b.Key == "" || b.Key == file {
 			deployment.Spec.Template.Spec.Containers[0].Args =

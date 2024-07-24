@@ -61,8 +61,8 @@ ENVTEST_K8S_VERSION = 1.25.0
 # It also usually contains default-config directory
 # with set of Backstage Configuration YAML manifests
 # to use other config - add a directory with config,
-# use it as following commands: 'PROFILE_DIR=<dir-name> make test|integration-test|run|deploy|deployment-manifest'
-PROFILE_DIR ?= default
+# use it as following commands: 'PROFILE=<dir-name> make test|integration-test|run|deploy|deployment-manifest'
+PROFILE ?= default
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -129,12 +129,12 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: manifests generate fmt vet envtest ## Run tests. We need LOCALBIN=$(LOCALBIN) to get correct default-config path
-	mkdir -p $(LOCALBIN)/default-config && rm -r default-config/* && cp config/profile/$(PROFILE_DIR)/default-config/* $(LOCALBIN)/default-config
+	mkdir -p $(LOCALBIN)/default-config && rm -r $(LOCALBIN)/default-config/* && cp config/profile/$(PROFILE)/default-config/* $(LOCALBIN)/default-config
 	LOCALBIN=$(LOCALBIN) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $(PKGS) -coverprofile cover.out
 
 .PHONY: integration-test
 integration-test: ginkgo manifests generate fmt vet envtest ## Run integration_tests. We need LOCALBIN=$(LOCALBIN) to get correct default-config path
-	mkdir -p $(LOCALBIN)/default-config && rm -r default-config/* && cp config/profile/$(PROFILE_DIR)/default-config/* $(LOCALBIN)/default-config
+	mkdir -p $(LOCALBIN)/default-config && rm -r $(LOCALBIN)/default-config/* && cp config/profile/$(PROFILE)/default-config/* $(LOCALBIN)/default-config
 	LOCALBIN=$(LOCALBIN) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(GINKGO) -v -r $(ARGS) integration_tests
 
 
@@ -146,7 +146,7 @@ build: generate fmt vet ## Build manager binary.
 
 .PHONY: run
 run: manifests generate fmt vet build ## Run a controller from your host.
-	cd $(LOCALBIN) && mkdir -p default-config && rm -r default-config/* && cp ../config/profile/$(PROFILE_DIR)/default-config/* default-config && ./manager
+	cd $(LOCALBIN) && mkdir -p default-config && rm -r default-config/* && cp ../config/profile/$(PROFILE)/default-config/* default-config && ./manager
 
 # by default images expire from quay registry after 14 days
 # set a longer timeout (or set no label to keep images forever)
@@ -200,12 +200,12 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
-	$(KUSTOMIZE) build config/profile/$(PROFILE_DIR) | kubectl apply -f -
+	$(KUSTOMIZE) build config/profile/$(PROFILE) | kubectl apply -f -
 
 .PHONY: deployment-manifest
 deployment-manifest: manifests kustomize ## Generate manifest to deploy operator.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
-	$(KUSTOMIZE) build config/profile/$(PROFILE_DIR) > rhdh-operator-${VERSION}.yaml
+	$(KUSTOMIZE) build config/profile/$(PROFILE) > rhdh-operator-${VERSION}.yaml
 	@echo "Generated operator script rhdh-operator-${VERSION}.yaml"
 
 .PHONY: undeploy
