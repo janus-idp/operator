@@ -17,7 +17,7 @@ package model
 import (
 	"fmt"
 
-	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	bsv1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha2"
 	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 
 	corev1 "k8s.io/api/core/v1"
@@ -27,7 +27,7 @@ import (
 type DbServiceFactory struct{}
 
 func (f DbServiceFactory) newBackstageObject() RuntimeObject {
-	return &DbService{ /*service: &corev1.Service{}*/ }
+	return &DbService{}
 }
 
 type DbService struct {
@@ -39,7 +39,7 @@ func init() {
 }
 
 func DbServiceName(backstageName string) string {
-	return utils.GenerateRuntimeObjectName(backstageName, "backstage-db")
+	return utils.GenerateRuntimeObjectName(backstageName, "backstage-psql")
 }
 
 // implementation of RuntimeObject interface
@@ -55,7 +55,7 @@ func (b *DbService) setObject(obj client.Object) {
 }
 
 // implementation of RuntimeObject interface
-func (b *DbService) addToModel(model *BackstageModel, _ bsv1alpha1.Backstage) (bool, error) {
+func (b *DbService) addToModel(model *BackstageModel, _ bsv1.Backstage) (bool, error) {
 	if b.service == nil {
 		if model.localDbEnabled {
 			return false, fmt.Errorf("LocalDb Service not initialized, make sure there is db-service.yaml.yaml in default or raw configuration")
@@ -66,6 +66,9 @@ func (b *DbService) addToModel(model *BackstageModel, _ bsv1alpha1.Backstage) (b
 			return false, nil
 		}
 	}
+
+	// force this service to be headless even if it is not set in the original config
+	b.service.Spec.ClusterIP = corev1.ClusterIPNone
 
 	model.LocalDbService = b
 	model.setRuntimeObject(b)
@@ -79,11 +82,11 @@ func (b *DbService) EmptyObject() client.Object {
 }
 
 // implementation of RuntimeObject interface
-func (b *DbService) validate(_ *BackstageModel, _ bsv1alpha1.Backstage) error {
+func (b *DbService) validate(_ *BackstageModel, _ bsv1.Backstage) error {
 	return nil
 }
 
 func (b *DbService) setMetaInfo(backstageName string) {
 	b.service.SetName(DbServiceName(backstageName))
-	utils.GenerateLabel(&b.service.Spec.Selector, BackstageAppLabel, fmt.Sprintf("backstage-db-%s", backstageName))
+	utils.GenerateLabel(&b.service.Spec.Selector, BackstageAppLabel, utils.BackstageDbAppLabelValue(backstageName))
 }

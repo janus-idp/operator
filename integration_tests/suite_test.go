@@ -20,6 +20,8 @@ import (
 	"os"
 	"strconv"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -48,7 +50,7 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/rand"
 
-	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	bsv1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha2"
 
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -114,7 +116,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = bsv1alpha1.AddToScheme(scheme.Scheme)
+	err = bsv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
@@ -141,9 +143,19 @@ func randString(n int) string {
 	return string(b)
 }
 
-func createBackstage(ctx context.Context, spec bsv1alpha1.BackstageSpec, ns string) string {
-	backstageName := "test-backstage-" + randString(5)
-	err := k8sClient.Create(ctx, &bsv1alpha1.Backstage{
+// generateRandName return random name if name is empty or name itself otherwise
+func generateRandName(name string) string {
+	if name != "" {
+		return name
+	}
+	return "test-backstage-" + randString(5)
+}
+
+func createBackstage(ctx context.Context, spec bsv1.BackstageSpec, ns string, name string) string {
+
+	backstageName := generateRandName(name)
+
+	err := k8sClient.Create(ctx, &bsv1.Backstage{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      backstageName,
 			Namespace: ns,
@@ -154,17 +166,25 @@ func createBackstage(ctx context.Context, spec bsv1alpha1.BackstageSpec, ns stri
 	return backstageName
 }
 
-func createAndReconcileBackstage(ctx context.Context, ns string, spec bsv1alpha1.BackstageSpec) string {
-	backstageName := createBackstage(ctx, spec, ns)
+func createAndReconcileBackstage(ctx context.Context, ns string, spec bsv1.BackstageSpec, name string) string {
+	backstageName := createBackstage(ctx, spec, ns, name)
 
 	Eventually(func() error {
-		found := &bsv1alpha1.Backstage{}
+		found := &bsv1.Backstage{}
 		return k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, found)
 	}, time.Minute, time.Second).Should(Succeed())
 
 	_, err := NewTestBackstageReconciler(ns).ReconcileAny(ctx, reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
 	})
+
+	if err != nil {
+		GinkgoWriter.Printf("===> Error detected on Backstage reconcile: %s \n", err.Error())
+		if errors.IsAlreadyExists(err) || errors.IsConflict(err) {
+			return backstageName
+		}
+	}
+
 	Expect(err).To(Not(HaveOccurred()))
 
 	return backstageName

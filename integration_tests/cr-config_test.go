@@ -18,11 +18,9 @@ import (
 	"context"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
 
 	"k8s.io/utils/ptr"
-
-	corev1 "k8s.io/api/core/v1"
 
 	"redhat-developer/red-hat-developer-hub-operator/pkg/utils"
 
@@ -32,7 +30,7 @@ import (
 
 	"redhat-developer/red-hat-developer-hub-operator/pkg/model"
 
-	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	bsv1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha2"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -58,57 +56,62 @@ var _ = When("create backstage with CR configured", func() {
 
 	It("creates Backstage with configuration ", func() {
 
-		appConfig1 := generateConfigMap(ctx, k8sClient, "app-config1", ns, map[string]string{"key11": "app:", "key12": "app:"})
-		appConfig2 := generateConfigMap(ctx, k8sClient, "app-config2", ns, map[string]string{"key21": "app:", "key22": "app:"})
+		appConfig1 := generateConfigMap(ctx, k8sClient, "app-config1", ns, map[string]string{"key11": "app:", "key12": "app:"}, nil, nil)
+		appConfig2 := generateConfigMap(ctx, k8sClient, "app-config2", ns, map[string]string{"key21": "app:", "key22": "app:"}, nil, nil)
+		appConfig3 := generateConfigMap(ctx, k8sClient, "app-config3.dot", ns, map[string]string{"key.31": "app31:"}, nil, nil)
 
-		cmFile1 := generateConfigMap(ctx, k8sClient, "cm-file1", ns, map[string]string{"cm11": "11", "cm12": "12"})
-		cmFile2 := generateConfigMap(ctx, k8sClient, "cm-file2", ns, map[string]string{"cm21": "21", "cm22": "22"})
+		cmFile1 := generateConfigMap(ctx, k8sClient, "cm-file1", ns, map[string]string{"cm11": "11", "cm12": "12"}, nil, nil)
+		cmFile2 := generateConfigMap(ctx, k8sClient, "cm-file2", ns, map[string]string{"cm21": "21", "cm22": "22"}, nil, nil)
+		cmFile3 := generateConfigMap(ctx, k8sClient, "cm-file3.dot", ns, map[string]string{"cm.31": "31"}, nil, nil)
 
-		secretFile1 := generateSecret(ctx, k8sClient, "secret-file1", ns, []string{"sec11", "sec12"})
-		secretFile2 := generateSecret(ctx, k8sClient, "secret-file2", ns, []string{"sec21", "sec22"})
+		secretFile1 := generateSecret(ctx, k8sClient, "secret-file1", ns, map[string]string{"sec11": "val11", "sec12": "val12"}, nil, nil)
+		secretFile2 := generateSecret(ctx, k8sClient, "secret-file2", ns, map[string]string{"sec21": "val21", "sec22": "val22"}, nil, nil)
+		secretFile3 := generateSecret(ctx, k8sClient, "secret-file3.dot", ns, map[string]string{"sec.31": "val31", "sec.32": "val22"}, nil, nil)
 
-		cmEnv1 := generateConfigMap(ctx, k8sClient, "cm-env1", ns, map[string]string{"cm11": "11", "cm12": "12"})
-		cmEnv2 := generateConfigMap(ctx, k8sClient, "cm-env2", ns, map[string]string{"cm21": "21", "cm22": "22"})
+		cmEnv1 := generateConfigMap(ctx, k8sClient, "cm-env1", ns, map[string]string{"cm11": "11", "cm12": "12"}, nil, nil)
+		cmEnv2 := generateConfigMap(ctx, k8sClient, "cm-env2", ns, map[string]string{"cm21": "21", "cm22": "22"}, nil, nil)
 
-		secretEnv1 := generateSecret(ctx, k8sClient, "secret-env1", ns, []string{"sec11", "sec12"})
-		_ = generateSecret(ctx, k8sClient, "secret-env2", ns, []string{"sec21", "sec22"})
+		secretEnv1 := generateSecret(ctx, k8sClient, "secret-env1", ns, map[string]string{"sec11": "val11", "sec12": "val12"}, nil, nil)
+		_ = generateSecret(ctx, k8sClient, "secret-env2", ns, map[string]string{"sec21": "val21", "sec22": "val22"}, nil, nil)
 
-		bs := bsv1alpha1.BackstageSpec{
-			Application: &bsv1alpha1.Application{
-				AppConfig: &bsv1alpha1.AppConfig{
+		bs := bsv1.BackstageSpec{
+			Application: &bsv1.Application{
+				AppConfig: &bsv1.AppConfig{
 					MountPath: "/my/mount/path",
-					ConfigMaps: []bsv1alpha1.ObjectKeyRef{
+					ConfigMaps: []bsv1.ObjectKeyRef{
 						{Name: appConfig1},
 						{Name: appConfig2, Key: "key21"},
+						{Name: appConfig3},
 					},
 				},
-				//DynamicPluginsConfigMapName: "",
-				ExtraFiles: &bsv1alpha1.ExtraFiles{
+				ExtraFiles: &bsv1.ExtraFiles{
 					MountPath: "/my/file/path",
-					ConfigMaps: []bsv1alpha1.ObjectKeyRef{
+					ConfigMaps: []bsv1.ObjectKeyRef{
 						{Name: cmFile1},
 						{Name: cmFile2, Key: "cm21"},
+						{Name: cmFile3},
 					},
-					Secrets: []bsv1alpha1.ObjectKeyRef{
+					Secrets: []bsv1.ObjectKeyRef{
 						{Name: secretFile1, Key: "sec11"},
 						{Name: secretFile2, Key: "sec21"},
+						{Name: secretFile3, Key: "sec.31"},
 					},
 				},
-				ExtraEnvs: &bsv1alpha1.ExtraEnvs{
-					ConfigMaps: []bsv1alpha1.ObjectKeyRef{
+				ExtraEnvs: &bsv1.ExtraEnvs{
+					ConfigMaps: []bsv1.ObjectKeyRef{
 						{Name: cmEnv1},
 						{Name: cmEnv2, Key: "cm21"},
 					},
-					Secrets: []bsv1alpha1.ObjectKeyRef{
+					Secrets: []bsv1.ObjectKeyRef{
 						{Name: secretEnv1, Key: "sec11"},
 					},
-					Envs: []bsv1alpha1.Env{
+					Envs: []bsv1.Env{
 						{Name: "env1", Value: "val1"},
 					},
 				},
 			},
 		}
-		backstageName := createAndReconcileBackstage(ctx, ns, bs)
+		backstageName := createAndReconcileBackstage(ctx, ns, bs, "")
 
 		Eventually(func(g Gomega) {
 			deploy := &appsv1.Deployment{}
@@ -121,38 +124,45 @@ var _ = When("create backstage with CR configured", func() {
 			By("checking if app-config volumes are added to PodSpec")
 			g.Expect(utils.GenerateVolumeNameFromCmOrSecret(appConfig1)).To(BeAddedAsVolumeToPodSpec(podSpec))
 			g.Expect(utils.GenerateVolumeNameFromCmOrSecret(appConfig2)).To(BeAddedAsVolumeToPodSpec(podSpec))
+			g.Expect(utils.GenerateVolumeNameFromCmOrSecret(appConfig3)).To(BeAddedAsVolumeToPodSpec(podSpec))
 
 			By("checking if app-config volumes are mounted to the Backstage container")
 			g.Expect("/my/mount/path/key11").To(BeMountedToContainer(c))
 			g.Expect("/my/mount/path/key12").To(BeMountedToContainer(c))
 			g.Expect("/my/mount/path/key21").To(BeMountedToContainer(c))
 			g.Expect("/my/mount/path/key22").NotTo(BeMountedToContainer(c))
+			g.Expect("/my/mount/path/key.31").To(BeMountedToContainer(c))
 
 			By("checking if app-config args are added to the Backstage container")
 			g.Expect("/my/mount/path/key11").To(BeAddedAsArgToContainer(c))
 			g.Expect("/my/mount/path/key12").To(BeAddedAsArgToContainer(c))
 			g.Expect("/my/mount/path/key21").To(BeAddedAsArgToContainer(c))
 			g.Expect("/my/mount/path/key22").NotTo(BeAddedAsArgToContainer(c))
+			g.Expect("/my/mount/path/key.31").To(BeAddedAsArgToContainer(c))
 
 			By("checking if extra-cm-file volumes are added to PodSpec")
 			g.Expect(utils.GenerateVolumeNameFromCmOrSecret(cmFile1)).To(BeAddedAsVolumeToPodSpec(podSpec))
 			g.Expect(utils.GenerateVolumeNameFromCmOrSecret(cmFile2)).To(BeAddedAsVolumeToPodSpec(podSpec))
+			g.Expect(utils.GenerateVolumeNameFromCmOrSecret(cmFile3)).To(BeAddedAsVolumeToPodSpec(podSpec))
 
 			By("checking if extra-cm-file volumes are mounted to the Backstage container")
 			g.Expect("/my/file/path/cm11").To(BeMountedToContainer(c))
 			g.Expect("/my/file/path/cm12").To(BeMountedToContainer(c))
 			g.Expect("/my/file/path/cm21").To(BeMountedToContainer(c))
 			g.Expect("/my/file/path/cm22").NotTo(BeMountedToContainer(c))
+			g.Expect("/my/file/path/cm.31").To(BeMountedToContainer(c))
 
 			By("checking if extra-secret-file volumes are added to PodSpec")
 			g.Expect(utils.GenerateVolumeNameFromCmOrSecret("secret-file1")).To(BeAddedAsVolumeToPodSpec(podSpec))
 			g.Expect(utils.GenerateVolumeNameFromCmOrSecret("secret-file2")).To(BeAddedAsVolumeToPodSpec(podSpec))
+			g.Expect(utils.GenerateVolumeNameFromCmOrSecret("secret-file3.dot")).To(BeAddedAsVolumeToPodSpec(podSpec))
 
 			By("checking if extra-secret-file volumes are mounted to the Backstage container")
 			g.Expect("/my/file/path/sec11").To(BeMountedToContainer(c))
 			g.Expect("/my/file/path/sec12").NotTo(BeMountedToContainer(c))
 			g.Expect("/my/file/path/sec21").To(BeMountedToContainer(c))
 			g.Expect("/my/file/path/sec22").NotTo(BeMountedToContainer(c))
+			g.Expect("/my/file/path/sec.31").To(BeMountedToContainer(c))
 
 			By("checking if extra-envvars are injected to the Backstage container as EnvFrom")
 			g.Expect("cm-env1").To(BeEnvFromForContainer(c))
@@ -162,17 +172,43 @@ var _ = When("create backstage with CR configured", func() {
 			g.Expect("cm21").To(BeEnvVarForContainer(c))
 			g.Expect("sec11").To(BeEnvVarForContainer(c))
 
-			for _, cond := range deploy.Status.Conditions {
-				if cond.Type == "Available" {
-					g.Expect(cond.Status).To(Equal(corev1.ConditionTrue))
-				}
-			}
-		}, 5*time.Minute, time.Second).Should(Succeed(), controllerMessage())
+		}, time.Minute, time.Second).Should(Succeed(), controllerMessage())
+	})
+
+	It("generates label and annotation", func() {
+
+		appConfig := generateConfigMap(ctx, k8sClient, "app-config1", ns, map[string]string{"key11": "app:", "key12": "app:"}, nil, nil)
+
+		bs := bsv1.BackstageSpec{
+			Application: &bsv1.Application{
+				AppConfig: &bsv1.AppConfig{
+					ConfigMaps: []bsv1.ObjectKeyRef{
+						{Name: appConfig},
+					},
+				},
+			},
+		}
+
+		backstageName := createAndReconcileBackstage(ctx, ns, bs, "")
+		Eventually(func(g Gomega) {
+
+			cm := &corev1.ConfigMap{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: appConfig}, cm)
+			g.Expect(err).ShouldNot(HaveOccurred())
+
+			g.Expect(cm.Labels).To(HaveLen(1))
+			g.Expect(cm.Labels[model.ExtConfigSyncLabel]).To(Equal("true"))
+
+			g.Expect(cm.Annotations).To(HaveLen(1))
+			g.Expect(cm.Annotations[model.BackstageNameAnnotation]).To(Equal(backstageName))
+
+		}, 10*time.Second, time.Second).Should(Succeed())
+
 	})
 
 	It("creates default Backstage and then update CR ", func() {
 
-		backstageName := createAndReconcileBackstage(ctx, ns, bsv1alpha1.BackstageSpec{})
+		backstageName := createAndReconcileBackstage(ctx, ns, bsv1.BackstageSpec{}, "")
 
 		Eventually(func(g Gomega) {
 			By("creating Deployment with replicas=1 by default")
@@ -187,10 +223,10 @@ var _ = When("create backstage with CR configured", func() {
 		By("updating Backstage")
 		imageName := "quay.io/my-org/my-awesome-image:1.2.3"
 		ips := []string{"some-image-pull-secret-1", "some-image-pull-secret-2"}
-		update := &bsv1alpha1.Backstage{}
+		update := &bsv1.Backstage{}
 		err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, update)
 		Expect(err).To(Not(HaveOccurred()))
-		update.Spec.Application = &bsv1alpha1.Application{}
+		update.Spec.Application = &bsv1.Application{}
 		update.Spec.Application.Replicas = ptr.To(int32(2))
 		update.Spec.Application.Image = ptr.To(imageName)
 		update.Spec.Application.ImagePullSecrets = ips
@@ -215,95 +251,49 @@ var _ = When("create backstage with CR configured", func() {
 
 	})
 
-	It("creates default Backstage and then update CR to not to use local DB", func() {
-		backstageName := createAndReconcileBackstage(ctx, ns, bsv1alpha1.BackstageSpec{})
+	It("creates Backstage deployment with spec.deployment ", func() {
+
+		bs2 := &bsv1.Backstage{}
+
+		err := utils.ReadYamlFile("testdata/spec-deployment.yaml", bs2)
+		Expect(err).To(Not(HaveOccurred()))
+
+		backstageName := createAndReconcileBackstage(ctx, ns, bs2.Spec, "")
 
 		Eventually(func(g Gomega) {
-			By("creating Deployment with database.enableLocalDb=true by default")
-
-			err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DbStatefulSetName(backstageName)}, &appsv1.StatefulSet{})
+			By("creating Deployment ")
+			deploy := &appsv1.Deployment{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, deploy)
 			g.Expect(err).To(Not(HaveOccurred()))
+			var bscontainer corev1.Container
+			for _, c := range deploy.Spec.Template.Spec.Containers {
 
-			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DbStatefulSetName(backstageName)}, &corev1.Service{})
-			g.Expect(err).To(Not(HaveOccurred()))
+				if c.Name == "backstage-backend" {
+					bscontainer = c
+					break
+				}
+			}
 
-			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DbStatefulSetName(backstageName)}, &corev1.Secret{})
-			g.Expect(err).To(Not(HaveOccurred()))
+			g.Expect(bscontainer).NotTo(BeNil())
+			g.Expect(bscontainer.Image).To(HaveValue(Equal("busybox")))
 
-		}, time.Minute, time.Second).Should(Succeed())
+			var bsvolume corev1.Volume
+			for _, v := range deploy.Spec.Template.Spec.Volumes {
 
-		By("updating Backstage")
-		update := &bsv1alpha1.Backstage{}
-		err := k8sClient.Get(ctx, types.NamespacedName{Name: backstageName, Namespace: ns}, update)
-		Expect(err).To(Not(HaveOccurred()))
-		update.Spec.Database = &bsv1alpha1.Database{}
-		update.Spec.Database.EnableLocalDb = ptr.To(false)
-		err = k8sClient.Update(ctx, update)
-		Expect(err).To(Not(HaveOccurred()))
-		_, err = NewTestBackstageReconciler(ns).ReconcileAny(ctx, reconcile.Request{
-			NamespacedName: types.NamespacedName{Name: backstageName, Namespace: ns},
-		})
-		Expect(err).To(Not(HaveOccurred()))
+				if v.Name == "dynamic-plugins-root" {
+					bsvolume = v
+					break
+				}
+			}
 
-		Eventually(func(g Gomega) {
-			By("deleting Local Db StatefulSet, Service and Secret")
-			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DbStatefulSetName(backstageName)}, &appsv1.StatefulSet{})
-			g.Expect(err).To(HaveOccurred())
-			g.Expect(errors.IsNotFound(err))
+			g.Expect(bsvolume).NotTo(BeNil())
+			g.Expect(bsvolume.Ephemeral).NotTo(BeNil())
+			g.Expect(*bsvolume.Ephemeral.VolumeClaimTemplate.Spec.StorageClassName).To(Equal("special"))
 
-			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DbServiceName(backstageName)}, &corev1.Service{})
-			g.Expect(err).To(HaveOccurred())
-			g.Expect(errors.IsNotFound(err))
-
-			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DbSecretDefaultName(backstageName)}, &corev1.Secret{})
-			g.Expect(err).To(HaveOccurred())
-			g.Expect(errors.IsNotFound(err))
-		}, time.Minute, time.Second).Should(Succeed())
+		}, 10*time.Second, time.Second).Should(Succeed())
 
 	})
 
-	It("creates Backstage with disabled local DB and secret", func() {
-		backstageName := createAndReconcileBackstage(ctx, ns, bsv1alpha1.BackstageSpec{
-			Database: &bsv1alpha1.Database{
-				EnableLocalDb:  ptr.To(false),
-				AuthSecretName: "existing-secret",
-			},
-		})
-
-		Eventually(func(g Gomega) {
-			By("not creating a StatefulSet for the Database")
-			err := k8sClient.Get(ctx,
-				types.NamespacedName{Namespace: ns, Name: model.DbStatefulSetName(backstageName)},
-				&appsv1.StatefulSet{})
-			g.Expect(err).Should(HaveOccurred())
-			g.Expect(errors.IsNotFound(err))
-
-			By("Checking if Deployment was successfully created in the reconciliation")
-			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, &appsv1.Deployment{})
-			g.Expect(err).Should(Not(HaveOccurred()))
-		}, time.Minute, time.Second).Should(Succeed())
-	})
-
-	It("creates Backstage with disabled local DB no secret", func() {
-		backstageName := createAndReconcileBackstage(ctx, ns, bsv1alpha1.BackstageSpec{
-			Database: &bsv1alpha1.Database{
-				EnableLocalDb: ptr.To(false),
-			},
-		})
-
-		Eventually(func(g Gomega) {
-			By("not creating a StatefulSet for the Database")
-			err := k8sClient.Get(ctx,
-				types.NamespacedName{Namespace: ns, Name: model.DbStatefulSetName(backstageName)},
-				&appsv1.StatefulSet{})
-			g.Expect(err).Should(HaveOccurred())
-			g.Expect(errors.IsNotFound(err))
-
-			By("Checking if Deployment was successfully created in the reconciliation")
-			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: model.DeploymentName(backstageName)}, &appsv1.Deployment{})
-			g.Expect(err).Should(Not(HaveOccurred()))
-		}, time.Minute, time.Second).Should(Succeed())
-	})
 })
 
 // Duplicated files in different CMs

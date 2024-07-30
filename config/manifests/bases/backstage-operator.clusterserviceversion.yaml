@@ -5,8 +5,8 @@ metadata:
     alm-examples: '[]'
     capabilities: Seamless Upgrades
     operatorframework.io/suggested-namespace: backstage-system
-    skipRange: '>=0.0.1 <0.2.0'
-  name: backstage-operator.v0.2.0
+    skipRange: '>=0.0.1 <0.3.0'
+  name: backstage-operator.v0.3.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -17,6 +17,11 @@ spec:
       kind: Backstage
       name: backstages.rhdh.redhat.com
       version: v1alpha1
+    - description: Backstage is the Schema for the backstages API
+      displayName: Backstage
+      kind: Backstage
+      name: backstages.rhdh.redhat.com
+      version: v1alpha2
   description: Operator to deploy Backstage on Kubernetes
   displayName: Red Hat Developer Hub Operator
   icon:
@@ -44,13 +49,13 @@ spec:
   maintainers:
   - email: asoro@redhat.com
     name: Armel Soro
+  - email: cdaley@redhat.com
+    name: Corey Daley
   - email: gazarenk@redhat.com
     name: Gennady Azarenkov
-  - email: jianrzha@redhat.com
-    name: Jianrong Zhang
   maturity: alpha
   minKubeVersion: 1.25.0
   provider:
     name: Red Hat Inc.
     url: https://www.redhat.com/
-  version: 0.2.0
+  version: 0.3.0

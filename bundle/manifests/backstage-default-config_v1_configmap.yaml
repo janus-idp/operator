@@ -1,6 +1,6 @@
 apiVersion: v1
 data:
-  app-config.yaml: |-
+  app-config.yaml: |
     apiVersion: v1
     kind: ConfigMap
     metadata:
@@ -8,14 +8,13 @@ data:
     data:
       default.app-config.yaml: |
         backend:
-          database:
-            connection:
-              password: ${POSTGRES_PASSWORD}
-              user: ${POSTGRES_USER}
           auth:
-            keys:
-              # This is a default value, which you should change by providing your own app-config
-              - secret: "pl4s3Ch4ng3M3"
+            externalAccess:
+              - type: legacy
+                options:
+                  subject: legacy-default-config
+                  # This is a default value, which you should change by providing your own app-config
+                  secret: "pl4s3Ch4ng3M3"
   db-secret.yaml: |-
     apiVersion: v1
     kind: Secret
@@ -28,17 +27,6 @@ data:
     #  POSTGRES_USER: postgres
     #  POSTGRESQL_ADMIN_PASSWORD: admin123
     #  POSTGRES_HOST: bs1-db-service    #placeholder <crname>-db-service
-  db-service-hl.yaml: |
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: backstage-psql-cr1-hl # placeholder for 'backstage-psql-<cr-name>-hl'
-    spec:
-      selector:
-        rhdh.redhat.com/app:  backstage-psql-cr1 # placeholder for 'backstage-psql-<cr-name>'
-      clusterIP: None
-      ports:
-        - port: 5432
   db-service.yaml: |
     apiVersion: v1
     kind: Service
@@ -47,6 +35,7 @@ data:
     spec:
       selector:
         rhdh.redhat.com/app:  backstage-psql-cr1 # placeholder for 'backstage-psql-<cr-name>'
+      clusterIP: None
       ports:
         - port: 5432
   db-statefulset.yaml: |-
@@ -65,7 +54,6 @@ data:
         metadata:
           labels:
             rhdh.redhat.com/app: backstage-psql-cr1 # placeholder for 'backstage-psql-<cr-name>'
-          name: backstage-db-cr1 # placeholder for 'backstage-psql-<cr-name>'
         spec:
           # fsGroup does not work for Openshift
           # AKS/EKS does not work w/o it
@@ -162,7 +150,7 @@ data:
             resources:
               requests:
                 storage: 1Gi
-  deployment.yaml: |-
+  deployment.yaml: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -198,16 +186,24 @@ data:
                 defaultMode: 420
                 optional: true
                 secretName: dynamic-plugins-npmrc
+            - emptyDir: {}
+              name: npmcacache
           initContainers:
             - name: install-dynamic-plugins
               command:
                 - ./install-dynamic-plugins.sh
                 - /dynamic-plugins-root
-              image: quay.io/janus-idp/backstage-showcase:latest # will be replaced with the actual image quay.io/janus-idp/backstage-showcase:next
+              # image will be replaced by the value of the `RELATED_IMAGE_backstage` env var, if set
+              image: quay.io/janus-idp/backstage-showcase:next
               imagePullPolicy: IfNotPresent
               securityContext:
                 runAsNonRoot: true
                 allowPrivilegeEscalation: false
+                seccompProfile:
+                  type: RuntimeDefault
+                capabilities:
+                  drop:
+                   - ALL
               env:
                 - name: NPM_CONFIG_USERCONFIG
                   value: /opt/app-root/src/.npmrc.dynamic-plugins
@@ -218,6 +214,8 @@ data:
                   name: dynamic-plugins-npmrc
                   readOnly: true
                   subPath: .npmrc
+                - mountPath: /opt/app-root/src/.npm/_cacache
+                  name: npmcacache
               workingDir: /opt/app-root/src
               resources:
                 requests:
@@ -230,12 +228,17 @@ data:
           containers:
             - name: backstage-backend
               # image will be replaced by the value of the `RELATED_IMAGE_backstage` env var, if set
-              image: quay.io/janus-idp/backstage-showcase:latest
+              image: quay.io/janus-idp/backstage-showcase:next
               imagePullPolicy: IfNotPresent
               args:
                 - "--config"
                 - "dynamic-plugins-root/app-config.dynamic-plugins.yaml"
               securityContext:
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
                 runAsNonRoot: true
                 allowPrivilegeEscalation: false
               readinessProbe:

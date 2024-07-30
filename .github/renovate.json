@@ -4,7 +4,9 @@
     ":gitSignOff",
     ":rebaseStalePrs",
     "group:allNonMajor",
-    "docker:disableMajor"
+    "docker:disableMajor",
+    "default:pinDigestsDisabled",
+    "helpers:pinGitHubActionDigests"
   ],
   "labels": [
     "kind/dependency upgrade"
@@ -14,55 +16,191 @@
     "/^1\\..*\\.x/"
   ],
   "constraints": {
-    "go": "1.20"
+    "go": "1.21"
   },
   "packageRules": [
     {
-      "matchCategories": [
+      "description": "Do NOT generate PRs to pin or apply digests to dockerfiles",
+      "enabled": false,
+      "matchDatasources": [
         "docker"
       ],
       "matchUpdateTypes": [
-        "patch"
+        "pin","pinDigest", "digest"
       ],
-      "digest": {
-        "enabled": false
-      },
-      "automerge": true,
-      "pinDigests": false
+      "automerge": false
     },
     {
+      "description": "Do automerge patch updates to dockerfiles",
+      "enabled": true,
       "matchDatasources": [
         "docker"
       ],
       "matchUpdateTypes": [
         "patch"
       ],
-      "digest": {
-        "enabled": false
-      },
       "automerge": true,
       "pinDigests": false
     },
     {
+      "description": "k8s go: minor and patch updates in main",
+      "enabled": true,
+      "groupName": "k8s-go main",
+      "matchDatasources": [
+        "go"
+      ],
+      "matchPackagePrefixes": [
+        "k8s.io/api",
+        "k8s.io/apimachinery",
+        "k8s.io/client-go"
+      ],
+      "matchUpdateTypes": [
+        "minor", "patch"
+      ],
+      "baseBranches": [
+        "main"
+      ],
+      "automerge": false
+    },
+    {
+      "description": "k8s go: patch updates only in 1.y.x",
+      "enabled": true,
+      "groupName": "k8s-go 1.y.x",
+      "matchDatasources": [
+        "go"
+      ],
+      "matchPackagePrefixes": [
+        "k8s.io/api",
+        "k8s.io/apimachinery",
+        "k8s.io/client-go"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "baseBranches": [
+        "/^1\\..*\\.x/"
+      ],
+      "automerge": false
+    },
+    {
+      "description": "ginkgo: minor and patch updates in main",
+      "enabled": true,
+      "groupName": "ginkgo main",
+      "matchDatasources": [
+        "go"
+      ],
+      "matchPackagePrefixes": [
+        "github.com/onsi/ginkgo/v2"
+      ],
+      "matchUpdateTypes": [
+        "minor", "patch"
+      ],
+      "baseBranches": [
+        "main"
+      ],
+      "automerge": false
+    },
+    {
+      "description": "ginkgo: patch updates only in 1.y.x",
+      "enabled": true,
+      "groupName": "ginkgo 1.y.x",
+      "matchDatasources": [
+        "go"
+      ],
+      "matchPackagePrefixes": [
+        "github.com/onsi/ginkgo/v2"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "baseBranches": [
+        "/^1\\..*\\.x/"
+      ],
+      "automerge": false
+    },
+    {
+      "description": "gomega: minor and patch updates in main",
+      "enabled": true,
+      "groupName": "gomega main",
+      "matchDatasources": [
+        "go"
+      ],
+      "matchPackagePrefixes": [
+	      "github.com/onsi/gomega"
+      ],
+      "matchUpdateTypes": [
+        "minor", "patch"
+      ],
+      "baseBranches": [
+        "main"
+      ],
+      "automerge": false
+    },
+    {
+      "description": "gomega: patch updates only in 1.y.x",
+      "enabled": true,
+      "groupName": "gomega 1.y.x",
+      "matchDatasources": [
+        "go"
+      ],
+      "matchPackagePrefixes": [
+	      "github.com/onsi/gomega"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "baseBranches": [
+        "/^1\\..*\\.x/"
+      ],
+      "automerge": false
+    },
+    {
+      "description": "Do NOT generate PRs for major go dependency updates ",
+      "enabled": false,
       "matchDatasources": [
         "go"
       ],
       "matchUpdateTypes": [
-        "minor,",
+        "major"
+      ],
+      "automerge": false
+    },
+    {
+      "description": "Do automerge go dependency patch updates, except for versions starting with 0",
+      "enabled": true,
+      "matchDatasources": [
+        "go"
+      ],
+      "matchUpdateTypes": [
         "patch"
       ],
       "matchCurrentVersion": "!/^0/",
-      "automerge": true,
-      "pinDigests": true
+      "automerge": true
     },
     {
+      "description": "Do generate PRs for golang version patch bumps, keeping x.yy version the same",
+      "enabled": true,
       "matchDatasources": [
         "golang-version"
       ],
-      "rangeStrategy": "bump",
-      "enabled": false,
+      "matchUpdateTypes": [
+        "patch"
+      ],
       "automerge": false
+    },
+    {
+      "description": "Do automerge and pin actions in GH workflows, except for versions starting with 0",
+      "enabled": true,
+      "matchDatasources": [
+        "github-runners"
+      ],
+      "matchUpdateTypes": [
+        "minor","patch"
+      ],
+      "matchCurrentVersion": "!/^0/",
+      "automerge": true
     }
+
   ],
   "vulnerabilityAlerts": {
     "enabled": true,

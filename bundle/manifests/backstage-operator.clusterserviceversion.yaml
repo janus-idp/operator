@@ -5,7 +5,7 @@ metadata:
     alm-examples: |-
       [
         {
-          "apiVersion": "rhdh.redhat.com/v1alpha1",
+          "apiVersion": "rhdh.redhat.com/v1alpha2",
           "kind": "Backstage",
           "metadata": {
             "labels": {
@@ -21,12 +21,12 @@ metadata:
         }
       ]
     capabilities: Seamless Upgrades
-    createdAt: "2024-04-01T18:15:06Z"
+    createdAt: "2024-07-25T11:50:13Z"
     operatorframework.io/suggested-namespace: backstage-system
     operators.operatorframework.io/builder: operator-sdk-v1.33.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-    skipRange: '>=0.0.1 <0.2.0'
-  name: backstage-operator.v0.2.0
+    skipRange: '>=0.0.1 <0.3.0'
+  name: backstage-operator.v0.3.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -37,6 +37,11 @@ spec:
       kind: Backstage
       name: backstages.rhdh.redhat.com
       version: v1alpha1
+    - description: Backstage is the Schema for the backstages API
+      displayName: Backstage
+      kind: Backstage
+      name: backstages.rhdh.redhat.com
+      version: v1alpha2
   description: Operator to deploy Backstage on Kubernetes
   displayName: Red Hat Developer Hub Operator
   icon:
@@ -50,6 +55,7 @@ spec:
           - ""
           resources:
           - configmaps
+          - secrets
           - services
           verbs:
           - create
@@ -69,29 +75,9 @@ spec:
           - list
           - watch
         - apiGroups:
-          - ""
-          resources:
-          - secrets
-          verbs:
-          - create
-          - delete
-          - patch
-          - update
-        - apiGroups:
           - apps
           resources:
           - deployments
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - apps
-          resources:
           - statefulsets
           verbs:
           - create
@@ -227,8 +213,8 @@ spec:
                 - name: RELATED_IMAGE_postgresql
                   value: quay.io/fedora/postgresql-15:latest
                 - name: RELATED_IMAGE_backstage
-                  value: quay.io/janus-idp/backstage-showcase:latest
-                image: quay.io/janus-idp/operator:0.2.0
+                  value: quay.io/janus-idp/backstage-showcase:next
+                image: quay.io/janus-idp/operator:0.3.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -246,10 +232,10 @@ spec:
                   limits:
                     cpu: 500m
                     ephemeral-storage: 20Mi
-                    memory: 128Mi
+                    memory: 1Gi
                   requests:
                     cpu: 10m
-                    memory: 64Mi
+                    memory: 128Mi
                 securityContext:
                   allowPrivilegeEscalation: false
                   capabilities:
@@ -319,10 +305,10 @@ spec:
   maintainers:
   - email: asoro@redhat.com
     name: Armel Soro
+  - email: cdaley@redhat.com
+    name: Corey Daley
   - email: gazarenk@redhat.com
     name: Gennady Azarenkov
-  - email: jianrzha@redhat.com
-    name: Jianrong Zhang
   maturity: alpha
   minKubeVersion: 1.25.0
   provider:
@@ -331,6 +317,6 @@ spec:
   relatedImages:
   - image: quay.io/fedora/postgresql-15:latest
     name: postgresql
-  - image: quay.io/janus-idp/backstage-showcase:latest
+  - image: quay.io/janus-idp/backstage-showcase:next
     name: backstage
-  version: 0.2.0
+  version: 0.3.0

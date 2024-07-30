@@ -12,15 +12,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        branch: [ main, 1.1.x ]
-    name: E2E Tests - ${{ matrix.branch }}
+        branch: [ main, 1.2.x, 1.1.x ]
+        test_upgrade: [ 'true', 'false' ]
+        exclude:
+          - branch: 1.1.x # Testing upgrade from 1.1.x
+            test_upgrade: 'true'
+    name: 'E2E Tests - ${{ matrix.branch }} - upgrade=${{ matrix.test_upgrade }}'
     concurrency:
-      group: ${{ github.workflow }}-${{ matrix.branch }}
+      group: '${{ github.workflow }}-${{ matrix.branch }}-${{ matrix.test_upgrade }}'
       cancel-in-progress: true
     env:
       CONTAINER_ENGINE: podman
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4 # default branch will be checked out by default on scheduled workflows
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4 # default branch will be checked out by default on scheduled workflows
         with:
           fetch-depth: 0
 
@@ -29,25 +33,37 @@ jobs:
         run: git switch ${{ matrix.branch }}
 
       - name: Setup Go
-        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5
         with:
           go-version-file: 'go.mod'
 
       - name: Determine built operator image
         run: |
-          latestNext="next"
-          # for main branch, use next tags; for 1.x branches, use :latest tags
-          if [[ $(git rev-parse --abbrev-ref HEAD) != "main" ]]; then
-            latestNext="latest" 
-          fi
-          echo "OPERATOR_IMAGE=quay.io/janus-idp/operator:${latestNext}" >> $GITHUB_ENV
+          echo "OPERATOR_IMAGE=$(make show-img)" >> $GITHUB_ENV
+
+      - name: Check if image exists in remote registry
+        id: operator-image-existence-checker
+        run: |
+          echo "OPERATOR_IMAGE_EXISTS=$(if skopeo inspect "docker://${{ env.OPERATOR_IMAGE }}" > /dev/null; then echo "true"; else echo "false"; fi)" >> $GITHUB_OUTPUT
+
+      - name: Display warning if image was not found
+        if: ${{ steps.operator-image-existence-checker.outputs.OPERATOR_IMAGE_EXISTS == 'false' }}
+        run: |
+          echo "::warning ::Image ${{ env.OPERATOR_IMAGE }} not found for testing the ${{ matrix.branch }} branch. It might have expired. E2E tests will be skipped for ${{ matrix.branch }}."
 
       - name: Start Minikube
-        uses: medyagh/setup-minikube@317d92317e473a10540357f1f4b2878b80ee7b95 # v0.0.16
-        with:
-          addons: ingress
+        if: ${{ steps.operator-image-existence-checker.outputs.OPERATOR_IMAGE_EXISTS == 'true' }}
+        uses: medyagh/setup-minikube@d8c0eb871f6f455542491d86a574477bd3894533 # v0.0.18
+
+      - name: Run E2E tests (Operator Upgrade path)
+        if: ${{ matrix.test_upgrade == 'true' && steps.operator-image-existence-checker.outputs.OPERATOR_IMAGE_EXISTS == 'true' }}
+        env:
+          BACKSTAGE_OPERATOR_TESTS_PLATFORM: minikube
+          IMG: ${{ env.OPERATOR_IMAGE }}
+        run: make test-e2e-upgrade
 
       - name: Run E2E tests
+        if: ${{ matrix.test_upgrade == 'false' && steps.operator-image-existence-checker.outputs.OPERATOR_IMAGE_EXISTS == 'true' }}
         env:
           BACKSTAGE_OPERATOR_TESTS_PLATFORM: minikube
           IMG: ${{ env.OPERATOR_IMAGE }}

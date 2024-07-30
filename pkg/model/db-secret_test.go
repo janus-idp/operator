@@ -16,24 +16,25 @@ package model
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"k8s.io/utils/ptr"
 
-	bsv1alpha1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha1"
+	bsv1 "redhat-developer/red-hat-developer-hub-operator/api/v1alpha2"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stretchr/testify/assert"
 )
 
-var dbSecretBackstage = &bsv1alpha1.Backstage{
+var dbSecretBackstage = &bsv1.Backstage{
 	ObjectMeta: metav1.ObjectMeta{
 		Name:      "bs",
 		Namespace: "ns123",
 	},
-	Spec: bsv1alpha1.BackstageSpec{
-		Database: &bsv1alpha1.Database{
+	Spec: bsv1.BackstageSpec{
+		Database: &bsv1.Database{
 			EnableLocalDb: ptr.To(false),
 		},
 	},
@@ -50,7 +51,7 @@ func TestEmptyDbSecret(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, model.LocalDbSecret)
-	assert.Equal(t, DbSecretDefaultName(bs.Name), model.LocalDbSecret.secret.Name)
+	assert.Equal(t, fmt.Sprintf("backstage-psql-secret-%s", bs.Name), model.LocalDbSecret.secret.Name)
 
 	dbss := model.localDbStatefulSet
 	assert.NotNil(t, dbss)
@@ -68,7 +69,7 @@ func TestDefaultWithGeneratedSecrets(t *testing.T) {
 	model, err := InitObjects(context.TODO(), bs, testObj.externalConfig, true, false, testObj.scheme)
 
 	assert.NoError(t, err)
-	assert.Equal(t, DbSecretDefaultName(bs.Name), model.LocalDbSecret.secret.Name)
+	assert.Equal(t, fmt.Sprintf("backstage-psql-secret-%s", bs.Name), model.LocalDbSecret.secret.Name)
 	//should be generated
 	//	assert.NotEmpty(t, model.LocalDbSecret.secret.StringData["POSTGRES_USER"])
 	//	assert.NotEmpty(t, model.LocalDbSecret.secret.StringData["POSTGRES_PASSWORD"])

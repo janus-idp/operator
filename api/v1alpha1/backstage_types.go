@@ -197,6 +197,7 @@ type BackstageStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:deprecatedversion:warning="Since 1.3.0 spec.application.image, spec.application.replicas, spec.application.imagePullSecrets are deprecated in favor of corresponding spec.deployment fields"
 
 // Backstage is the Schema for the backstages API
 type Backstage struct {
@@ -259,6 +260,8 @@ type TLS struct {
 	// chain. Do not include a CA certificate. The secret referenced should
 	// be present in the same namespace as that of the Route.
 	// Forbidden when `certificate` is set.
+	// Note that securing Routes with external certificates in TLS secrets is a Technology Preview feature in OpenShift,
+	// and requires enabling the `RouteExternalCertificate` OpenShift Feature Gate and might not be functionally complete.
 	// +optional
 	ExternalCertificateSecretName string `json:"externalCertificateSecretName,omitempty"`
 
